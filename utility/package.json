@@ -1,0 +1,35 @@
+{
+  "name": "@codebite/utility",
+  "main": "./index.js",
+  "version": "1.0.0",
+  "description": "Utility functions and classes to support @codebite packages.",
+  "author": "Gianluca Romeo <glromeo@gmail.com> (https://github.com/glromeo/codebite)",
+  "license": "MIT",
+  "files": [
+    "/index.js"
+  ],
+  "keywords": [
+    "utility"
+  ],
+  "bugs": {
+    "url": "https://github.com/glromeo/codebite/issues"
+  },
+  "homepage": "https://github.com/glromeo/codebite#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/glromeo/codebite.git"
+  },
+  "dependencies": {
+    "chalk": "^2.4.2"
+  },
+  "devDependencies": {
+    "@types/benchmark": "^1.0.33",
+    "@types/jest": "^26.0.0",
+    "@types/node": "^14.6.4",
+    "benchmark": "^2.1.4",
+    "jest": "^26.4.2"
+  },
+  "scripts": {
+    "test": "jest --coverage"
+  }
+}

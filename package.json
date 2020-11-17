@@ -1,0 +1,34 @@
+{
+  "name": "@codebite/workspace",
+  "version": "1.0.0",
+  "description": "Make javascript development fun again!",
+  "main": "index.js",
+  "license": "MIT",
+  "private": true,
+  "workspaces": [
+    "components",
+    "demo",
+    "es-next-server",
+    "logger",
+    "node_modules",
+    "router",
+    "snapshot",
+    "utility",
+    "web-modules",
+    "workbench",
+    "testing"
+  ],
+  "devDependencies": {
+    "@types/benchmark": "^1.0.33",
+    "@types/jest": "^26.0.5",
+    "@types/node": "^14.0.24",
+    "@types/node-fetch": "^2.3.7",
+    "benchmark": "^2.1.4",
+    "coveralls": "^3.1.0",
+    "jest": "^26.4.2",
+    "linkfs": "^2.1.0",
+    "memfs": "^3.2.0",
+    "node-fetch": "^2.6.0",
+    "unionfs": "^4.4.0"
+  }
+}

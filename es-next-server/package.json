@@ -1,0 +1,102 @@
+{
+  "name": "es-next-server",
+  "version": "1.0.0",
+  "description": "A node http2 server for fun...",
+  "author": "Gianluca Romeo <glromeo@gmail.com> (https://github.com/glromeo/codebite)",
+  "license": "MIT",
+  "main": "./lib/index.js",
+  "files": [
+    "/cert/codebite.pem",
+    "/cert/localhost.key",
+    "/cert/localhost.crt",
+    "/lib",
+    "/resources"
+  ],
+  "bin": {
+    "es-next-server": "./lib/cli.js"
+  },
+  "keywords": [
+    "http2",
+    "server",
+    "node",
+    "babel"
+  ],
+  "bugs": {
+    "url": "https://github.com/glromeo/codebite/issues"
+  },
+  "homepage": "https://github.com/glromeo/codebite/tree/master/es-next-server",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/glromeo/codebite.git"
+  },
+  "dependencies": {
+    "@babel/core": "^7.10.5",
+    "@babel/plugin-syntax-dynamic-import": "^7.2.0",
+    "@babel/plugin-syntax-import-meta": "^7.10.4",
+    "@babel/plugin-transform-runtime": "^7.10.5",
+    "@babel/runtime": "^7.10.5",
+    "@rollup/plugin-commonjs": "^14.0.0",
+    "@rollup/plugin-json": "^4.1.0",
+    "@rollup/plugin-node-resolve": "^8.4.0",
+    "chokidar": "^3.4.1",
+    "cors": "^2.8.5",
+    "cucumber": "^6.0.5",
+    "deepmerge": "^4.2.2",
+    "etag": "^1.8.1",
+    "fast-decode-uri-component": "^1.0.1",
+    "fast-url-parser": "^1.1.3",
+    "find-my-way": "^3.0.1",
+    "glob": "^7.1.6",
+    "he": "^1.2.0",
+    "htmlparser2": "^4.1.0",
+    "http-proxy": "^1.18.1",
+    "http-status-codes": "^1.3.2",
+    "jest": "^26.4.2",
+    "micromatch": "^4.0.2",
+    "mime-db": "^1.44.0",
+    "node-sass": "^4.12.0",
+    "qs": "^6.9.4",
+    "resolve": "^1.12.0",
+    "rollup": "^2.22.1",
+    "rollup-plugin-sourcemaps": "^0.6.2",
+    "rollup-plugin-terser": "^6.1.0",
+    "router": "^1.3.5",
+    "ws": "^7.3.1",
+    "yargs": "^16.0.3"
+  },
+  "peerDependencies": {
+    "@codebite/logger": "^3.0.0",
+    "@codebite/utility": "^1.0.0",
+    "@codebite/web-modules": "^1.0.0"
+  },
+  "devDependencies": {
+    "@babel/plugin-proposal-class-properties": "^7.10.4",
+    "@babel/plugin-proposal-decorators": "^7.10.5",
+    "@babel/preset-typescript": "^7.10.4",
+    "@types/babel__core": "^7.1.9",
+    "@types/benchmark": "^1.0.33",
+    "@types/connect": "^3.4.33",
+    "@types/http-proxy": "^1.17.4",
+    "@types/jest": "^26.0.5",
+    "@types/node": "^14.0.24",
+    "@types/node-fetch": "^2.3.7",
+    "@types/node-sass": "^4.11.1",
+    "@types/qs": "^6.9.3",
+    "@types/yargs": "^15.0.5",
+    "benchmark": "^2.1.4",
+    "coveralls": "^3.1.0",
+    "jest": "^26.4.2",
+    "linkfs": "^2.1.0",
+    "memfs": "^3.2.0",
+    "node-fetch": "^2.6.0",
+    "unionfs": "^4.4.0"
+  },
+  "scripts": {
+    "all": "yarn install && cd test/fixture && yarn install && cd ../../demo && yarn install",
+    "demo": "node lib/cli.js --root ./demo",
+    "prof": "node --prof lib/cli.js --root ./demo",
+    "inspect": "node --inspect lib/cli.js --root ./demo",
+    "test": "jest --coverage --detectOpenHandles",
+    "coveralls": "cat ./coverage/lcov.info | node node_modules/.bin/coveralls"
+  }
+}
