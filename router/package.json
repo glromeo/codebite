@@ -1,0 +1,46 @@
+{
+  "name": "@codebite/router",
+  "version": "1.0.0",
+  "description": "A high-performance URL router",
+  "author": "Gianluca Romeo <glromeo@gmail.com> (https://github.com/glromeo/codebite/logger)",
+  "license": "MIT",
+  "main": "Router.js",
+  "files": [
+    "Router.js"
+  ],
+  "engines": {
+    "node": ">=12"
+  },
+  "keywords": [
+    "router",
+    "fast",
+    "performance",
+    "url"
+  ],
+  "nyc": {
+    "reporter": [
+      "html",
+      "text-summary"
+    ],
+    "check-coverage": true,
+    "branches": 100,
+    "lines": 100,
+    "statements": 100
+  },
+  "dependencies": {
+    "object-treeify": "^1.1.20"
+  },
+  "devDependencies": {
+    "@types/benchmark": "^2.1.0",
+    "@types/node": "^14.14.7",
+    "benchmark": "^2.1.4",
+    "coveralls": "^3.0.7",
+    "jest": "^26.6.3",
+    "mocha": "^8.2.1",
+    "nyc": "^15.1.0"
+  },
+  "scripts": {
+    "test": "nyc mocha",
+    "coveralls": "nyc report --reporter=text-lcov | coveralls"
+  }
+}
