@@ -146,9 +146,9 @@ class Router {
     }
 
     debugTree() {
-        return require("object-treeify")(debugNode(this.rootNode))
-            .replace(/^.{3}/gm, ""); // Remove the first 3 characters of every line
+        return require("object-treeify")(debugNode(this.rootNode)).replace(/^.{3}/gm, "");
     }
+
 }
 
 function matchRoute(url, urlLength, node, startIndex) {
