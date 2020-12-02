@@ -1,12 +1,13 @@
 {
-  "name": "@codebite/utility",
+  "name": "esnext-server-extras",
   "main": "./index.js",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Utility functions and classes to support @codebite packages.",
   "author": "Gianluca Romeo <glromeo@gmail.com> (https://github.com/glromeo/codebite)",
   "license": "MIT",
   "files": [
-    "/index.js"
+    "/index.js",
+    "/lib"
   ],
   "keywords": [
     "utility"
