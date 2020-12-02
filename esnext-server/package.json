@@ -1,6 +1,6 @@
 {
   "name": "esnext-server",
-  "version": "0.4.6",
+  "version": "0.4.7",
   "description": "A node http2 server for fun...",
   "author": "Gianluca Romeo <glromeo@gmail.com> (https://github.com/glromeo/codebite)",
   "license": "MIT",
@@ -10,7 +10,8 @@
     "/cert/localhost.key",
     "/cert/localhost.crt",
     "/lib",
-    "/resources"
+    "/resources",
+    "/esnext-server.config.js"
   ],
   "bin": {
     "esnext-server": "./lib/cli.js"
