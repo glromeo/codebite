@@ -1,6 +1,6 @@
 describe("resource cache", function () {
 
-    const log = require("@codebite/logger");
+    const log = require("tiny-node-logger");
 
     const {useFixture} = require("fixture/index.js");
     const {server: {start, stop}, fetch, watcher, resolve} = useFixture({

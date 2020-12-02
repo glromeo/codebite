@@ -1,11 +1,11 @@
-const log = require("@codebite/logger");
+const log = require("tiny-node-logger");
 
 const HttpStatus = require("http-status-codes");
 const corsMiddleware = require("cors");
 const {createRouter} = require("./router.js");
 const {useResourceProvider} = require("./providers/resource-provider.js");
 const {useHttp2Push} = require("./util/http2-push.js");
-const {contentType} = require("@codebite/utility");
+const {contentType} = require("esnext-server-extras");
 
 module.exports.createRequestHandler = (config = require("../es-next-server.config.js"), watcher) => {
 

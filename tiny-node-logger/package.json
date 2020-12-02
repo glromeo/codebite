@@ -1,12 +1,13 @@
 {
-  "name": "@codebite/logger",
+  "name": "tiny-node-logger",
   "main": "./index.js",
   "version": "3.0.0",
   "description": "A simple log utility for node which uses process stdout write instead of console.",
   "author": "Gianluca Romeo <glromeo@gmail.com> (https://github.com/glromeo/codebite/logger)",
   "license": "MIT",
   "files": [
-    "/index.js"
+    "/index.js",
+    "/index.d.ts"
   ],
   "keywords": [
     "logging",

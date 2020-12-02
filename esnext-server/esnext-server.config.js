@@ -102,7 +102,7 @@ module.exports = args => {
         babel: {
             babelrc: true,
             caller: {
-                name: "es-next-dev-server",
+                name: "esnext-server",
                 supportsStaticESM: true
             },
             sourceType: "module",

@@ -1,4 +1,4 @@
-const log = require("@codebite/logger");
+const log = require("tiny-node-logger");
 const fastGlob = require("fast-glob");
 const fs = require("fs");
 const path = require("path");

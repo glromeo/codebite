@@ -1,4 +1,4 @@
-const log = require("@codebite/logger");
+const log = require("tiny-node-logger");
 const {expect} = require("chai");
 const {config: {rootDir}} = require("esnext-server");
 const {readdirSync, unlinkSync, readFileSync, existsSync, createReadStream} = require("fs");

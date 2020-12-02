@@ -66,10 +66,10 @@
     "yargs": "^16.1.1"
   },
   "peerDependencies": {
-    "@codebite/logger": "^3.0.0",
-    "@codebite/router": "^1.0.0",
-    "@codebite/utility": "^1.0.0",
-    "@codebite/web-modules": "^1.0.0"
+    "tiny-node-logger": "^3.0.0",
+    "esnext-server-router": "^1.0.0",
+    "esnext-server-extras": "^0.1.0",
+    "web-modules": "^2.0.0"
   },
   "devDependencies": {
     "@babel/plugin-proposal-class-properties": "^7.10.4",

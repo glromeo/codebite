@@ -1,11 +1,11 @@
-const log = require("@codebite/logger");
+const log = require("tiny-node-logger");
 const chalk = require("chalk");
 const picomatch = require("picomatch");
 const etag = require("etag");
-const {memoize} = require("@codebite/utility");
+const {memoize} = require("esnext-server-extras");
 const {parse: parseURL} = require("fast-url-parser");
 const {relative, resolve} = require("path");
-const {toPosix} = require("@codebite/utility");
+const {toPosix} = require("esnext-server-extras");
 const {useBabelTransformer} = require("../transformers/babel-transformer.js");
 const {useHtmlTransformer} = require("../transformers/html-transformer.js");
 const {ResourceCache} = require("./resource-cache.js");
@@ -19,7 +19,7 @@ const {
     CSS_CONTENT_TYPE,
     JAVASCRIPT_CONTENT_TYPE,
     TYPESCRIPT_CONTENT_TYPE
-} = require("@codebite/utility");
+} = require("esnext-server-extras");
 
 module.exports.useResourceProvider = memoize(function (config, watcher) {
 

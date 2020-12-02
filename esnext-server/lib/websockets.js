@@ -1,4 +1,4 @@
-const log = require("@codebite/logger");
+const log = require("tiny-node-logger");
 
 const WebSocket = require("ws");
 

@@ -1,10 +1,10 @@
-const log = require("@codebite/logger");
+const log = require("tiny-node-logger");
 
 const path = require("path");
 const util = require("util");
 const zlib = require("zlib");
 
-const {JSON_CONTENT_TYPE} = require("@codebite/utility");
+const {JSON_CONTENT_TYPE} = require("esnext-server-extras");
 
 /**
  * This Map is used to find out which urls needs to be invalidated in the cache when a file changes in the FS

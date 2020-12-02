@@ -1,9 +1,9 @@
-const log = require("@codebite/logger");
-const {memoize} = require("@codebite/utility");
-const {useWebModulesPlugin} = require("@codebite/web-modules");
+const log = require("tiny-node-logger");
+const {memoize} = require("esnext-server-extras");
+const {useWebModulesPlugin} = require("plugin-web-modules");
 const {transformFromAstSync} = require("@babel/core");
 const {parseSync} = require("@babel/core");
-const {JAVASCRIPT_CONTENT_TYPE} = require("@codebite/utility");
+const {JAVASCRIPT_CONTENT_TYPE} = require("esnext-server-extras");
 
 const path = require("path");
 

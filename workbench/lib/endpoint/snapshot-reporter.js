@@ -1,4 +1,4 @@
-const log = require("@codebite/logger");
+const log = require("tiny-node-logger");
 const {basename, join, parse} = require("path");
 const {readFileSync, writeFileSync} = require("fs");
 const {parse: parseURL} = require("fast-url-parser");

@@ -10,7 +10,7 @@ log.write = function (item) {
 
 const outcomes = [];
 
-new Benchmark.Suite("@codebite/logger")
+new Benchmark.Suite("tiny-node-logger")
 
     // .add("console.log", function () {
     //     console.log("hello world!", 123456, "abc", new Date(), {abc: 123}, new Error());

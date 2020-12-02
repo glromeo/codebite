@@ -1,6 +1,6 @@
 const {expect, spy, mockRequire} = require("@codebite/testing");
 
-describe("@codebite/logger", function () {
+describe("tiny-node-logger", function () {
 
     mockRequire("chalk", new Proxy({}, {
         get: (target, p) => target[p] || (target[p] = text => p + "[" + text + "]")
@@ -8,7 +8,7 @@ describe("@codebite/logger", function () {
 
     const chalk = require("chalk");
 
-    const log = require("@codebite/logger");
+    const log = require("tiny-node-logger");
     const {
         colors,
         trace,

@@ -1,6 +1,6 @@
 'use strict';
 
-const Router = require('../../Router');
+const Router = require('../../index');
 
 function createRouter(paths) {
   const router = new Router();

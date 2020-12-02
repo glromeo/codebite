@@ -1,10 +1,10 @@
-const log = require("@codebite/logger");
-const {memoize} = require("@codebite/utility");
+const log = require("tiny-node-logger");
+const {memoize} = require("esnext-server-extras");
 const http2 = require("http2");
 const HttpStatus = require("http-status-codes");
 const path = require("path");
 const {useResourceProvider} = require("../providers/resource-provider.js");
-const {toPosix} = require("@codebite/utility");
+const {toPosix} = require("esnext-server-extras");
 
 const {
     HTTP2_HEADER_PATH,

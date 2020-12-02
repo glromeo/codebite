@@ -16,7 +16,7 @@ describe("sass importer", function () {
     const {useSassImporter} = require("../lib/util/sass-importer.js");
     const {sassImporter} = useSassImporter({}, watcher);
 
-    const log = require("@codebite/logger");
+    const log = require("tiny-node-logger");
 
     it("simple", async function () {
 

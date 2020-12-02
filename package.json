@@ -7,17 +7,15 @@
   "private": true,
   "workspaces": [
     "components",
-    "demo",
     "esnext-server",
-    "logger",
-    "node_modules",
-    "router",
+    "esnext-server-extras",
+    "esnext-server-router",
+    "examples/example-react-app",
+    "plugin-web-modules",
     "snapshot",
-    "utility",
-    "web-modules",
-    "workbench",
     "testing",
-    "examples/example-react-app"
+    "tiny-node-logger",
+    "workbench"
   ],
   "devDependencies": {
     "@types/benchmark": "^2.1.0",

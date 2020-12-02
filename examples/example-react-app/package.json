@@ -12,13 +12,10 @@
   },
   "devDependencies": {
     "@codebite/workbench": "^1.0.0",
-    "esnext-server": "^1.0.0"
+    "esnext-server": "^0.4.6"
   },
   "scripts": {
     "serve": "esnext-server"
-  },
-  "eslintConfig": {
-    "extends": "react-app"
   },
   "browserslist": {
     "production": [

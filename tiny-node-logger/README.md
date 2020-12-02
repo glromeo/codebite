@@ -16,7 +16,7 @@ npm i @codebite/logger
 ### Usage
 One can log using function calls
 ```javascript
-const log = require("@codebite/logger");
+const log = require("tiny-node-logger");
 
 log("Hello world!")
 ```
@@ -26,7 +26,7 @@ log`Hello world!`
 ```
 In both cases instead of a generic log one can use a specific level
 ```javascript
-const {trace, debug, info, warn, error, setLevel} = require("@codebite/logger");
+const {trace, debug, info, warn, error, setLevel} = require("tiny-node-logger");
 
 setLevel("trace"); // otherwise defaults to "info"
 
@@ -43,7 +43,7 @@ produces the following output (indicatively):
 ### Details
 The following example enables the details and uses method calls as an alternative to function calls
 ```javascript
-  1 |  const log = require("@codebite/logger");
+  1 |  const log = require("tiny-node-logger");
   2 |  
   3 |  log.level = "trace";
   4 |  

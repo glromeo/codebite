@@ -1,8 +1,17 @@
 {
-  "name": "@codebite/web-modules",
+  "name": "plugin-web-modules",
   "version": "1.0.0",
   "main": "index.js",
   "license": "MIT",
+  "files": [
+    "/index.js",
+    "/lib"
+  ],
+  "keywords": [
+    "web-modules",
+    "babel",
+    "plugin"
+  ],
   "dependencies": {
     "@babel/core": "^7.12.9",
     "@babel/plugin-syntax-dynamic-import": "^7.2.0",
@@ -27,9 +36,9 @@
     "unionfs": "^4.4.0"
   },
   "peerDependencies": {
-    "@codebite/logger": "^3.0.0",
-    "@codebite/utility": "^1.0.0",
-    "chalk": "^2.4.2"
+    "chalk": "^2.4.2",
+    "esnext-server-extras": "^0.1.0",
+    "tiny-node-logger": "^3.0.0"
   },
   "scripts": {
     "all": "yarn install && cd test/fixture && yarn install",

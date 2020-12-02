@@ -1,5 +1,5 @@
-const log = require("@codebite/logger");
-const {memoize} = require("@codebite/utility");
+const log = require("tiny-node-logger");
+const {memoize} = require("esnext-server-extras");
 const sass = require("node-sass");
 
 const {useSassImporter} = require("../util/sass-importer.js");
@@ -7,7 +7,7 @@ const {useSassImporter} = require("../util/sass-importer.js");
 const {
     JAVASCRIPT_CONTENT_TYPE,
     CSS_CONTENT_TYPE
-} = require("@codebite/utility");
+} = require("esnext-server-extras");
 
 const cssResultModule = cssText => `\
 import {css} from "/web_modules/lit-element/lit-element.js";

@@ -1,4 +1,4 @@
-const log = require("@codebite/logger");
+const log = require("tiny-node-logger");
 const {parse: parseURL} = require("fast-url-parser");
 
 const snapshotMiddleware = require("./lib/endpoint/snapshot-reporter.js");

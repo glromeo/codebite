@@ -1,4 +1,4 @@
-const log = require("@codebite/logger");
+const log = require("tiny-node-logger");
 const chalk = require("chalk");
 
 const chokidar = require("chokidar");

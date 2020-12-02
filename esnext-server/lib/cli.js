@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-const log = require("@codebite/logger");
+const log = require("tiny-node-logger");
 const {configure} = require("./configure.js");
 const {startServer} = require("./server.js");
 

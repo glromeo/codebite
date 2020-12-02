@@ -1,10 +1,10 @@
-const log = require("@codebite/logger");
+const log = require("tiny-node-logger");
 const path = require("path");
-const {memoize} = require("@codebite/utility");
-const {isBare} = require("@codebite/utility");
+const {memoize} = require("esnext-server-extras");
+const {isBare} = require("esnext-server-extras");
 const {useBabelTransformer} = require("./babel-transformer.js");
-const {useWebModules} = require("@codebite/web-modules");
-const {HTML_CONTENT_TYPE} = require("@codebite/utility");
+const {useWebModules} = require("plugin-web-modules");
+const {HTML_CONTENT_TYPE} = require("esnext-server-extras");
 const htmlparser2 = require("htmlparser2");
 const {escape} = require("he");
 

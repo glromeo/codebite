@@ -1,12 +1,12 @@
 {
-  "name": "@codebite/router",
+  "name": "esnext-server-router",
   "version": "1.0.0",
   "description": "A high-performance URL router",
   "author": "Gianluca Romeo <glromeo@gmail.com> (https://github.com/glromeo/codebite/logger)",
   "license": "MIT",
-  "main": "Router.js",
+  "main": "index.js",
   "files": [
-    "Router.js"
+    "index.js"
   ],
   "engines": {
     "node": ">=12"

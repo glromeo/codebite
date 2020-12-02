@@ -1,5 +1,5 @@
-const log = require("@codebite/logger");
-const {memoize} = require("@codebite/utility");
+const log = require("tiny-node-logger");
+const {memoize} = require("esnext-server-extras");
 
 const path = require("path");
 const fs = require("fs");

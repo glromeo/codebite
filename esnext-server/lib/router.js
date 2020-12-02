@@ -1,4 +1,4 @@
-const log = require("@codebite/logger");
+const log = require("tiny-node-logger");
 const httpProxy = require("http-proxy");
 const findMyWay = require("find-my-way");
 

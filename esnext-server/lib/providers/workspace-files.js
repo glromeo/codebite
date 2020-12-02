@@ -1,9 +1,9 @@
-const log = require("@codebite/logger");
-const {parsePathname} = require("@codebite/utility");
-const {useWebModules} = require("@codebite/web-modules");
+const log = require("tiny-node-logger");
+const {parsePathname} = require("esnext-server-extras");
+const {useWebModules} = require("plugin-web-modules");
 const {existsSync, readdirSync, promises: fs} = require("fs");
 const path = require("path");
-const mime = require("@codebite/utility");
+const mime = require("esnext-server-extras");
 
 const HttpStatus = require("http-status-codes");
 

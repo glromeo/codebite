@@ -1,6 +1,6 @@
 "use strict";
 
-const Router = require("../Router");
+const Router = require("../index");
 
 const assert = require("assert").strict;
 const createRouter = require("./helpers/createRouter");

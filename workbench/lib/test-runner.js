@@ -1,5 +1,5 @@
 #! /usr/bin/env node
-const log = require("@codebite/logger");
+const log = require("tiny-node-logger");
 const puppeteer = require("puppeteer");
 const path = require("path");
 const fs = require("fs");

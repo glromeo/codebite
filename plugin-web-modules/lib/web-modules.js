@@ -1,8 +1,8 @@
-const log = require("@codebite/logger");
+const log = require("tiny-node-logger");
 const chalk = require("chalk");
 
-const {memoize} = require("@codebite/utility");
-const {quickParseURL, isBare, nodeModuleBareUrl, parsePathname, toPosix} = require("@codebite/utility");
+const {memoize} = require("esnext-server-extras");
+const {quickParseURL, isBare, nodeModuleBareUrl, parsePathname, toPosix} = require("esnext-server-extras");
 const {mkdirSync, rmdirSync, existsSync, promises: fs} = require("fs");
 const path = require("path");
 const {posix} = path;
