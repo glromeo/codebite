@@ -1,6 +1,6 @@
 {
   "name": "esnext-server",
-  "version": "1.0.0",
+  "version": "0.4.6",
   "description": "A node http2 server for fun...",
   "author": "Gianluca Romeo <glromeo@gmail.com> (https://github.com/glromeo/codebite)",
   "license": "MIT",
@@ -86,7 +86,7 @@
     "@types/yargs": "^15.0.10",
     "benchmark": "^2.1.4",
     "coveralls": "^3.1.0",
-    "jest": "^26.4.2",
+    "jest": "^26.6.3",
     "linkfs": "^2.1.0",
     "memfs": "^3.2.0",
     "node-fetch": "^2.6.0",
