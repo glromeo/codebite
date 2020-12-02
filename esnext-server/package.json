@@ -1,6 +1,6 @@
 {
   "name": "esnext-server",
-  "version": "0.4.7",
+  "version": "0.4.8",
   "description": "A node http2 server for fun...",
   "author": "Gianluca Romeo <glromeo@gmail.com> (https://github.com/glromeo/codebite)",
   "license": "MIT",
@@ -66,9 +66,9 @@
     "yargs": "^16.1.1"
   },
   "peerDependencies": {
-    "tiny-node-logger": "^3.0.0",
-    "esnext-server-router": "^1.0.0",
     "esnext-server-extras": "^0.1.0",
+    "esnext-server-router": "^1.0.0",
+    "tiny-node-logger": "^3.0.0",
     "web-modules": "^2.0.0"
   },
   "devDependencies": {
