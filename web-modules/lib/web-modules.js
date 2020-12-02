@@ -369,7 +369,8 @@ module.exports.useWebModules = memoize(config => {
 
     const pluginNodeResolve = createPluginNodeResolve({
         rootDir,
-        customResolveOptions
+        moduleDirectories: customResolveOptions.paths,
+        extensions: customResolveOptions.extensions
     });
     const pluginCommonjs = createPluginCommonjs();
     const pluginTerser = web_modules.terser && createPluginTerser(web_modules.terser);

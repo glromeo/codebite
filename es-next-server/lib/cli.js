@@ -10,7 +10,7 @@ async function main() {
     const CANNOT_EXECUTE = 126;
 
     try {
-        const args = require("yargs")
+        const args = require('yargs')
             .scriptName("es-next-server")
             .usage("$0 <cmd> [args]")
             .option("config", {
@@ -33,8 +33,15 @@ async function main() {
                 description: "debug",
                 type: "boolean"
             })
+            .option("production", {
+                alias: ["p"],
+                description: "production mode",
+                type: "boolean"
+            })
             .help()
             .alias("help", "h").argv;
+
+        process.env.NODE_ENV = args.production ? "production" : "development";
 
         const config = configure(args);
 
