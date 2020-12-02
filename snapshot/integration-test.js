@@ -1,6 +1,6 @@
 const log = require("@codebite/logger");
 const {expect} = require("chai");
-const {config: {rootDir}} = require("es-next-server");
+const {config: {rootDir}} = require("esnext-server");
 const {readdirSync, unlinkSync, readFileSync, existsSync, createReadStream} = require("fs");
 const http = require("http");
 const path = require("path");

@@ -2,7 +2,7 @@ const sass = require("node-sass");
 const path = require("path");
 const {sync: resolve} = require("resolve");
 
-const {useSassImporter} = require("../es-next-server/lib/util/sass-importer.js");
+const {useSassImporter} = require("../esnext-server/lib/util/sass-importer.js");
 
 const cssResultModule = cssText => `\
 import {css} from "lit-element";

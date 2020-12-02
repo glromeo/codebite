@@ -2,7 +2,7 @@ describe("web modules", function () {
 
     const fs = require("fs");
     const path = require("path");
-    const {configure} = require("es-next-server/lib/configure.js");
+    const {configure} = require("esnext-server/lib/configure.js");
     const {useWebModules} = require("../lib/web-modules.js");
 
     const fixturedir = path.join(__dirname, "fixture");
@@ -108,8 +108,8 @@ describe("web modules", function () {
         );
 
         // absolute files are resolved from root rootDir
-        await expect(resolveImport(basedir, "/es-next-server.config.js")).resolves.toBe(
-            "/es-next-server.config.js"
+        await expect(resolveImport(basedir, "/esnext-server.config.js")).resolves.toBe(
+            "/esnext-server.config.js"
         );
         // ...even if they miss their ext
         await expect(resolveImport(basedir, "/src/broken")).resolves.toBe(

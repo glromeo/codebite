@@ -2,7 +2,7 @@ const log = require("@codebite/logger");
 const path = require("path");
 const merge = require("deepmerge");
 
-const createConfig = require("../es-next-server.config");
+const createConfig = require("../esnext-server.config");
 
 function loadConfig(pathname) {
     try {
@@ -26,7 +26,7 @@ const mergeConfig = (target = {}, source = {}) => merge(target, source, {
 
 function loadPlugin(module) {
     try {
-        return require(`${module}/es-next-server.plugin`);
+        return require(`${module}/esnext-server.plugin`);
     } catch (error) {
         log.error("plugin", module, "load failed", error);
         throw new Error(`Unable to load plugin '${module}' from '${process.cwd()}'`);
@@ -40,8 +40,8 @@ module.exports.configure = function configure(args = {}, override) {
     if (args.config) {
         config = mergeConfig(config, loadConfig(args.config));
     } else {
-        const rootConfig = resolveConfig(path.join(config.rootDir, "es-next-server.config"));
-        const localConfig = resolveConfig("es-next-server.config");
+        const rootConfig = resolveConfig(path.join(config.rootDir, "esnext-server.config"));
+        const localConfig = resolveConfig("esnext-server.config");
         if (rootConfig) {
             if (localConfig !== rootConfig) {
                 config = mergeConfig(config, loadConfig(rootConfig));

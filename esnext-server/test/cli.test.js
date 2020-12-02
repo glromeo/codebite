@@ -16,7 +16,7 @@ describe("cli", function () {
 
         process.argv = [
             "node.exe",
-            "es-next-server",
+            "esnext-server",
             "--config",
             "test/fixture/cli/custom.config.js" // loadConfig uses resolve
         ];
@@ -34,7 +34,7 @@ describe("cli", function () {
 
         process.argv = [
             "node.exe",
-            "es-next-server",
+            "esnext-server",
             "--root",
             "test/fixture/cli" // root is a path from the process cwd
         ];
@@ -43,7 +43,7 @@ describe("cli", function () {
 
         expect(require("lib/server.js").startServer).toHaveBeenCalledWith(
             expect.objectContaining({
-                resources: path.resolve(__dirname, "fixture/cli/es-next-server.config/resources")
+                resources: path.resolve(__dirname, "fixture/cli/esnext-server.config/resources")
             })
         );
     });
@@ -52,7 +52,7 @@ describe("cli", function () {
 
         process.argv = [
             "node.exe",
-            "es-next-server",
+            "esnext-server",
             "--root",
             "demo",
             "--config",

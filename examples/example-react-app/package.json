@@ -12,10 +12,10 @@
   },
   "devDependencies": {
     "@codebite/workbench": "^1.0.0",
-    "es-next-server": "^1.0.0"
+    "esnext-server": "^1.0.0"
   },
   "scripts": {
-    "serve": "es-next-server"
+    "serve": "esnext-server"
   },
   "eslintConfig": {
     "extends": "react-app"

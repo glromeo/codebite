@@ -12,10 +12,10 @@
   },
   "devDependencies": {
     "@codebite/workbench": "^1.0.0",
-    "es-next-server": "^1.0.0"
+    "esnext-server": "^1.0.0"
   },
   "scripts": {
-    "showcase": "es-next-server --root .. --module @codebite/workbench -d",
+    "showcase": "esnext-server --root .. --module @codebite/workbench -d",
     "test": "test-runner --root .."
   }
 }

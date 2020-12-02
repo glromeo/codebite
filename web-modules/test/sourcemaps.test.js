@@ -50,7 +50,7 @@ describe("source maps", function f() {
         const out = transformFileSync(path.resolve(__dirname, "fixture/src/hello-world.mjs"), {
             babelrc: false,
             caller: {
-                name: "es-next-server",
+                name: "esnext-server",
                 supportsStaticESM: true
             },
             sourceType: "module",

@@ -82,8 +82,8 @@ describe("URL Tools", function () {
     it("nodeModuleBareUrl", async function () {
         expect(nodeModuleBareUrl("anode_modules/abc/def")).toEqual("anode_modules/abc/def");
         expect(nodeModuleBareUrl("\\node_modulesque\\abc\\def")).toEqual("/node_modulesque/abc/def");
-        expect(nodeModuleBareUrl(`C:\\es-next-server\\node_modules\\@babel\\core\\lib\\parse.js`)).toStrictEqual("@babel/core/lib/parse.js");
-        expect(nodeModuleBareUrl("/es-next-server/node_modules/@babel/core/lib/parse.js")).toStrictEqual("@babel/core/lib/parse.js");
+        expect(nodeModuleBareUrl(`C:\\esnext-server\\node_modules\\@babel\\core\\lib\\parse.js`)).toStrictEqual("@babel/core/lib/parse.js");
+        expect(nodeModuleBareUrl("/esnext-server/node_modules/@babel/core/lib/parse.js")).toStrictEqual("@babel/core/lib/parse.js");
     });
 
 

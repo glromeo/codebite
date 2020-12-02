@@ -5,7 +5,7 @@ In this monorepo there are a number of projects I worked on to create a web deve
 
 ## *ES NEXT SERVER*
 
-With **es-next-server** (inspired by [es-dev-server](https://github.com/open-wc/open-wc/tree/master/packages/es-dev-server)) you can serve the content and the code in your project applying any required transformation on the fly. You can use [babel](https://babeljs.io/) and [sass](https://sass-lang.com/) out of the box, just configure them for the feature you need and the server will apply the transformation when serving the files to the browser. The server uses babel by deafault to recognise and translate node module imports into **web_module** imports. 
+With **esnext-server** (inspired by [es-dev-server](https://github.com/open-wc/open-wc/tree/master/packages/es-dev-server)) you can serve the content and the code in your project applying any required transformation on the fly. You can use [babel](https://babeljs.io/) and [sass](https://sass-lang.com/) out of the box, just configure them for the feature you need and the server will apply the transformation when serving the files to the browser. The server uses babel by deafault to recognise and translate node module imports into **web_module** imports. 
 
 ## *WORKBENCH*
 

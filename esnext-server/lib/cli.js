@@ -11,7 +11,7 @@ async function main() {
 
     try {
         const args = require('yargs')
-            .scriptName("es-next-server")
+            .scriptName("esnext-server")
             .usage("$0 <cmd> [args]")
             .option("config", {
                 alias: ["c"],

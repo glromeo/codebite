@@ -32,7 +32,7 @@ describe("configure", function () {
         const baseDir = process.cwd();
         const rootDir = path.resolve("test/fixture/configure/default");
 
-        expect(baseDir).toMatch("es-next-server");
+        expect(baseDir).toMatch("esnext-server");
 
         expect(configure({root: "test/fixture/configure/default"})).toMatchObject({
             baseDir,
@@ -96,7 +96,7 @@ describe("configure", function () {
         fs.unlinkSync(pathname);
     });
 
-    it("loads es-next-server.config if present", function () {
+    it("loads esnext-server.config if present", function () {
         expect(configure({root: "test/fixture/configure/present"})).toMatchObject({log: {level: "warn"}});
     });
 

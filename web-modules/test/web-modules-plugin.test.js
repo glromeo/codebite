@@ -10,7 +10,7 @@ describe("plugin-web-modules", function () {
         return ufs;
     });
 
-    const {configure} = require("es-next-server/lib/configure.js");
+    const {configure} = require("esnext-server/lib/configure.js");
     const {useWebModulesPlugin} = require("../lib/web-modules-plugin.js");
 
     const fixtureDir = `${process.cwd()}/test/fixture`;
@@ -19,7 +19,7 @@ describe("plugin-web-modules", function () {
         babel: {
             babelrc: true,
             caller: {
-                name: "es-next-server",
+                name: "esnext-server",
                 supportsStaticESM: true
             },
             sourceType: "module",

@@ -1,4 +1,4 @@
-# es-next-server
+# esnext-server
 Your companion for a quick and fun web development 
 
 ## Features

@@ -6,9 +6,9 @@ const fs = require("fs");
 
 const HttpStatus = require("http-status-codes");
 
-const {configure} = require("es-next-server/lib/configure.js");
-const {createWatcher} = require("es-next-server/lib/watcher.js");
-const {useResourceProvider} = require("es-next-server/lib/resource-provider.js");
+const {configure} = require("esnext-server/lib/configure.js");
+const {createWatcher} = require("esnext-server/lib/watcher.js");
+const {useResourceProvider} = require("esnext-server/lib/resource-provider.js");
 
 const WS_CONFIG_FILE = "websockets.config.js";
 
@@ -54,7 +54,7 @@ const args = require("yargs")
     const headless = !args.interactive;
     const devtools = args.devtools;
 
-    const config = configure(args, {...require("../es-next-server.plugin.js")});
+    const config = configure(args, {...require("../esnext-server.plugin.js")});
 
     const watcher = createWatcher(config);
 

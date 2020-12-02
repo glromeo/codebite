@@ -1,8 +1,8 @@
 /**
  * This module is meant to be used when running workbench locally, for testing purposes.
- * Third party projects use workbench by specifying the module as argument to the es-next-server:
+ * Third party projects use workbench by specifying the module as argument to the esnext-server:
  *
- * es-next-server --module @codebite/workbench
+ * esnext-server --module @codebite/workbench
  */
 
 module.exports = {

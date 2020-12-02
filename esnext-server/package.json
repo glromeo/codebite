@@ -1,5 +1,5 @@
 {
-  "name": "es-next-server",
+  "name": "esnext-server",
   "version": "1.0.0",
   "description": "A node http2 server for fun...",
   "author": "Gianluca Romeo <glromeo@gmail.com> (https://github.com/glromeo/codebite)",
@@ -13,7 +13,7 @@
     "/resources"
   ],
   "bin": {
-    "es-next-server": "./lib/cli.js"
+    "esnext-server": "./lib/cli.js"
   },
   "keywords": [
     "http2",
@@ -24,7 +24,7 @@
   "bugs": {
     "url": "https://github.com/glromeo/codebite/issues"
   },
-  "homepage": "https://github.com/glromeo/codebite/tree/master/es-next-server",
+  "homepage": "https://github.com/glromeo/codebite/tree/master/esnext-server",
   "repository": {
     "type": "git",
     "url": "https://github.com/glromeo/codebite.git"

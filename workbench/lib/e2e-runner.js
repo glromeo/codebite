@@ -2,8 +2,8 @@
 const log = require("@codebite/logger");
 const puppeteer = require("puppeteer");
 
-const {configure} = require("es-next-server/lib/configure.js");
-const {startServer} = require("es-next-server/lib/server.js");
+const {configure} = require("esnext-server/lib/configure.js");
+const {startServer} = require("esnext-server/lib/server.js");
 
 const args = require("yargs")
     .scriptName("test-runner")
@@ -48,7 +48,7 @@ const args = require("yargs")
     const devtools = args.devtools;
 
     const config = configure(args, {
-        ...require("../es-next-server.plugin.js"),
+        ...require("../esnext-server.plugin.js"),
         server: {
             port: 4000
         }

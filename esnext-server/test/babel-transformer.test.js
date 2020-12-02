@@ -8,7 +8,7 @@ describe("babel transformer", function () {
         //     babel: {
         //         babelrc: false,
         //         caller: {
-        //             name: "es-next-server",
+        //             name: "esnext-server",
         //             supportsStaticESM: true
         //         },
         //         sourceType: "module",
