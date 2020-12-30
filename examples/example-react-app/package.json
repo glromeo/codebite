@@ -3,16 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "@babel/preset-react": "^7.12.7",
+    "@babel/preset-react": "^7.12.10",
     "@testing-library/jest-dom": "^5.11.6",
     "@testing-library/react": "^11.2.2",
-    "@testing-library/user-event": "^12.3.0",
+    "@testing-library/user-event": "^12.6.0",
     "react": "^17.0.1",
     "react-dom": "^17.0.1"
   },
   "devDependencies": {
     "@codebite/workbench": "^1.0.0",
-    "esnext-server": "^0.4.6"
+    "esnext-server": "^0.5.0"
   },
   "scripts": {
     "serve": "esnext-server"

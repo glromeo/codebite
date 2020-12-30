@@ -1,6 +1,6 @@
 const log = require("tiny-node-logger");
 const {parsePathname} = require("esnext-server-extras");
-const {useWebModules} = require("plugin-web-modules");
+const {useWebModules} = require("esnext-web-modules");
 const {existsSync, readdirSync, promises: fs} = require("fs");
 const path = require("path");
 const mime = require("esnext-server-extras");
@@ -14,7 +14,7 @@ module.exports.useWorkspaceFiles = config => {
         mount = {}
     } = config;
 
-    const {resolveWebModule} = useWebModules(config);
+    const {rollupWebModule} = useWebModules(config);
 
     const regExp = /\/[^/?]+/;
 
@@ -23,25 +23,28 @@ module.exports.useWorkspaceFiles = config => {
         if (match) {
             const segment = match[0];
             if (segment === "/web_modules") {
-                const {module, filename} = parsePathname(pathname.substring(13));
 
-                log.debug`resolving: ${module}/${filename}`;
+                // const {module, filename} = parsePathname(pathname.substring(13));
+                //
+                // log.debug`resolving: ${module}/${filename}`;
+                //
+                // const webPkg = await resolveImport(module);
+                // const resolved = await webPkg.resolve(filename);
+                //
+                // if (webPkg.local) {
+                //     return {route: "/", filename: path.join(rootDir, resolved)};
+                // }
 
-                const webPkg = await resolveWebModule(module);
-                const resolved = await webPkg.resolve(filename);
-
-                if (webPkg.local) {
-                    return {route: "/", filename: path.join(rootDir, resolved)};
-                }
-
-                if (resolved !== filename)
-                    throw {
-                        code: HttpStatus.PERMANENT_REDIRECT,
-                        headers: {"location": path.posix.join(segment, module, resolved)}
-                    };
+                // if (resolved !== filename)
+                //     throw {
+                //         code: HttpStatus.PERMANENT_REDIRECT,
+                //         headers: {"location": path.posix.join(segment, module, resolved)}
+                //     };
 
                 return {route: segment, filename: path.join(rootDir, pathname)};
 
+            } else if (segment === "/workspaces") {
+                return {route: segment, filename: path.join(rootDir, pathname.substring("/workspaces".length))};
             } else if (mount[segment]) {
                 return {route: segment, filename: path.join(mount[segment], pathname.substring(segment.length))};
             }
@@ -54,6 +57,13 @@ module.exports.useWorkspaceFiles = config => {
         const {route, filename} = await resolve(pathname);
 
         const stats = await fs.stat(filename).catch(error => {
+            if (error.code === "ENOENT") {
+                if (route === "/web_modules") {
+                    return rollupWebModule(pathname.substring(13)).then(() => fs.stat(filename));
+                }
+            }
+            throw error;
+        }).catch(error => {
             if (error.code === "ENOENT") {
                 if (pathname === "/favicon.ico") {
                     throw {code: HttpStatus.PERMANENT_REDIRECT, headers: {"location": "/resources/javascript.png"}};

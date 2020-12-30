@@ -100,6 +100,10 @@ module.exports.ResourceCache = class extends Map {
 
     storeSourceMap(url, map) {
         const content = JSON.stringify(map);
+        const questionMark = url.indexOf("?");
+        if (questionMark > 0) {
+            url = url.substring(0, questionMark);
+        }
         super.set(url + ".map", {
             content: content,
             headers: {

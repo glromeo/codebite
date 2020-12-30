@@ -13,7 +13,7 @@ describe("web modules", function () {
         resolveImport,
         resolveWebModule,
         rollupWebModule
-    } = useWebModules(configure({root: fixturedir}, {web_modules: {standalone: ["mocha"]}}));
+    } = useWebModules(configure({root: fixturedir}, {web_modules: {terser: false, standalone: ["mocha"]}}));
 
     beforeEach(function () {
         modules.init();
@@ -273,4 +273,5 @@ describe("web modules", function () {
         const webPkg = await rollupWebModule("mocha", "browser-entry.js");
         console.log(webPkg);
     });
+
 });

@@ -88,10 +88,15 @@ module.exports.useResourceProvider = memoize(function (config, watcher) {
             }
         }
 
-        const {
+        let {
             pathname,
             query
         } = parseURL(url, true);
+
+        if (pathname.endsWith(".scss.js")||pathname.endsWith(".sass.js")||pathname.endsWith(".css.js")) {
+            pathname = pathname.slice(0, -3);
+            query.type = "module";
+        }
 
         let {
             filename,

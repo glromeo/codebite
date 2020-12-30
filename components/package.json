@@ -12,7 +12,7 @@
   },
   "devDependencies": {
     "@codebite/workbench": "^1.0.0",
-    "esnext-server": "^0.4.6"
+    "esnext-server": "^0.5.0"
   },
   "scripts": {
     "showcase": "esnext-server --root .. --module @codebite/workbench -d",

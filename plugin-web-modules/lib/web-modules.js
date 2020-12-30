@@ -32,7 +32,11 @@ module.exports.useWebModules = memoize(config => {
         return "/" + toPosix(path.relative(rootDir, pathname));
     }
 
-    const customResolveOptions = {basedir: rootDir, paths: nodeModules, extensions: [".mjs", ".js", ".ts"]};
+    const customResolveOptions = {
+        basedir: rootDir,
+        paths: nodeModules,
+        extensions: [".mjs", ".js", ".jsx", ".ts", ".tsx"]
+    };
 
     if (config.clean) {
         rmdirSync(webModules, {recursive: true});
@@ -309,7 +313,6 @@ module.exports.useWebModules = memoize(config => {
         const moduleCache = new Map();
 
         for (const module of modules) {
-
             const moduleUrl = nodeModuleBareUrl(module.id);
             moduleCache.set(moduleUrl, module);
 
@@ -408,7 +411,25 @@ module.exports.useWebModules = memoize(config => {
         const bundle = await rollup.rollup({
             input: `${module}/${filename}`,
             plugins: [
-                !standalone.has(module) && {
+                standalone.has(module) ? {
+                    resolveId(source) {
+                        const first = source.split("/")[0];
+                        if (first === "@babel") {
+                            if (source === "@babel/runtime/regenerator") {
+                                return {id: "node_modules/@babel/runtime/regenerator/index.js", external: false};
+                            } else {
+                                return {id: "node_modules/" + source + ".js", external: false};
+                            }
+                        }
+                        if (module !== first && first === "react") {
+                            return {id: "/web_modules/react/index.js", external: true};
+                        }
+                        if (module !== first && first === "react-dom") {
+                            return {id: "/web_modules/react-dom/index.js", external: true};
+                        }
+                        return null;
+                    }
+                } : {
                     name: "rollup-plugin-rewrite-web-modules",
                     resolveId(source, from) {
                         if (isValidPathname(source) && isValidPathname(from)) {

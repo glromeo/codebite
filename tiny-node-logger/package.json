@@ -1,7 +1,7 @@
 {
   "name": "tiny-node-logger",
   "main": "./index.js",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "A simple log utility for node which uses process stdout write instead of console.",
   "author": "Gianluca Romeo <glromeo@gmail.com> (https://github.com/glromeo/codebite/logger)",
   "license": "MIT",
@@ -39,6 +39,6 @@
     "sinon": "^9.2.1"
   },
   "scripts": {
-    "test": "mocha sample.test.js"
+    "test": "mocha unit.test.js"
   }
 }

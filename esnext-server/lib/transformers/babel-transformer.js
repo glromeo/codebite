@@ -1,6 +1,6 @@
 const log = require("tiny-node-logger");
 const {memoize} = require("esnext-server-extras");
-const {useWebModulesPlugin} = require("plugin-web-modules");
+const {useWebModulesPlugin} = require("esnext-web-modules");
 const {transformFromAstSync} = require("@babel/core");
 const {parseSync} = require("@babel/core");
 const {JAVASCRIPT_CONTENT_TYPE} = require("esnext-server-extras");

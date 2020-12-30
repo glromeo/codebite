@@ -44,3 +44,8 @@ Unless otherwise specified the server uses the process current working directory
 > This directory is particularly important because every file access is performed relative to it.
 
 If you specify a config file on the command line and that file has a rootDir 
+
+### Assumptions / Best Practices
+
+* The source files **must** be esm modules. You can import 3rd party esm and cjs modules but you are not supposed to use `require(...)` in your code.
+If you need to dynamically import a module try and use `await import(...)` instead. 

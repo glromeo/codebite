@@ -1,6 +1,6 @@
 import {Chalk} from "chalk";
 
-declare type Log = (...parts: any[]) => void;
+declare type Log = (strings:TemplateStringsArray|string, ...keys: any[]) => void;
 
 declare type Level =
     "trace" | "debug" | "info" | "warn" | "error" | "nothing" |

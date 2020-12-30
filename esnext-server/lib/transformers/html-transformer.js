@@ -3,7 +3,7 @@ const path = require("path");
 const {memoize} = require("esnext-server-extras");
 const {isBare} = require("esnext-server-extras");
 const {useBabelTransformer} = require("./babel-transformer.js");
-const {useWebModules} = require("plugin-web-modules");
+const {useWebModules} = require("esnext-web-modules");
 const {HTML_CONTENT_TYPE} = require("esnext-server-extras");
 const htmlparser2 = require("htmlparser2");
 const {escape} = require("he");
@@ -63,7 +63,7 @@ module.exports.useHtmlTransformer = memoize(config => {
                     if (attribs.type === "module") {
                         if (attribs.src) {
                             html.push(
-                                resolveImport(dirname, attribs.src).then(relativeUrl => {
+                                resolveImport(attribs.src, dirname).then(relativeUrl => {
                                     if (!isBare(relativeUrl)) {
                                         imports.add(relativeUrl);
                                     }

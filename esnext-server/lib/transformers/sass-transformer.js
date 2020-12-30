@@ -10,7 +10,7 @@ const {
 } = require("esnext-server-extras");
 
 const cssResultModule = cssText => `\
-import {css} from "/web_modules/lit-element/lit-element.js";
+import {css} from "/web_modules/lit-element.js";
 export default css\`
 ${cssText.replace(/([$`\\])/g, "\\$1")}\`;
 `;

@@ -90,7 +90,7 @@ module.exports = args => {
         },
 
         mount: {
-            "/": rootDir
+            "/": rootDir,
         },
 
         middleware: [],

@@ -75,5 +75,10 @@ module.exports.configure = function configure(args = {}, override) {
 
     log.debug("configured:", config);
 
+    config.resolve = config.resolve || {
+        paths: [path.join(config.rootDir, "node_modules")]
+    };
+    config.squash = config.squash || ["@babel/runtime/**","smooth-scrollbar"];
+
     return Object.freeze(config);
 };
