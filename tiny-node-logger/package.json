@@ -39,6 +39,6 @@
     "sinon": "^9.2.1"
   },
   "scripts": {
-    "test": "mocha unit.test.js"
+    "test": "mocha tiny-node-logger.test.js"
   }
 }
