@@ -1,5 +1,4 @@
 const log = require("tiny-node-logger");
-const {parsePathname} = require("esnext-server-extras");
 const {useWebModules} = require("esnext-web-modules");
 const {existsSync, readdirSync, promises: fs} = require("fs");
 const path = require("path");

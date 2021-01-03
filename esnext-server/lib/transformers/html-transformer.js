@@ -1,7 +1,6 @@
 const log = require("tiny-node-logger");
 const path = require("path");
 const {memoize} = require("esnext-server-extras");
-const {isBare} = require("esnext-server-extras");
 const {useBabelTransformer} = require("./babel-transformer.js");
 const {useWebModules} = require("esnext-web-modules");
 const {HTML_CONTENT_TYPE} = require("esnext-server-extras");
@@ -64,9 +63,7 @@ module.exports.useHtmlTransformer = memoize(config => {
                         if (attribs.src) {
                             html.push(
                                 resolveImport(attribs.src, dirname).then(relativeUrl => {
-                                    if (!isBare(relativeUrl)) {
-                                        imports.add(relativeUrl);
-                                    }
+                                    imports.add(relativeUrl);
                                     attribs.src = relativeUrl;
                                     return openTag(name, attribs);
                                 })

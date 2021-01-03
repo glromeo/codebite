@@ -4,7 +4,6 @@ const http2 = require("http2");
 const HttpStatus = require("http-status-codes");
 const path = require("path");
 const {useResourceProvider} = require("../providers/resource-provider.js");
-const {toPosix} = require("esnext-server-extras");
 
 const {
     HTTP2_HEADER_PATH,

@@ -5,7 +5,6 @@ const etag = require("etag");
 const {memoize} = require("esnext-server-extras");
 const {parse: parseURL} = require("fast-url-parser");
 const {relative, resolve} = require("path");
-const {toPosix} = require("esnext-server-extras");
 const {useBabelTransformer} = require("../transformers/babel-transformer.js");
 const {useHtmlTransformer} = require("../transformers/html-transformer.js");
 const {ResourceCache} = require("./resource-cache.js");

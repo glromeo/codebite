@@ -2,7 +2,6 @@
   "name": "@codebite/workspace",
   "version": "1.0.0",
   "description": "Make javascript development fun again!",
-  "main": "index.js",
   "license": "MIT",
   "private": true,
   "workspaces": [
