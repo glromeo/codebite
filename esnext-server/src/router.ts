@@ -1,16 +1,16 @@
-import Router, {HTTPVersion} from "find-my-way";
+import Router, {Config, HTTPVersion, Req, Res} from "find-my-way";
 import Server from "http-proxy";
 import {ESNextOptions} from "./configure";
 
-export function createRouter(options: ESNextOptions, watcher) {
+export function createRouter<V extends HTTPVersion = HTTPVersion.V1>(options: ESNextOptions, watcher) {
 
-    const router = Router<HTTPVersion.V2>({
-        onBadUrl: (path, req, res) => {
+    const router = Router<V>({
+        onBadUrl(path:string, req: Req<V>, res: Res<V>) {
             res.statusCode = 400;
             res.end(`Malformed URL: ${path}`);
         },
         ...options.router
-    });
+    } as Config<V>);
 
     options.middleware.forEach(middleware => middleware(router, options, watcher));
 

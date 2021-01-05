@@ -5,8 +5,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createRequestHandler = void 0;
 const cors_1 = __importDefault(require("cors"));
+const fast_url_parser_1 = require("fast-url-parser");
+const fs_1 = require("fs");
 const http_status_codes_1 = __importDefault(require("http-status-codes"));
 const http2_1 = require("http2");
+const path_1 = require("path");
 const tiny_node_logger_1 = __importDefault(require("tiny-node-logger"));
 const resource_provider_1 = require("./providers/resource-provider");
 const router_1 = require("./router");
@@ -16,19 +19,32 @@ function createRequestHandler(options, watcher) {
     const { provideResource } = resource_provider_1.useResourceProvider(options, watcher);
     const { http2Push } = http2_push_1.useHttp2Push(options, watcher);
     const router = router_1.createRouter(options, watcher);
-    const { createReadStream } = require("fs");
-    const { join } = require("path");
-    const { parse: parseURL } = require("fast-url-parser");
-    router.get("/resources/*", (req, res) => {
-        const { pathname } = parseURL(req.url);
-        const filename = join(options.resources, pathname.substring(10));
+    /**
+     *   ____  _        _   _        ____
+     *  / ___|| |_ __ _| |_(_) ___  |  _ \ ___  ___  ___  _   _ _ __ ___ ___  ___
+     *  \___ \| __/ _` | __| |/ __| | |_) / _ \/ __|/ _ \| | | | '__/ __/ _ \/ __|
+     *   ___) | || (_| | |_| | (__  |  _ <  __/\__ \ (_) | |_| | | | (_|  __/\__ \
+     *  |____/ \__\__,_|\__|_|\___| |_| \_\___||___/\___/ \__,_|_|  \___\___||___/
+     *
+     */
+    router.get("/resources/*", function resourcesMiddleware(req, res) {
+        const { pathname } = fast_url_parser_1.parse(req.url);
+        const filename = path_1.join(options.resources, pathname.substring(10));
         res.writeHead(http_status_codes_1.default.OK, {
             "content-type": mime_types_1.contentType(filename),
             "cache-control": "public, max-age=86400, immutable"
         });
-        createReadStream(filename).pipe(res);
+        fs_1.createReadStream(filename).pipe(res);
     });
-    router.get("/*", async (req, res) => {
+    /**
+     *  __        __         _                               ____
+     *  \ \      / /__  _ __| | _____ _ __   __ _  ___ ___  |  _ \ ___  ___  ___  _   _ _ __ ___ ___  ___
+     *   \ \ /\ / / _ \| '__| |/ / __| '_ \ / _` |/ __/ _ \ | |_) / _ \/ __|/ _ \| | | | '__/ __/ _ \/ __|
+     *    \ V  V / (_) | |  |   <\__ \ |_) | (_| | (_|  __/ |  _ <  __/\__ \ (_) | |_| | | | (_|  __/\__ \
+     *     \_/\_/ \___/|_|  |_|\_\___/ .__/ \__,_|\___\___| |_| \_\___||___/\___/ \__,_|_|  \___\___||___/
+     *                               |_|
+     */
+    router.get("/*", async function workspaceMiddleware(req, res) {
         tiny_node_logger_1.default.debug(req.method, req.url);
         try {
             const { pathname, content, headers, links } = await provideResource(req.url, req.headers);
@@ -71,6 +87,14 @@ function createRequestHandler(options, watcher) {
             }
         }
     });
+    /**
+     *    ____                      ___       _       _         __  __ _     _     _ _
+     *   / ___|_ __ ___  ___ ___   / _ \ _ __(_) __ _(_)_ __   |  \/  (_) __| | __| | | _____      ____ _ _ __ ___
+     *  | |   | '__/ _ \/ __/ __| | | | | '__| |/ _` | | '_ \  | |\/| | |/ _` |/ _` | |/ _ \ \ /\ / / _` | '__/ _ \
+     *  | |___| | | (_) \__ \__ \ | |_| | |  | | (_| | | | | | | |  | | | (_| | (_| | |  __/\ V  V / (_| | | |  __/
+     *   \____|_|  \___/|___/___/  \___/|_|  |_|\__, |_|_| |_| |_|  |_|_|\__,_|\__,_|_|\___| \_/\_/ \__,_|_|  \___|
+     *                                          |___/
+     */
     const cors = cors_1.default(options.cors);
     const next = (req, res) => function (err) {
         if (err) {
@@ -80,7 +104,7 @@ function createRequestHandler(options, watcher) {
             router.lookup(req, res);
         }
     };
-    return function handler(req, res) {
+    return function requestHandler(req, res) {
         cors(req, res, next(req, res));
     };
 }

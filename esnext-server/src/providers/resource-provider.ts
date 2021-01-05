@@ -20,7 +20,7 @@ const {
     CSS_CONTENT_TYPE,
     JAVASCRIPT_CONTENT_TYPE,
     TYPESCRIPT_CONTENT_TYPE
-} = require("esnext-server-extras");
+} = require("../util/mime-types");
 
 export const useResourceProvider = memoized(function (options: ESNextOptions, watcher: FSWatcher) {
 

@@ -8,7 +8,7 @@ const find_my_way_1 = __importDefault(require("find-my-way"));
 const http_proxy_1 = __importDefault(require("http-proxy"));
 function createRouter(options, watcher) {
     const router = find_my_way_1.default({
-        onBadUrl: (path, req, res) => {
+        onBadUrl(path, req, res) {
             res.statusCode = 400;
             res.end(`Malformed URL: ${path}`);
         },

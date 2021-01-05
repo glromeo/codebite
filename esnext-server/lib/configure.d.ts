@@ -7,6 +7,7 @@ import Router, { HTTPVersion } from "find-my-way";
 import Server from "http-proxy";
 import { SyncOptions } from "node-sass";
 import { ServerOptions } from "./server";
+export declare type FindMyWayMiddleware = (router: Router.Instance<HTTPVersion.V1 | HTTPVersion.V2>, options: ESNextOptions, watcher: FSWatcher) => void;
 export declare type ESNextOptions = WebModulesOptions & {
     rootDir: string;
     log?: {
@@ -16,10 +17,10 @@ export declare type ESNextOptions = WebModulesOptions & {
     };
     http2?: "push" | "preload" | false;
     server?: ServerOptions;
-    resources?: string;
+    resources: string;
     watcher?: WatchOptions;
-    router: Router.Config<HTTPVersion.V2>;
-    middleware: ((router: Router.Instance<HTTPVersion.V2>, options: ESNextOptions, watcher: FSWatcher) => void)[];
+    router: Router.Config<HTTPVersion.V1 | HTTPVersion.V2>;
+    middleware: FindMyWayMiddleware[];
     proxy: {
         [path: string]: Server.ServerOptions;
     };

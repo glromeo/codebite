@@ -11,6 +11,12 @@ import path from "path";
 import log from "tiny-node-logger";
 import {ServerOptions} from "./server";
 
+export type FindMyWayMiddleware = (
+    router: Router.Instance<HTTPVersion.V1 | HTTPVersion.V2>,
+    options: ESNextOptions,
+    watcher: FSWatcher
+) => void;
+
 export type ESNextOptions = WebModulesOptions & {
     rootDir: string
     log?: {
@@ -20,10 +26,10 @@ export type ESNextOptions = WebModulesOptions & {
     }
     http2?: "push" | "preload" | false
     server?: ServerOptions
-    resources?: string
+    resources: string
     watcher?: WatchOptions
-    router: Router.Config<HTTPVersion.V2>
-    middleware: ((router: Router.Instance<HTTPVersion.V2>, options: ESNextOptions, watcher: FSWatcher) => void)[]
+    router: Router.Config<HTTPVersion.V1 | HTTPVersion.V2>
+    middleware: FindMyWayMiddleware[]
     proxy: { [path: string]: Server.ServerOptions }
     cors: CorsOptions
     etag: Options
@@ -33,7 +39,7 @@ export type ESNextOptions = WebModulesOptions & {
         include: string | string[]
         exclude: string | string[]
     }
-    mount: {[path: string]: string}
+    mount: { [path: string]: string }
     babel: TransformOptions
     sass: SyncOptions
 }

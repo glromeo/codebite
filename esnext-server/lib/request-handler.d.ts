@@ -1,7 +1,4 @@
-/// <reference types="node" />
 import { FSWatcher } from "chokidar";
-import { IncomingMessage, OutgoingMessage } from "http";
-import { Http2ServerRequest, Http2ServerResponse } from "http2";
+import Router, { Req, Res } from "find-my-way";
 import { ESNextOptions } from "./configure";
-export declare type RequestHandler = (request: IncomingMessage | Http2ServerRequest, response: OutgoingMessage | Http2ServerResponse) => void;
-export declare function createRequestHandler(options: ESNextOptions, watcher: FSWatcher): RequestHandler;
+export declare function createRequestHandler<V extends Router.HTTPVersion = Router.HTTPVersion.V1>(options: ESNextOptions, watcher: FSWatcher): (req: Req<V>, res: Res<V>) => void;

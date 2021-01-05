@@ -1,11 +1,12 @@
 import {FSWatcher} from "chokidar";
+import Router, {Handler, HTTPVersion} from "find-my-way";
 import {Server as HttpServer} from "http";
 import {Http2Server} from "http2";
 import {Server as HttpsServer} from "https";
 import {Socket} from "net";
 import log from "tiny-node-logger";
 import {ESNextOptions} from "./configure";
-import {createRequestHandler, RequestHandler} from "./request-handler";
+import {createRequestHandler} from "./request-handler";
 import {createWatcher} from "./watcher";
 import {createWebSockets} from "./websockets";
 
@@ -29,7 +30,7 @@ export const DEFAULT_SERVER_OPTIONS: ServerOptions = {
 
 export type Services = {
     watcher?: FSWatcher
-    handler?: RequestHandler
+    handler?: Handler<HTTPVersion.V1|HTTPVersion.V2>
 }
 
 export async function startServer(options: ESNextOptions, services: Services = {}) {
