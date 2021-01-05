@@ -35,9 +35,9 @@ module.exports = {
 
         const log = require("@codebite/logger");
 
-        const {configure} = require("../../lib/configure.js");
-        const {createWatcher} = require("../../lib/watcher.js");
-        const {startServer} = require("../../lib/server.js");
+        const {configure} = require("../../src/configure.ts");
+        const {createWatcher} = require("../../src/watcher.ts");
+        const {startServer} = require("../../src/server.ts");
         const fetch = require("node-fetch");
         const https = require("https");
         const fs = require("fs");

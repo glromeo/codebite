@@ -1,28 +1,23 @@
-const log = require("tiny-node-logger");
-const {useWebModules} = require("esnext-web-modules");
-const {existsSync, readdirSync, promises: fs} = require("fs");
-const path = require("path");
-const mime = require("esnext-server-extras");
-
-const HttpStatus = require("http-status-codes");
-
-module.exports.useWorkspaceFiles = config => {
-
-    const {
-        rootDir = process.cwd(),
-        mount = {}
-    } = config;
-
-    const {rollupWebModule} = useWebModules(config);
-
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.useWorkspaceFiles = void 0;
+const esnext_web_modules_1 = require("esnext-web-modules");
+const fs_1 = require("fs");
+const http_status_codes_1 = __importDefault(require("http-status-codes"));
+const path_1 = __importDefault(require("path"));
+const mime_types_1 = require("../util/mime-types");
+function useWorkspaceFiles(config) {
+    const { rootDir = process.cwd(), mount = {} } = config;
+    const { rollupWebModule } = esnext_web_modules_1.useWebModules(config);
     const regExp = /\/[^/?]+/;
-
     async function resolve(pathname) {
         const match = regExp.exec(pathname);
         if (match) {
             const segment = match[0];
             if (segment === "/web_modules") {
-
                 // const {module, filename} = parsePathname(pathname.substring(13));
                 //
                 // log.debug`resolving: ${module}/${filename}`;
@@ -33,62 +28,61 @@ module.exports.useWorkspaceFiles = config => {
                 // if (webPkg.local) {
                 //     return {route: "/", filename: path.join(rootDir, resolved)};
                 // }
-
                 // if (resolved !== filename)
                 //     throw {
                 //         code: HttpStatus.PERMANENT_REDIRECT,
                 //         headers: {"location": path.posix.join(segment, module, resolved)}
                 //     };
-
-                return {route: segment, filename: path.join(rootDir, pathname)};
-
-            } else if (segment === "/workspaces") {
-                return {route: segment, filename: path.join(rootDir, pathname.substring("/workspaces".length))};
-            } else if (mount[segment]) {
-                return {route: segment, filename: path.join(mount[segment], pathname.substring(segment.length))};
+                return { route: segment, filename: path_1.default.join(rootDir, pathname) };
+            }
+            else if (segment === "/workspaces") {
+                return { route: segment, filename: path_1.default.join(rootDir, pathname.substring("/workspaces".length)) };
+            }
+            else if (mount[segment]) {
+                return { route: segment, filename: path_1.default.join(mount[segment], pathname.substring(segment.length)) };
             }
         }
-        return {route: "/", filename: path.join(rootDir, pathname)};
+        return { route: "/", filename: path_1.default.join(rootDir, pathname) };
     }
-
     async function readWorkspaceFile(pathname) {
-
-        const {route, filename} = await resolve(pathname);
-
-        const stats = await fs.stat(filename).catch(error => {
+        const { route, filename } = await resolve(pathname);
+        const stats = await fs_1.promises.stat(filename).catch(error => {
             if (error.code === "ENOENT") {
                 if (route === "/web_modules") {
-                    return rollupWebModule(pathname.substring(13)).then(() => fs.stat(filename));
+                    return rollupWebModule(pathname.substring(13)).then(() => fs_1.promises.stat(filename));
                 }
             }
             throw error;
         }).catch(error => {
             if (error.code === "ENOENT") {
                 if (pathname === "/favicon.ico") {
-                    throw {code: HttpStatus.PERMANENT_REDIRECT, headers: {"location": "/resources/javascript.png"}};
-                } else {
-                    throw {code: HttpStatus.NOT_FOUND, message: error.stack};
+                    throw { code: http_status_codes_1.default.PERMANENT_REDIRECT, headers: { "location": "/resources/javascript.png" } };
                 }
-            } else {
-                throw {code: HttpStatus.INTERNAL_SERVER_ERROR, message: error.stack};
+                else {
+                    throw { code: http_status_codes_1.default.NOT_FOUND, message: error.stack };
+                }
+            }
+            else {
+                throw { code: http_status_codes_1.default.INTERNAL_SERVER_ERROR, message: error.stack };
             }
         });
-
         if (stats.isDirectory()) {
             let location;
             try {
-                const {home} = require(path.resolve(filename, "package.json"));
-                location = path.posix.join(pathname, home || "index.html");
-            } catch (ignored) {
-                location = path.posix.join(pathname, "index.html");
+                const { home } = require(path_1.default.resolve(filename, "package.json"));
+                location = path_1.default.posix.join(pathname, home || "index.html");
             }
-            throw {code: HttpStatus.PERMANENT_REDIRECT, headers: {"location": location}};
-        } else {
+            catch (ignored) {
+                location = path_1.default.posix.join(pathname, "index.html");
+            }
+            throw { code: http_status_codes_1.default.PERMANENT_REDIRECT, headers: { "location": location } };
+        }
+        else {
             return {
                 filename,
-                content: await fs.readFile(filename, "UTF-8"),
+                content: await fs_1.promises.readFile(filename, "utf-8"),
                 headers: {
-                    "content-type": mime.contentType(filename),
+                    "content-type": mime_types_1.contentType(filename),
                     "content-length": stats.size,
                     "last-modified": stats.mtime.toUTCString(),
                     "cache-control": route === "/web_modules" ? "public, max-age=86400, immutable" : "no-cache"
@@ -96,8 +90,9 @@ module.exports.useWorkspaceFiles = config => {
             };
         }
     }
-
     return {
         readWorkspaceFile
     };
-};
+}
+exports.useWorkspaceFiles = useWorkspaceFiles;
+//# sourceMappingURL=workspace-files.js.map

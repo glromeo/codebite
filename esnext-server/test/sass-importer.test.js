@@ -13,7 +13,7 @@ describe("sass importer", function () {
     const sass = require("node-sass");
     const sassRender = promisify(sass.render);
 
-    const {useSassImporter} = require("../lib/util/sass-importer.js");
+    const {useSassImporter} = require("../src/util/sass-importer.ts");
     const {sassImporter} = useSassImporter({}, watcher);
 
     const log = require("tiny-node-logger");

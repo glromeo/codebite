@@ -1,40 +1,31 @@
-const log = require("tiny-node-logger");
-const chalk = require("chalk");
-const picomatch = require("picomatch");
-const etag = require("etag");
-const {memoize} = require("esnext-server-extras");
-const {parse: parseURL} = require("fast-url-parser");
-const {relative, resolve} = require("path");
-const {useBabelTransformer} = require("../transformers/babel-transformer.js");
-const {useHtmlTransformer} = require("../transformers/html-transformer.js");
-const {ResourceCache} = require("./resource-cache.js");
-const {useSassTransformer} = require("../transformers/sass-transformer.js");
-const {useWorkspaceFiles} = require("./workspace-files.js");
-
-const {
-    HTML_CONTENT_TYPE,
-    SASS_CONTENT_TYPE,
-    SCSS_CONTENT_TYPE,
-    CSS_CONTENT_TYPE,
-    JAVASCRIPT_CONTENT_TYPE,
-    TYPESCRIPT_CONTENT_TYPE
-} = require("esnext-server-extras");
-
-module.exports.useResourceProvider = memoize(function (config, watcher) {
-
-    const cache = config.cache && new ResourceCache(config, watcher);
-
-    const {readWorkspaceFile} = useWorkspaceFiles(config);
-    const {htmlTransformer} = useHtmlTransformer(config);
-    const {babelTransformer} = useBabelTransformer(config, true);
-    const {sassTransformer} = useSassTransformer(config);
-
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.useResourceProvider = void 0;
+const chalk_1 = __importDefault(require("chalk"));
+const etag_1 = __importDefault(require("etag"));
+const fast_url_parser_1 = require("fast-url-parser");
+const nano_memoize_1 = __importDefault(require("nano-memoize"));
+const picomatch_1 = __importDefault(require("picomatch"));
+const tiny_node_logger_1 = __importDefault(require("tiny-node-logger"));
+const babel_transformer_1 = require("../transformers/babel-transformer");
+const html_transformer_1 = require("../transformers/html-transformer");
+const sass_transformer_1 = require("../transformers/sass-transformer");
+const resource_cache_1 = require("../util/resource-cache");
+const workspace_files_1 = require("./workspace-files");
+const { HTML_CONTENT_TYPE, SASS_CONTENT_TYPE, SCSS_CONTENT_TYPE, CSS_CONTENT_TYPE, JAVASCRIPT_CONTENT_TYPE, TYPESCRIPT_CONTENT_TYPE } = require("esnext-server-extras");
+exports.useResourceProvider = nano_memoize_1.default(function (options, watcher) {
+    const cache = options.cache && new resource_cache_1.ResourceCache(options, watcher);
+    const { readWorkspaceFile } = workspace_files_1.useWorkspaceFiles(options);
+    const { htmlTransformer } = html_transformer_1.useHtmlTransformer(options);
+    const { babelTransformer } = babel_transformer_1.useBabelTransformer(options, true);
+    const { sassTransformer } = sass_transformer_1.useSassTransformer(options);
     function formatHrtime(hrtime) {
         return (hrtime[0] + (hrtime[1] / 1e9)).toFixed(3);
     }
-
     const pendingTasks = new Map();
-
     function transformResource(contentType, filename, content, query) {
         const key = query.type !== undefined ? `${query.type}:${filename}` : filename;
         let task = pendingTasks.get(key);
@@ -57,19 +48,16 @@ module.exports.useResourceProvider = memoize(function (config, watcher) {
                 task = task.catch(error => {
                     error.message = `unable to transform: ${filename}\n${error.message}`;
                     throw error;
-                }).finally(out => {
+                }).finally(() => {
                     pendingTasks.delete(key);
-                    return out;
                 });
                 pendingTasks.set(key, task);
             }
         }
         return task;
     }
-
-    const include = config.transform && config.transform.include && picomatch(config.transform.include);
-    const exclude = config.transform && config.transform.exclude && picomatch(config.transform.exclude);
-
+    const include = options.transform && options.transform.include && picomatch_1.default(options.transform.include);
+    const exclude = options.transform && options.transform.exclude && picomatch_1.default(options.transform.exclude);
     /**
      *
      * @param url
@@ -77,34 +65,21 @@ module.exports.useResourceProvider = memoize(function (config, watcher) {
      * @param userAgent
      * @returns {Promise<{headers: *, filename: *, watch: *, query: ({type}|*), links: *, content: *, pathname: any}|V>}
      */
-    async function provideResource(url, {"accept": accept, "user-agent": userAgent}) {
-
+    async function provideResource(url, { "accept": accept, "user-agent": userAgent }) {
         if (cache) {
             const cached = cache.get(url);
             if (cached !== undefined) {
-                log.debug("retrieved from cache:", chalk.magenta(url));
+                tiny_node_logger_1.default.debug("retrieved from cache:", chalk_1.default.magenta(url));
                 return cached;
             }
         }
-
-        let {
-            pathname,
-            query
-        } = parseURL(url, true);
-
-        if (pathname.endsWith(".scss.js")||pathname.endsWith(".sass.js")||pathname.endsWith(".css.js")) {
+        let { pathname, query } = fast_url_parser_1.parse(url, true);
+        if (pathname.endsWith(".scss.js") || pathname.endsWith(".sass.js") || pathname.endsWith(".css.js")) {
             pathname = pathname.slice(0, -3);
             query.type = "module";
         }
-
-        let {
-            filename,
-            content,
-            headers,
-            links,
-            watch
-        } = await readWorkspaceFile(pathname);
-
+        let { filename, content, headers } = await readWorkspaceFile(pathname);
+        let links, watch;
         let transform = headers["x-transformer"] !== "none" && headers["cache-control"] === "no-cache" || query.type;
         if (transform && include) {
             transform = include(pathname);
@@ -112,7 +87,6 @@ module.exports.useResourceProvider = memoize(function (config, watcher) {
         if (transform && exclude) {
             transform = !exclude(pathname);
         }
-
         if (transform) {
             const hrtime = process.hrtime();
             const transformed = await transformResource(headers["content-type"], filename, content, query);
@@ -129,9 +103,7 @@ module.exports.useResourceProvider = memoize(function (config, watcher) {
                 watch = transformed.watch;
             }
         }
-
-        headers["etag"] = etag(`${pathname} ${headers["content-length"]} ${headers["last-modified"]}`, config.etag);
-
+        headers["etag"] = etag_1.default(`${pathname} ${headers["content-length"]} ${headers["last-modified"]}`, options.etag);
         const resource = {
             pathname,
             query,
@@ -141,16 +113,13 @@ module.exports.useResourceProvider = memoize(function (config, watcher) {
             links,
             watch
         };
-
         if (cache) {
             cache.set(url, resource);
         }
-
         return resource;
     }
-
     return {
         provideResource
     };
 });
-
+//# sourceMappingURL=resource-provider.js.map

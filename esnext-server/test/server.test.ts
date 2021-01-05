@@ -1,19 +1,19 @@
 describe("server", function () {
 
-    const {configure} = require("lib/configure.js");
+    const {configure} = require("lib/configure.ts");
 
     const http = require("http");
     const http2 = require("http2");
     const https = require("https");
 
     const {readFileSync} = require("fs");
-    const {startServer} = require("lib/server.js");
+    const {startServer} = require("lib/server.ts");
     const {contentText} = require("lib/util/content-utils.js");
     const fetch = require("node-fetch");
 
     const ca = readFileSync(`cert/codebite.pem`, "UTF-8");
 
-    jest.mock("lib/request-handler.js", function () {
+    jest.mock("lib/request-handler.ts", function () {
         return {
             createRequestHandler(config, watcher) {
                 expect(watcher).toBeDefined();

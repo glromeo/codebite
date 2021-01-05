@@ -2,7 +2,7 @@ describe("babel transformer", function () {
 
     // describe("unit tests", function () {
 
-        // const {useBabelTransformer} = require("lib/pipeline/babel-transformer.js");
+        // const {useBabelTransformer} = require("lib/pipeline/babel-transformer.ts");
         // const {babelTransformer} = useBabelTransformer({
         //     rootDir: `${__dirname}/fixture`,
         //     babel: {
@@ -52,7 +52,7 @@ describe("babel transformer", function () {
                 return response.text();
             });
 
-            expect(js).toContain("import gql from \"/web_modules/graphql-tag/src/index.js\";");
+            expect(js).toContain("import gql from \"/web_modules/graphql-tag/src/index.ts\";");
         });
 
         it("can transpile cjs to es2015", async function () {

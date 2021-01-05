@@ -1,6 +1,6 @@
 const cc = ch => ch.charCodeAt(0);
 
-module.exports = {
+export default {
     Tab: /*-----------------*/ cc("\t"),
     NewLine: /*-------------*/ cc("\n"),
     Space: /*---------------*/ cc(" "),

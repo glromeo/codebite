@@ -1,55 +1,54 @@
-const log = require("tiny-node-logger");
-const {memoize} = require("esnext-server-extras");
-const {useWebModulesPlugin} = require("esnext-web-modules");
-const {transformFromAstSync} = require("@babel/core");
-const {parseSync} = require("@babel/core");
-const {JAVASCRIPT_CONTENT_TYPE} = require("esnext-server-extras");
-
-const path = require("path");
-
-module.exports.useBabelTransformer = memoize((config, sourceMaps = false) => {
-
-    const {resolveImports, rewriteImports} = useWebModulesPlugin(config);
-
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.useBabelTransformer = void 0;
+const core_1 = require("@babel/core");
+const esnext_web_modules_1 = require("esnext-web-modules");
+const nano_memoize_1 = __importDefault(require("nano-memoize"));
+const path_1 = __importDefault(require("path"));
+const mime_types_1 = require("../util/mime-types");
+exports.useBabelTransformer = nano_memoize_1.default((options, sourceMaps = false) => {
+    const { resolveImports, rewriteImports } = esnext_web_modules_1.useWebModulesPlugin(options);
     async function babelTransformer(filename, content) {
-
-        const options = {
-            ...config.babel,
+        const babelOptions = {
+            ...options.babel,
             sourceMaps
         };
-
         const source = content;
-        const parsedAst = parseSync(source, options);
+        const parsedAst = core_1.parseSync(source, babelOptions);
         const importMap = await resolveImports(filename, parsedAst);
-
-        let {code, map, metadata: {imports}} = transformFromAstSync(parsedAst, source, {
-            ...options,
+        let { code, map, metadata } = core_1.transformFromAstSync(parsedAst, source, {
+            ...babelOptions,
             plugins: [
-                ...options.plugins,
-                [rewriteImports, {importMap}]
+                ...babelOptions.plugins,
+                [rewriteImports, { importMap }]
             ],
             filename: filename
         });
-
+        if (!code) {
+            throw new Error(`Babel transformer failed to transform: ${filename}`);
+        }
         if (map) {
-            code += "\n//# sourceMappingURL=" + path.basename(filename) + ".map\n";
-        } else {
+            code += "\n//# sourceMappingURL=" + path_1.default.basename(filename) + ".map\n";
+        }
+        else {
             code += "\n";
         }
-
         return {
             content: code,
             headers: {
-                "content-type": JAVASCRIPT_CONTENT_TYPE,
+                "content-type": mime_types_1.JAVASCRIPT_CONTENT_TYPE,
                 "content-length": Buffer.byteLength(code),
                 "x-transformer": "babel-transformer"
             },
             map,
-            links: imports
+            links: metadata["imports"]
         };
     }
-
     return {
         babelTransformer
     };
 });
+//# sourceMappingURL=babel-transformer.js.map

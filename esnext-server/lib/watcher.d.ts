@@ -1,3 +1,5 @@
-import {FSWatcher, WatchOptions} from "chokidar";
-
-declare function createWatcher(options: WatchOptions):FSWatcher;
+import { FSWatcher, WatchOptions } from "chokidar";
+export declare function createWatcher(options: {
+    rootDir: string;
+    watcher?: WatchOptions;
+}): FSWatcher;

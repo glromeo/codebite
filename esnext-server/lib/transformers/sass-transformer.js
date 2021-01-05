@@ -1,59 +1,51 @@
-const log = require("tiny-node-logger");
-const {memoize} = require("esnext-server-extras");
-const sass = require("node-sass");
-
-const {useSassImporter} = require("../util/sass-importer.js");
-
-const {
-    JAVASCRIPT_CONTENT_TYPE,
-    CSS_CONTENT_TYPE
-} = require("esnext-server-extras");
-
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.useSassTransformer = void 0;
+const nano_memoize_1 = __importDefault(require("nano-memoize"));
+const node_sass_1 = __importDefault(require("node-sass"));
+const mime_types_1 = require("../util/mime-types");
+const sass_importer_1 = require("../util/sass-importer");
 const cssResultModule = cssText => `\
 import {css} from "/web_modules/lit-element.js";
 export default css\`
 ${cssText.replace(/([$`\\])/g, "\\$1")}\`;
 `;
-
 const styleModule = cssText => `\
 document.head
     .appendChild(document.createElement("style"))
     .appendChild(document.createTextNode(\`
 ${cssText.replace(/([$`\\])/g, "\\$1")}\`));
 `;
-
-module.exports.useSassTransformer = memoize((config, watcher) => {
-
-    const {sassImporter} = useSassImporter(config, watcher);
-
-    const makeModule = config.sass.moduleType === "style" ? styleModule : cssResultModule;
-
+exports.useSassTransformer = nano_memoize_1.default((options) => {
+    const { sassImporter } = sass_importer_1.useSassImporter(options);
+    const makeModule = options.sass.moduleType === "style" ? styleModule : cssResultModule;
     async function sassTransformer(filename, content, type, userAgent) {
-
-        const {css, stats} = sass.renderSync({
-            ...config.sass,
+        const { css, stats } = node_sass_1.default.renderSync({
+            ...options.sass,
             data: content,
             importer: sassImporter(filename)
         });
-
         content = css.toString("utf-8");
         if (type === "module") {
             content = makeModule(content);
         }
-
+        // links is undefined since sass has already included the @imports so no need to push them
+        // yet we need the watch array to reload the module when an imported file has changed...
         return {
             content: content,
             headers: {
-                "content-type": type === "module" ? JAVASCRIPT_CONTENT_TYPE : CSS_CONTENT_TYPE,
+                "content-type": type === "module" ? mime_types_1.JAVASCRIPT_CONTENT_TYPE : mime_types_1.CSS_CONTENT_TYPE,
                 "content-length": Buffer.byteLength(content),
                 "x-transformer": "sass-transformer"
             },
-            links: undefined, // sass has already included the @imports so no need to push them
             watch: stats.includedFiles
         };
     }
-
     return {
         sassTransformer
     };
 });
+//# sourceMappingURL=sass-transformer.js.map

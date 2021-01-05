@@ -3,8 +3,8 @@ describe("configure", function () {
     const path = require("path");
     const fs = require("fs");
 
-    const {log, baseDir, rootDir, resolve} = require("fixture/index.js");
-    const {configure} = require("lib/configure.js");
+    const {log, rootDir, resolve} = require("fixture/index.js");
+    const {configure} = require("lib/configure.ts");
 
     it("root must be valid", async function () {
 

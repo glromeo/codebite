@@ -1,13 +1,13 @@
-const db = require("mime-db");
+import db from "mime-db";
 
-module.exports.JSON_CONTENT_TYPE = "application/json; charset=UTF-8";
-module.exports.TEXT_CONTENT_TYPE = "text/plain; charset=UTF-8";
-module.exports.JAVASCRIPT_CONTENT_TYPE = "application/javascript; charset=UTF-8";
-module.exports.TYPESCRIPT_CONTENT_TYPE = "application/x-typescript; charset=UTF-8";
-module.exports.HTML_CONTENT_TYPE = "text/html; charset=UTF-8";
-module.exports.SASS_CONTENT_TYPE = "text/x-sass; charset=UTF-8";
-module.exports.SCSS_CONTENT_TYPE = "text/x-scss; charset=UTF-8";
-module.exports.CSS_CONTENT_TYPE = "text/css; charset=UTF-8";
+export const JSON_CONTENT_TYPE = "application/json; charset=UTF-8";
+export const TEXT_CONTENT_TYPE = "text/plain; charset=UTF-8";
+export const JAVASCRIPT_CONTENT_TYPE = "application/javascript; charset=UTF-8";
+export const TYPESCRIPT_CONTENT_TYPE = "application/x-typescript; charset=UTF-8";
+export const HTML_CONTENT_TYPE = "text/html; charset=UTF-8";
+export const SASS_CONTENT_TYPE = "text/x-sass; charset=UTF-8";
+export const SCSS_CONTENT_TYPE = "text/x-scss; charset=UTF-8";
+export const CSS_CONTENT_TYPE = "text/css; charset=UTF-8";
 
 const mimeTypes = new Map();
 
@@ -33,7 +33,7 @@ const TYPESCRIPT_MIME_TYPE = {
 mimeTypes.set("ts", TYPESCRIPT_MIME_TYPE);
 mimeTypes.set("tsx", mimeTypes.get("ts"));
 
-module.exports.contentType = (filename = "") => {
+export function contentType(filename = "") {
     const mimeType = mimeTypes.get(filename);
     if (mimeType) {
         return mimeType.contentType;
@@ -45,4 +45,4 @@ module.exports.contentType = (filename = "") => {
             return mimeType.contentType;
         }
     }
-};
+}

@@ -1,13 +1,13 @@
 describe("websockets", function () {
 
-    const {configure} = require("lib/configure.js");
+    const {configure} = require("lib/configure.ts");
     const {readFileSync} = require("fs");
-    const {startServer} = require("lib/server.js");
+    const {startServer} = require("lib/server.ts");
     const {contentText} = require("lib/util/content-utils.js");
 
     const ca = readFileSync(`cert/codebite.pem`, "UTF-8");
 
-    jest.mock("lib/request-handler.js", function () {
+    jest.mock("lib/request-handler.ts", function () {
         return {
             createRequestHandler(config, watcher) {
                 return function (req, res) {

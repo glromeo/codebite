@@ -1,117 +1,112 @@
-const log = require("tiny-node-logger");
-const {memoize} = require("esnext-server-extras");
-
-const path = require("path");
-const fs = require("fs");
-const babel = require("@babel/core");
-
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.useSassImporter = void 0;
+const core_1 = __importDefault(require("@babel/core"));
+const fs_1 = __importDefault(require("fs"));
+const nano_memoize_1 = __importDefault(require("nano-memoize"));
+const path_1 = __importDefault(require("path"));
+const tiny_node_logger_1 = __importDefault(require("tiny-node-logger"));
 const EXTENSIONS = new Set([".scss", ".sass", ".css"]);
 const PATHS = [];
-
-const IS_NOT_BARE = /^.?.?\//;
-const isBare = url => !IS_NOT_BARE.test(url);
-
-const IS_STYLE = /\.s?[ac]ss$/;
-const isStyle = url => IS_STYLE.test(url);
-
-module.exports.useSassImporter = memoize(config => {
-
-    var realpathFS = typeof fs.realpathSync.native === "function" ? fs.realpathSync.native : fs.realpathSync;
-
+exports.useSassImporter = nano_memoize_1.default(config => {
+    const realpathSyncImpl = typeof fs_1.default.realpathSync.native === "function" ? fs_1.default.realpathSync.native : fs_1.default.realpathSync;
     function realpathSync(x) {
         try {
-            return realpathFS(x);
-        } catch (realpathErr) {
-            if (realpathErr.code !== "ENOENT") throw realpathErr;
+            return realpathSyncImpl(x);
+        }
+        catch (realpathErr) {
+            if (realpathErr.code !== "ENOENT")
+                throw realpathErr;
         }
         return x;
     }
-
     function isFile(file) {
         try {
-            const stat = fs.statSync(file);
+            const stat = fs_1.default.statSync(file);
             return stat.isFile() || stat.isFIFO();
-        } catch (e) {
-            if (e && (e.code === "ENOENT" || e.code === "ENOTDIR")) return false;
+        }
+        catch (e) {
+            if (e && (e.code === "ENOENT" || e.code === "ENOTDIR"))
+                return false;
             throw e;
         }
     }
-
     function isDirectory(dir) {
         try {
-            const stat = fs.statSync(dir);
+            const stat = fs_1.default.statSync(dir);
             return stat.isDirectory();
-        } catch (e) {
-            if (e && (e.code === "ENOENT" || e.code === "ENOTDIR")) return false;
+        }
+        catch (e) {
+            if (e && (e.code === "ENOENT" || e.code === "ENOTDIR"))
+                return false;
             throw e;
         }
     }
-
     function flatMap(obj) {
         const result = [];
         Object.entries(obj).forEach(entry => {
             const [key, value] = entry;
-            if (typeof value === "object") {
+            if (typeof value === "string") {
+                result.push([key, value]);
+            }
+            else {
                 const cssText = value.cssText;
                 if (cssText) {
                     result.push([key, cssText]);
-                } else {
-                    result.push(...flatMap(value).map(e => [key + "-" + e[0], e[1]]));
                 }
-            } else {
-                result.push(entry);
+                else {
+                    for (const [k, v] of flatMap(value)) {
+                        result.push([`${key}-${k}`, v]);
+                    }
+                }
             }
         });
         return result;
     }
-
     class IIFE {
-
         constructor(mocks = null) {
             Object.assign(this, IIFE.MOCK_MODULES, mocks);
         }
-
-        static MOCK_MODULES = {
-            litElement: {
-                css: (strings, ...values) => ({
-                    cssText: values.reduce((acc, v, idx) => acc + v + strings[idx + 1], strings[0])
-                })
-            }
-        };
-
-        static BABEL_OPTIONS = {
-            plugins: [require("./sass-babel-plugin-iife.js")]
-        };
-
         import(pathname) {
-            const source = fs.readFileSync(pathname, "utf-8");
-            const out = babel.transformSync(source, IIFE.BABEL_OPTIONS);
-            eval(out.code);
+            const source = fs_1.default.readFileSync(pathname, "utf-8");
+            const out = core_1.default.transformSync(source, IIFE.BABEL_OPTIONS);
+            if (out === null || out === void 0 ? void 0 : out.code) {
+                eval(out.code);
+            }
             return this.default;
         }
     }
-
-
-    const nodeModulesPaths = require("resolve/lib/node-modules-paths");
-
-    class Resolver {
-
-        constructor(options = null) {
-            this.extensions = EXTENSIONS;
-            this.paths = PATHS;
-            Object.assign(this, options);
+    IIFE.MOCK_MODULES = {
+        litElement: {
+            css: (strings, ...values) => ({
+                cssText: values.reduce((acc, v, idx) => acc + v + strings[idx + 1], strings[0])
+            })
         }
-
+    };
+    IIFE.BABEL_OPTIONS = {
+        plugins: [require("./sass-babel-plugin-iife")]
+    };
+    const nodeModulesPaths = require("resolve/lib/node-modules-paths");
+    class Resolver {
+        constructor(options) {
+            var _a, _b, _c;
+            this.basedir = (_a = options === null || options === void 0 ? void 0 : options.basedir) !== null && _a !== void 0 ? _a : process.cwd();
+            this.filename = (_b = options === null || options === void 0 ? void 0 : options.filename) !== null && _b !== void 0 ? _b : "stdin";
+            this.extensions = (options === null || options === void 0 ? void 0 : options.extensions) ? new Set(options.extensions) : EXTENSIONS;
+            this.paths = (_c = options === null || options === void 0 ? void 0 : options.paths) !== null && _c !== void 0 ? _c : PATHS;
+        }
         resolve(url) {
-
             const parent = this.filename !== "stdin" ? this.filename : this.basedir;
-            const root = realpathSync(path.resolve(this.basedir));
-
+            const root = realpathSync(path_1.default.resolve(this.basedir));
             let m;
             if (url.startsWith("~")) {
                 m = this.loadNodeModulesSync(url.substring(1), root);
-            } else {
-                var res = path.resolve(root, url);
+            }
+            else {
+                var res = path_1.default.resolve(root, url);
                 if (url === "." || url === ".." || url.slice(-1) === "/") {
                     res += "/";
                 }
@@ -126,74 +121,73 @@ module.exports.useSassImporter = memoize(config => {
             //     throw err;
             // }
         }
-
         loadAsFileSync(pathname) {
-
-            if (isFile(pathname)) return pathname;
-
-            const e = pathname.lastIndexOf(path.sep) + 1;
+            if (isFile(pathname))
+                return pathname;
+            const e = pathname.lastIndexOf(path_1.default.sep) + 1;
             const f = `${pathname.slice(0, e)}_${pathname.slice(e)}`;
-
-            if (isFile(f)) return f;
-
+            if (isFile(f))
+                return f;
             let file;
             for (const ext of this.extensions) {
                 file = pathname + ext;
-                if (isFile(file)) return file;
+                if (isFile(file))
+                    return file;
                 file = f + ext;
-                if (isFile(file)) return file;
+                if (isFile(file))
+                    return file;
             }
         }
-
         loadAsDirectorySync(pathname) {
-
-            const pkgfile = path.join(isDirectory(pathname) ? realpathSync(pathname) : pathname, "/package.json");
-
+            const pkgfile = path_1.default.join(isDirectory(pathname) ? realpathSync(pathname) : pathname, "/package.json");
             if (isFile(pkgfile)) {
                 try {
-                    var pkg = JSON.parse(fs.readFileSync(pkgfile, "UTF8"));
-                } catch (ignored) {
+                    var pkg = JSON.parse(fs_1.default.readFileSync(pkgfile, "utf-8"));
+                }
+                catch (ignored) {
                 }
                 if (pkg) {
                     let main = pkg.sass || pkg.style || pkg.main;
                     if (typeof main !== "string") {
                         const mainError = new TypeError("package “" + pkg.name + "” `sass, style or main` is not a string");
-                        mainError.code = "INVALID_PACKAGE_MAIN";
+                        mainError["code"] = "INVALID_PACKAGE_MAIN";
                         throw mainError;
                     }
                     if (main === "." || main === "./") {
                         main = "index";
                     }
                     try {
-                        const m = this.loadAsFileSync(path.resolve(pathname, main));
-                        if (m) return m;
-                        const n = this.loadAsDirectorySync(path.resolve(pathname, main));
-                        if (n) return n;
-                    } catch (e) {
+                        const m = this.loadAsFileSync(path_1.default.resolve(pathname, main));
+                        if (m)
+                            return m;
+                        const n = this.loadAsDirectorySync(path_1.default.resolve(pathname, main));
+                        if (n)
+                            return n;
+                    }
+                    catch (e) {
                     }
                 }
             }
-            return this.loadAsFileSync(path.join(pathname, "/styles.scss"));
+            return this.loadAsFileSync(path_1.default.join(pathname, "/styles.scss"));
         }
-
         loadNodeModulesSync(url, start) {
             for (let dir of nodeModulesPaths(start, this, url)) {
-                dir = path.join(dir, url);
-                if (isDirectory(path.dirname(dir))) {
+                dir = path_1.default.join(dir, url);
+                if (isDirectory(path_1.default.dirname(dir))) {
                     if (isDirectory(dir)) {
                         return this.loadAsDirectorySync(dir);
-                    } else {
+                    }
+                    else {
                         return this.loadAsFileSync(dir);
                     }
                 }
             }
         }
     }
-
-    const sassImporter = (basefile) => {
+    function sassImporter(basefile) {
         return function (url, file) {
             const filename = file === "stdin" ? basefile : file;
-            const basedir = path.resolve(config.rootDir, path.dirname(filename));
+            const basedir = path_1.default.resolve(config.rootDir, path_1.default.dirname(filename));
             const ext = url.substring(url.lastIndexOf("."));
             if (ext !== url && !EXTENSIONS.has(ext)) {
                 const resolver = new Resolver({
@@ -206,15 +200,19 @@ module.exports.useSassImporter = memoize(config => {
                     let obj;
                     if (ext === ".json") {
                         obj = require(resolved);
-                    } else if (ext === ".js") {
+                    }
+                    else if (ext === ".js") {
                         obj = new IIFE().import(resolved);
                     }
                     const variables = flatMap(obj).map(([key, value]) => `$${key}: ${value};`).join("\n");
-                    return {contents: variables};
-                } else {
-                    log.error("cannot resolve sass import:", url);
+                    return { contents: variables };
                 }
-            } else {
+                else {
+                    tiny_node_logger_1.default.error("cannot resolve sass import:", url);
+                    return null;
+                }
+            }
+            else {
                 const resolver = new Resolver({
                     basedir,
                     filename: file
@@ -223,16 +221,19 @@ module.exports.useSassImporter = memoize(config => {
                 if (resolved) {
                     const ext = resolved.substring(resolved.lastIndexOf("."));
                     if (".css" === ext) {
-                        return {contents: fs.readFileSync(resolved, "UTF-8")};
-                    } else {
-                        return {file: resolved};
+                        return { contents: fs_1.default.readFileSync(resolved, "utf-8") };
                     }
-                } else {
-                    log.error("cannot resolve sass import:", url);
+                    else {
+                        return { file: resolved };
+                    }
+                }
+                else {
+                    tiny_node_logger_1.default.error("cannot resolve sass import:", url);
+                    return null;
                 }
             }
         };
-    };
-
-    return {sassImporter};
+    }
+    return { sassImporter };
 });
+//# sourceMappingURL=sass-importer.js.map
