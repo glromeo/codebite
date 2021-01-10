@@ -249,10 +249,5 @@ export function configure(args: Args = {}, override?): Readonly<ESNextOptions> {
 
     log.debug("configured:", options);
 
-    options.resolve = options.resolve || {
-        paths: [path.join(options.rootDir, "node_modules")]
-    };
-    options.squash = options.squash || ["@babel/runtime/**", "smooth-scrollbar"];
-
     return Object.freeze(options);
 }

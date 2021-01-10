@@ -14,7 +14,9 @@ exports.useBabelTransformer = nano_memoize_1.default((options, sourceMaps = fals
     async function babelTransformer(filename, content) {
         const babelOptions = {
             ...options.babel,
-            sourceMaps
+            sourceMaps,
+            babelrc: true,
+            filename: filename
         };
         const source = content;
         const parsedAst = core_1.parseSync(source, babelOptions);
@@ -24,8 +26,7 @@ exports.useBabelTransformer = nano_memoize_1.default((options, sourceMaps = fals
             plugins: [
                 ...babelOptions.plugins,
                 [rewriteImports, { importMap }]
-            ],
-            filename: filename
+            ]
         });
         if (!code) {
             throw new Error(`Babel transformer failed to transform: ${filename}`);

@@ -14,7 +14,9 @@ export const useBabelTransformer = memoized((options: ESNextOptions, sourceMaps:
 
         const babelOptions: TransformOptions = {
             ...options.babel,
-            sourceMaps
+            sourceMaps,
+            babelrc: true,
+            filename: filename
         };
 
         const source = content;
@@ -26,8 +28,7 @@ export const useBabelTransformer = memoized((options: ESNextOptions, sourceMaps:
             plugins: [
                 ...babelOptions.plugins!,
                 [rewriteImports, {importMap}]
-            ],
-            filename: filename
+            ]
         })!;
 
         if (!code) {

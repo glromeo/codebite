@@ -40,7 +40,6 @@
     "@rollup/plugin-node-resolve": "^11.0.1",
     "chokidar": "^3.4.1",
     "cors": "^2.8.5",
-    "cucumber": "^7.0.0-rc.0",
     "deepmerge": "^4.2.2",
     "etag": "^1.8.1",
     "fast-decode-uri-component": "^1.0.1",
