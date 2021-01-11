@@ -20,7 +20,7 @@ exports.useResourceProvider = nano_memoize_1.default(function (options, watcher)
     const cache = options.cache && new resource_cache_1.ResourceCache(options, watcher);
     const { readWorkspaceFile } = workspace_files_1.useWorkspaceFiles(options);
     const { htmlTransformer } = html_transformer_1.useHtmlTransformer(options);
-    const { babelTransformer } = babel_transformer_1.useBabelTransformer(options, true);
+    const { babelTransformer } = babel_transformer_1.useBabelTransformer(options);
     const { sassTransformer } = sass_transformer_1.useSassTransformer(options);
     function formatHrtime(hrtime) {
         return (hrtime[0] + (hrtime[1] / 1e9)).toFixed(3);

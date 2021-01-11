@@ -28,7 +28,7 @@ export const useResourceProvider = memoized(function (options: ESNextOptions, wa
 
     const {readWorkspaceFile} = useWorkspaceFiles(options);
     const {htmlTransformer} = useHtmlTransformer(options);
-    const {babelTransformer} = useBabelTransformer(options, true);
+    const {babelTransformer} = useBabelTransformer(options);
     const {sassTransformer} = useSassTransformer(options);
 
     function formatHrtime(hrtime) {

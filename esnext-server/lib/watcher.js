@@ -13,7 +13,15 @@ function createWatcher(options) {
     }
     const watcher = chokidar_1.default.watch([], {
         cwd: options.rootDir,
-        atomic: false
+        atomic: false,
+        ignored: [
+            "web_modules/**",
+            "**/web_modules/**",
+            "node_modules/**",
+            "**/node_modules/**",
+            ".*",
+            "**/.*"
+        ]
     });
     tiny_node_logger_1.default.debug("created chokidar watcher for cwd:", watcher.options.cwd);
     watcher.on("all", (event, file) => tiny_node_logger_1.default.debug("watcher", event, file));

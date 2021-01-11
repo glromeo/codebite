@@ -6,7 +6,7 @@ import {ESNextOptions} from "../configure";
 import {JAVASCRIPT_CONTENT_TYPE} from "../util/mime-types";
 import {TransformerOutput} from "./index";
 
-export const useBabelTransformer = memoized((options: ESNextOptions, sourceMaps: boolean | "inline" = false) => {
+export const useBabelTransformer = memoized((options: ESNextOptions, sourceMaps: "inline" | "auto" = "auto") => {
 
     const {resolveImports, rewriteImports} = useWebModulesPlugin(options);
 
@@ -14,7 +14,7 @@ export const useBabelTransformer = memoized((options: ESNextOptions, sourceMaps:
 
         const babelOptions: TransformOptions = {
             ...options.babel,
-            sourceMaps,
+            sourceMaps: sourceMaps === "auto" ? options.babel.sourceMaps : options.babel.sourceMaps && "inline",
             babelrc: true,
             filename: filename
         };

@@ -9,12 +9,12 @@ const esnext_web_modules_1 = require("esnext-web-modules");
 const nano_memoize_1 = __importDefault(require("nano-memoize"));
 const path_1 = __importDefault(require("path"));
 const mime_types_1 = require("../util/mime-types");
-exports.useBabelTransformer = nano_memoize_1.default((options, sourceMaps = false) => {
+exports.useBabelTransformer = nano_memoize_1.default((options, sourceMaps = "auto") => {
     const { resolveImports, rewriteImports } = esnext_web_modules_1.useWebModulesPlugin(options);
     async function babelTransformer(filename, content) {
         const babelOptions = {
             ...options.babel,
-            sourceMaps,
+            sourceMaps: sourceMaps === "auto" ? options.babel.sourceMaps : options.babel.sourceMaps && "inline",
             babelrc: true,
             filename: filename
         };

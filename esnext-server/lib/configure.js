@@ -35,7 +35,7 @@ function assignConfig(target, source) {
         }
         else if (target instanceof Object && source instanceof Object) {
             for (const [k, v] of Object.entries(source)) {
-                if (v.constructor === Object || v.constructor === Array) {
+                if (target[k] && (v.constructor === Object || v.constructor === Array)) {
                     assignConfig(target[k], v);
                 }
                 else {
@@ -197,11 +197,7 @@ function configure(args = {}, override) {
         tiny_node_logger_1.default.level = "debug";
     }
     tiny_node_logger_1.default.debug("configured:", options);
-    options.resolve = options.resolve || {
-        paths: [path_1.default.join(options.rootDir, "node_modules")]
-    };
-    options.squash = options.squash || ["@babel/runtime/**", "smooth-scrollbar"];
-    return Object.freeze(options);
+    return options;
 }
 exports.configure = configure;
 //# sourceMappingURL=configure.js.map

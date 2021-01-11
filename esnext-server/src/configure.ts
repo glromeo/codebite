@@ -71,7 +71,7 @@ function assignConfig<V>(target: V, source: any) {
             target.push(...merged);
         } else if (target instanceof Object && source instanceof Object) {
             for (const [k, v] of Object.entries<object>(source)) {
-                if (v.constructor === Object || v.constructor === Array) {
+                if (target[k] && (v.constructor === Object || v.constructor === Array)) {
                     assignConfig(target[k], v);
                 } else {
                     target[k] = v;
@@ -249,5 +249,5 @@ export function configure(args: Args = {}, override?): Readonly<ESNextOptions> {
 
     log.debug("configured:", options);
 
-    return Object.freeze(options);
+    return options;
 }

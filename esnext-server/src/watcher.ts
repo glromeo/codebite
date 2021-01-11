@@ -10,7 +10,15 @@ export function createWatcher(options: { rootDir: string, watcher?: WatchOptions
 
     const watcher = chokidar.watch([], {
         cwd: options.rootDir,
-        atomic: false
+        atomic: false,
+        ignored: [
+            "web_modules/**",
+            "**/web_modules/**",
+            "node_modules/**",
+            "**/node_modules/**",
+            ".*",
+            "**/.*"
+        ]
     });
 
     log.debug("created chokidar watcher for cwd:", watcher.options.cwd);
