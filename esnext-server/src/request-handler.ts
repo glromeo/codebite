@@ -68,7 +68,7 @@ export function createRequestHandler<V extends Router.HTTPVersion = Router.HTTPV
                 }
                 if (links && options.http2 === "preload") {
                     res.setHeader("link", [...links].map(
-                        src => `<${src}>; rel=preload; as=${src.endsWith(".css") ? "style" : "script"}`
+                        src => `<${src}>; crossorigin; rel=preload; as=${src.endsWith(".css") ? "style" : "script"}`
                     ));
                 }
             }

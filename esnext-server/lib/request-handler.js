@@ -57,7 +57,7 @@ function createRequestHandler(options, watcher) {
                     return;
                 }
                 if (links && options.http2 === "preload") {
-                    res.setHeader("link", [...links].map(src => `<${src}>; rel=preload; as=${src.endsWith(".css") ? "style" : "script"}`));
+                    res.setHeader("link", [...links].map(src => `<${src}>; crossorigin; rel=preload; as=${src.endsWith(".css") ? "style" : "script"}`));
                 }
             }
             res.writeHead(200, headers);

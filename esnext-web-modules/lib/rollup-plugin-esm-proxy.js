@@ -26,24 +26,29 @@ const path = __importStar(require("path"));
 const es_import_utils_1 = require("./es-import-utils");
 function scanEsm(filename, exportsByFilename = new Map(), exports = new Set()) {
     let source = fs.readFileSync(filename, "utf-8");
-    let [moduleImports, moduleExports] = es_module_lexer_1.parse(source);
-    let uniqueExports = [];
-    for (const e of moduleExports)
-        if (!exports.has(e)) {
+    let [imported, exported] = es_module_lexer_1.parse(source);
+    let uniqueExports = exportsByFilename.get(filename) || [];
+    for (const e of exported) {
+        if (e === "default") {
+            exportsByFilename.set(filename, null);
+            return exportsByFilename;
+        }
+        else if (!exports.has(e)) {
             uniqueExports.push(e);
             exports.add(e);
         }
+    }
     exportsByFilename.set(filename, uniqueExports);
-    for (const { s, e } of moduleImports) {
-        let moduleImport = source.substring(s, e);
-        if (!es_import_utils_1.isBare(moduleImport)) {
-            if (moduleImport === "..") {
-                moduleImport = "../index";
+    for (const { s, e } of imported) {
+        let module = source.substring(s, e);
+        if (!es_import_utils_1.isBare(module)) {
+            if (module === "..") {
+                module = "../index";
             }
-            else if (moduleImport === ".") {
-                moduleImport = "./index";
+            else if (module === ".") {
+                module = "./index";
             }
-            let importedFilename = require.resolve(moduleImport, { paths: [path.dirname(filename)] });
+            let importedFilename = require.resolve(module, { paths: [path.dirname(filename)] });
             if (!exportsByFilename.has(importedFilename)) {
                 scanEsm(importedFilename, exportsByFilename, exports);
             }
@@ -58,7 +63,7 @@ function rollupPluginEsmProxy({ entryModules }) {
             await es_module_lexer_1.init;
         },
         async resolveId(source, importer) {
-            if (!importer && entryModules.has(source)) {
+            if (!importer) {
                 let resolution = await this.resolve(source, importer, { skipSelf: true });
                 if (resolution) {
                     return `${resolution.id}?esm-proxy`;
@@ -71,8 +76,13 @@ function rollupPluginEsmProxy({ entryModules }) {
                 const entryId = id.slice(0, -10);
                 const entryUrl = es_import_utils_1.toPosix(entryId);
                 const exportsByFilename = scanEsm(entryId);
+                const excluded = new Set();
                 let proxy = "";
                 for (const [filename, exports] of exportsByFilename.entries()) {
+                    if (exports === null) {
+                        excluded.add(filename);
+                        continue;
+                    }
                     if (exports.length > 0) {
                         let importUrl = es_import_utils_1.toPosix(filename);
                         proxy += `export {\n${exports.join(",\n")}\n} from "${importUrl}";\n`;
@@ -81,7 +91,10 @@ function rollupPluginEsmProxy({ entryModules }) {
                 if (entryUrl.endsWith("redux-toolkit.esm.js")) {
                     proxy += `export * from "redux";`;
                 }
-                return proxy || fs.readFileSync(entryId, "utf-8");
+                return {
+                    code: proxy || fs.readFileSync(entryId, "utf-8"),
+                    meta: { "entry-proxy": { bundle: [...exportsByFilename.keys()].filter(f => !excluded.has(f)).map(es_import_utils_1.bareNodeModule) } }
+                };
             }
             return null;
         }

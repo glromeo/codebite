@@ -56,6 +56,9 @@ function initFileSystem(rootDir, clean) {
     fs_1.mkdirSync(outDir, { recursive: true });
     return { outDir };
 }
+function readJson(filename) {
+    return JSON.parse(fs_1.readFileSync(filename, "utf-8"));
+}
 exports.useWebModules = nano_memoize_1.default((options = defaultOptions()) => {
     const { outDir } = initFileSystem(options.rootDir, options.clean);
     if (!options.environment)
@@ -72,20 +75,44 @@ exports.useWebModules = nano_memoize_1.default((options = defaultOptions()) => {
         options.rollup = {};
     if (!options.rollup.plugins)
         options.rollup.plugins = [];
-    const resolveOptions = { basedir: options.rootDir, ...options.resolve };
+    const ALREADY_RESOLVED = Promise.resolve();
+    const resolveOptions = {
+        basedir: options.rootDir,
+        packageFilter(pkg, pkgfile) {
+            return { main: pkg.module || pkg["jsnext:main"] || pkg.main };
+        },
+        ...options.resolve
+    };
     const importMap = {
         imports: {
             ...readImportMap(outDir).imports,
             ...workspaces_1.readWorkspaces(options.rootDir).imports
         }
     };
-    let appPkg = require(require.resolve("./package.json", { paths: [options.rootDir] }));
-    const entryModules = appPkg.dependencies
-        ? new Set([
-            ...Object.keys(appPkg.dependencies || {}),
-            ...Object.keys(appPkg.peerDependencies || {})
-        ])
-        : new Set();
+    const appPkg = readJson(require.resolve("./package.json", { paths: [options.rootDir] }));
+    const entryModules = collectEntryModules(appPkg);
+    function collectDependencies(entryModule) {
+        return new Set([
+            ...Object.keys(entryModule.dependencies || {}),
+            ...Object.keys(entryModule.peerDependencies || {})
+        ]);
+    }
+    function collectEntryModules(entryModule, entryModules = new Set(), visited = new Set()) {
+        for (const dependency of collectDependencies(entryModule)) {
+            if (visited.has(dependency)) {
+                entryModules.add(dependency);
+            }
+            else
+                try {
+                    visited.add(dependency);
+                    collectEntryModules(readManifest(dependency), entryModules, visited);
+                }
+                catch (ignored) {
+                    visited.delete(dependency);
+                }
+        }
+        return entryModules;
+    }
     function readImportMap(outDir) {
         try {
             let importMap = JSON.parse(fs_1.readFileSync(`${outDir}/import-map.json`, "utf-8"));
@@ -106,16 +133,6 @@ exports.useWebModules = nano_memoize_1.default((options = defaultOptions()) => {
     }
     function writeImportMap(outDir, importMap) {
         return fs_1.promises.writeFile(`${outDir}/import-map.json`, JSON.stringify(importMap, null, "  "));
-    }
-    function updateImportMap(module, bundle) {
-        let outputUrl = `/web_modules/${module}.js`;
-        for (const file of bundle.watchFiles) {
-            if (file.charCodeAt(0) !== 0 && !file.endsWith("-proxy")) {
-                let bare = es_import_utils_1.bareNodeModule(file);
-                importMap.imports[bare] = outputUrl;
-            }
-        }
-        importMap.imports[module] = outputUrl;
     }
     const isModule = /\.m?[tj]sx?$/;
     async function resolveImport(url, basedir = process.cwd()) {
@@ -153,7 +170,9 @@ exports.useWebModules = nano_memoize_1.default((options = defaultOptions()) => {
                             resolved = bundled;
                         }
                         else {
-                            resolved = `/web_modules/${module}/${filename}`;
+                            let target = `${module}/${filename}`;
+                            await rollupWebModule(target);
+                            resolved = `/web_modules/${target}`;
                         }
                     }
                     else {
@@ -200,10 +219,23 @@ exports.useWebModules = nano_memoize_1.default((options = defaultOptions()) => {
     function resolveModuleType(ext, basedir) {
         return "module";
     }
-    function requireManifest(module) {
-        return new Promise(function (done, fail) {
-            resolve_1.default(`${module}/package.json`, resolveOptions, (err, resolved, pkg) => pkg ? done(pkg) : fail(err));
-        });
+    function readManifest(module, deep = false) {
+        return readJson(resolve_1.default.sync(`${module}/package.json`, resolveOptions));
+    }
+    function closestManifest(entryModule) {
+        let dirname = path_1.default.dirname(entryModule);
+        while (true)
+            try {
+                return readJson(`${dirname}/package.json`);
+            }
+            catch (e) {
+                const parent = path_1.default.dirname(dirname);
+                if (parent.endsWith("node_modules")) {
+                    break;
+                }
+                dirname = parent;
+            }
+        throw new Error("No package.json found starting from: " + entryModule);
     }
     function getModuleDirectories(options) {
         const moduleDirectory = options.resolve.moduleDirectory;
@@ -245,83 +277,96 @@ exports.useWebModules = nano_memoize_1.default((options = defaultOptions()) => {
     const pluginSourcemaps = rollup_plugin_sourcemaps_1.default();
     const pluginTerser = rollup_plugin_terser_1.terser(options.terser);
     const pluginCatchUnresolved = rollup_plugin_catch_unresolved_1.rollupPluginCatchUnresolved();
-    function selectTaskPlugins(pkg, filename) {
-        if (!pkg.main && !filename) {
-            return null;
-        }
-        let isEsm = pkg.module || pkg["jsnext:main"] || (pkg.main || filename).endsWith(".mjs");
-        return [
-            filename ? false : isEsm ? pluginEsmProxy : pluginCjsProxy,
-            pluginReplace,
-            pluginRewriteImports,
-            isEsm ? pluginEsmNodeResolve : pluginCjsNodeResolve,
-            pluginCommonJS,
-            pluginJson,
-            pluginSourcemaps,
-            options.terser ? pluginTerser : false,
-            pluginCatchUnresolved,
-            ...(options.rollup.plugins)
-        ].filter(Boolean);
-    }
-    const ALREADY_RESOLVED = Promise.resolve();
-    const pending = new Map();
-    function rollupWebModule(pathname) {
-        if (importMap.imports[pathname]) {
+    const pendingTasks = new Map();
+    function rollupWebModule(source) {
+        if (importMap.imports[source]) {
             return ALREADY_RESOLVED;
         }
-        if (!pending.has(pathname)) {
-            let [module, filename] = es_import_utils_1.parsePathname(pathname);
-            pending.set(pathname, rollupWebModuleTask(module, filename)
+        if (!pendingTasks.has(source)) {
+            let [module, filename] = es_import_utils_1.parsePathname(source);
+            pendingTasks.set(source, rollupWebModuleTask(module, filename)
                 .catch(function (err) {
-                tiny_node_logger_1.default.error("failed to rollup:", pathname, err);
+                tiny_node_logger_1.default.error("failed to rollup:", source, err);
                 throw err;
             })
                 .finally(function () {
-                pending.delete(pathname);
+                pendingTasks.delete(source);
             }));
         }
-        return pending.get(pathname);
+        return pendingTasks.get(source);
         async function rollupWebModuleTask(module, filename) {
-            var _a, _b;
-            tiny_node_logger_1.default.info("rollup web module:", pathname);
+            var _a, _b, _c;
+            tiny_node_logger_1.default.info("rollup web module:", source);
             if (filename && !importMap.imports[module]) {
                 await rollupWebModule(module);
             }
-            let pkg = await requireManifest(module);
-            while (pkg && pkg.main && !path_1.posix.extname(pkg.main))
-                try {
-                    pkg = await requireManifest(path_1.posix.join(module, pkg.main));
-                }
-                catch (ignored) {
-                }
             const startTime = Date.now();
-            let plugins = selectTaskPlugins(pkg, filename);
-            if (plugins === null) {
-                tiny_node_logger_1.default.info `nothing to roll up for: ${chalk_1.default.magenta(pathname)}`;
-                importMap.imports[module] = `/web_modules/${module}/${module}.js`;
-                return;
+            let inputFilename;
+            try {
+                inputFilename = resolve_1.default.sync(source, resolveOptions);
             }
+            catch (ignored) {
+                if (filename) {
+                    inputFilename = source;
+                }
+                else {
+                    tiny_node_logger_1.default.info `nothing to roll up for: ${chalk_1.default.magenta(source)}`;
+                    importMap.imports[module] = `/node_modules/${source}`;
+                    await writeImportMap(outDir, importMap);
+                    return;
+                }
+            }
+            let pkg = closestManifest(inputFilename);
+            let isEsm = pkg.module || pkg["jsnext:main"] || inputFilename.endsWith(".mjs");
             const bundle = await rollup_1.rollup({
                 ...options.rollup,
-                input: pathname,
-                plugins: plugins,
+                input: inputFilename,
+                plugins: [
+                    filename ? false : isEsm ? pluginEsmProxy : pluginCjsProxy,
+                    pluginReplace,
+                    pluginRewriteImports,
+                    isEsm ? pluginEsmNodeResolve : pluginCjsNodeResolve,
+                    pluginCommonJS,
+                    pluginJson,
+                    pluginSourcemaps,
+                    options.terser ? pluginTerser : false,
+                    pluginCatchUnresolved,
+                    ...(options.rollup.plugins)
+                ].filter(Boolean),
                 treeshake: (_b = (_a = options.rollup) === null || _a === void 0 ? void 0 : _a.treeshake) !== null && _b !== void 0 ? _b : { moduleSideEffects: "no-external" },
                 onwarn: warningHandler
             });
             try {
+                let outFile = filename ? source : module + ".js";
                 await bundle.write({
-                    file: `${outDir}/${filename ? pathname : module + ".js"}`,
+                    file: `${outDir}/${outFile}`,
                     sourcemap: !options.terser
                 });
+                let outputUrl = `/web_modules/${outFile}`;
+                importMap.imports[source] = outputUrl;
                 if (!filename) {
-                    updateImportMap(module, bundle);
+                    importMap.imports[module] = outputUrl;
+                    for (const { meta } of bundle.cache.modules) {
+                        const bundle = meta && ((_c = meta["entry-proxy"]) === null || _c === void 0 ? void 0 : _c.bundle);
+                        if (bundle) {
+                            for (const bare of bundle) {
+                                if (!importMap.imports[bare]) {
+                                    importMap.imports[bare] = outputUrl;
+                                }
+                                else {
+                                    tiny_node_logger_1.default.warn("an import mapping already exists for:", bare);
+                                }
+                            }
+                            break;
+                        }
+                    }
                 }
                 await writeImportMap(outDir, importMap);
             }
             finally {
                 await bundle.close();
                 const elapsed = Date.now() - startTime;
-                tiny_node_logger_1.default.info `rolled up: ${chalk_1.default.magenta(pathname)} in: ${chalk_1.default.magenta(elapsed)}ms`;
+                tiny_node_logger_1.default.info `rolled up: ${chalk_1.default.magenta(source)} in: ${chalk_1.default.magenta(elapsed)}ms`;
             }
         }
     }

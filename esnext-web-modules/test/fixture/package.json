@@ -11,7 +11,8 @@
     "react",
     "redux",
     "home",
-    "iife"
+    "iife",
+    "ant-design"
   ],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

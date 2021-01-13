@@ -22,9 +22,6 @@ export function rollupPluginRewriteImports(options: PluginRewriteImportsOptions)
     return {
         name: "rollup-plugin-rewrite-imports",
         async resolveId(source, importer) {
-            if (importMap.imports[source]) {
-                console.log("importMap.import:", source, importMap.imports[source]);
-            }
             if (importer && source.charCodeAt(0) !== 0) {
                 if (isBare(source)) {
                     let [module] = parsePathname(source);
@@ -43,6 +40,10 @@ export function rollupPluginRewriteImports(options: PluginRewriteImportsOptions)
                     let moduleBareUrl = bareNodeModule(absolute);
                     let resolved = importMap.imports[moduleBareUrl];
                     if (resolved) {
+                        let moduleInfo = this.getModuleInfo(source);
+                        if (moduleInfo) {
+                            return moduleInfo.id;
+                        }
                         return {id: source, external: true, meta: {[REWRITE_IMPORT]: resolved}};
                     }
                 }

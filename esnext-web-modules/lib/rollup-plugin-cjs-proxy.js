@@ -18,15 +18,11 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.rollupPluginCjsProxy = void 0;
 const cjs_module_lexer_1 = require("cjs-module-lexer");
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
-const tiny_node_logger_1 = __importDefault(require("tiny-node-logger"));
 const es_import_utils_1 = require("./es-import-utils");
 const parseCjsReady = cjs_module_lexer_1.init();
 function scanCjs(filename, collected = new Set()) {
@@ -56,10 +52,9 @@ function rollupPluginCjsProxy({ entryModules }) {
             await parseCjsReady;
         },
         async resolveId(source, importer) {
-            if (!importer && source.charCodeAt(0) !== 0 && entryModules.has(source)) {
+            if (!importer && source.charCodeAt(0) !== 0) {
                 let resolution = await this.resolve(source, undefined, { skipSelf: true });
                 if (resolution) {
-                    tiny_node_logger_1.default.debug("cjs-proxy resolved:", source, resolution.id);
                     return `${resolution.id}?cjs-proxy`;
                 }
             }
@@ -87,7 +82,10 @@ function rollupPluginCjsProxy({ entryModules }) {
                         proxy += `export {\n${filteredExports.join(",\n")}\n} from "${entryUrl}";\n`;
                     }
                 }
-                return proxy || fs.readFileSync(entryId, "utf-8");
+                return {
+                    code: proxy || fs.readFileSync(entryId, "utf-8"),
+                    meta: { "entry-proxy": { bundle: [es_import_utils_1.bareNodeModule(entryId)] } }
+                };
             }
             return null;
         }

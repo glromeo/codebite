@@ -2,8 +2,7 @@ import {init as initCjs, parse as parseCjs} from "cjs-module-lexer";
 import * as fs from "fs";
 import * as path from "path";
 import {Plugin} from "rollup";
-import log from "tiny-node-logger";
-import {isBare, toPosix} from "./es-import-utils";
+import {bareNodeModule, isBare, toPosix} from "./es-import-utils";
 
 const parseCjsReady = initCjs();
 
@@ -59,10 +58,9 @@ export function rollupPluginCjsProxy({entryModules}: PluginCjsProxyOptions): Plu
             await parseCjsReady;
         },
         async resolveId(source, importer) {
-            if (!importer && source.charCodeAt(0) !== 0 && entryModules.has(source)) {
+            if (!importer && source.charCodeAt(0) !== 0) {
                 let resolution = await this.resolve(source, undefined, {skipSelf: true});
                 if (resolution) {
-                    log.debug("cjs-proxy resolved:", source, resolution.id);
                     return `${resolution.id}?cjs-proxy`;
                 }
             }
@@ -89,7 +87,10 @@ export function rollupPluginCjsProxy({entryModules}: PluginCjsProxyOptions): Plu
                         proxy += `export {\n${filteredExports.join(",\n")}\n} from "${entryUrl}";\n`;
                     }
                 }
-                return proxy || fs.readFileSync(entryId, "utf-8");
+                return {
+                    code: proxy || fs.readFileSync(entryId, "utf-8"),
+                    meta: {"entry-proxy": {bundle: [bareNodeModule(entryId)]}}
+                };
             }
             return null;
         }

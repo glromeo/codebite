@@ -35,6 +35,8 @@ describe("workspaces", function () {
             "@fixture/lit-element",
             "@fixture/lit-html",
             "@fixture/react",
+            "@fixture/redux",
+            "@fixture/iife"
         ]);
     })
 

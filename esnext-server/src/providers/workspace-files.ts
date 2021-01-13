@@ -54,11 +54,11 @@ export function useWorkspaceFiles(config) {
         const {route, filename} = await resolve(pathname);
 
         const stats = await fs.stat(filename).catch(error => {
-            if (error.code === "ENOENT") {
-                if (route === "/web_modules") {
-                    return rollupWebModule(pathname.substring(13)).then(() => fs.stat(filename));
-                }
-            }
+            // if (error.code === "ENOENT") {
+            //     if (route === "/web_modules") {
+            //         return rollupWebModule(pathname.substring(13)).then(() => fs.stat(filename));
+            //     }
+            // }
             throw error;
         }).catch(error => {
             if (error.code === "ENOENT") {

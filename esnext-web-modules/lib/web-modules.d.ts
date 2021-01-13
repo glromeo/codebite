@@ -25,5 +25,5 @@ export declare const useWebModules: (options?: WebModulesOptions) => {
         };
     };
     resolveImport: (url: string, basedir?: string) => Promise<string>;
-    rollupWebModule: (pathname: string) => Promise<void>;
+    rollupWebModule: (source: string) => Promise<void>;
 };

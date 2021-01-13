@@ -8,11 +8,11 @@ import {existsSync, mkdirSync, promises as fsp, readFileSync, rmdirSync, statSyn
 import memoized from "nano-memoize";
 import path, {posix} from "path";
 import resolve, {Opts} from "resolve";
-import {Plugin, rollup, RollupBuild, RollupOptions, RollupWarning} from "rollup";
+import {Plugin, rollup, RollupOptions, RollupWarning} from "rollup";
 import rollupPluginSourcemaps from "rollup-plugin-sourcemaps";
 import {Options as TerserOptions, terser as rollupPluginTerser} from "rollup-plugin-terser";
 import log from "tiny-node-logger";
-import {bareNodeModule, parsePathname} from "./es-import-utils";
+import {parsePathname} from "./es-import-utils";
 import {rollupPluginCatchUnresolved} from "./rollup-plugin-catch-unresolved";
 import {rollupPluginCjsProxy} from "./rollup-plugin-cjs-proxy";
 import {rollupPluginEsmProxy} from "./rollup-plugin-esm-proxy";
@@ -22,6 +22,9 @@ import {readWorkspaces} from "./workspaces";
 interface PackageMeta {
     name: string;
     version: string;
+    dependencies: { [name: string]: string };
+    peerDependencies: { [name: string]: string };
+    devDependencies: { [name: string]: string };
 
     [key: string]: any;
 }
@@ -56,6 +59,10 @@ function initFileSystem(rootDir: string, clean?: boolean): { outDir: string } {
     return {outDir};
 }
 
+function readJson(filename) {
+    return JSON.parse(readFileSync(filename, "utf-8"));
+}
+
 /**
  *   __        __   _       __  __           _       _
  *   \ \      / /__| |__   |  \/  | ___   __| |_   _| | ___  ___
@@ -77,7 +84,14 @@ export const useWebModules = memoized((options: WebModulesOptions = defaultOptio
     if (!options.rollup) options.rollup = {};
     if (!options.rollup.plugins) options.rollup.plugins = [];
 
-    const resolveOptions = {basedir: options.rootDir, ...options.resolve};
+    const ALREADY_RESOLVED = Promise.resolve();
+    const resolveOptions = {
+        basedir: options.rootDir,
+        packageFilter(pkg: any, pkgfile: string) {
+            return {main: pkg.module || pkg["jsnext:main"] || pkg.main}
+        },
+        ...options.resolve
+    } as Opts;
 
     const importMap = {
         imports: {
@@ -86,14 +100,29 @@ export const useWebModules = memoized((options: WebModulesOptions = defaultOptio
         }
     };
 
-    let appPkg: PackageMeta = require(require.resolve("./package.json", {paths: [options.rootDir]}));
+    const appPkg: PackageMeta = readJson(require.resolve("./package.json", {paths: [options.rootDir]}));
+    const entryModules = collectEntryModules(appPkg);
 
-    const entryModules = appPkg.dependencies
-        ? new Set([
-            ...Object.keys(appPkg.dependencies || {}),
-            ...Object.keys(appPkg.peerDependencies || {})
-        ])
-        : new Set<string>();
+    function collectDependencies(entryModule: PackageMeta) {
+        return new Set([
+            ...Object.keys(entryModule.dependencies || {}),
+            ...Object.keys(entryModule.peerDependencies || {})
+        ]);
+    }
+
+    function collectEntryModules(entryModule: PackageMeta, entryModules = new Set<string>(), visited = new Set<string>()) {
+        for (const dependency of collectDependencies(entryModule)) {
+            if (visited.has(dependency)) {
+                entryModules.add(dependency);
+            } else try {
+                visited.add(dependency);
+                collectEntryModules(readManifest(dependency), entryModules, visited);
+            } catch (ignored) {
+                visited.delete(dependency);
+            }
+        }
+        return entryModules;
+    }
 
     function readImportMap(outDir: string): ImportMap {
         try {
@@ -116,26 +145,6 @@ export const useWebModules = memoized((options: WebModulesOptions = defaultOptio
 
     function writeImportMap(outDir: string, importMap: ImportMap): Promise<void> {
         return fsp.writeFile(`${outDir}/import-map.json`, JSON.stringify(importMap, null, "  "));
-    }
-
-    /**
-     * bundle.watchFiles[0] is the synthetic proxy
-     *
-     * TODO: To implement squash properly I need to use the imported/required files list
-     * that can be collected by the proxy plugin instead of the
-     *
-     * @param module
-     * @param bundle
-     */
-    function updateImportMap(module: string, bundle: RollupBuild) {
-        let outputUrl = `/web_modules/${module}.js`;
-        for (const file of bundle.watchFiles) {
-            if (file.charCodeAt(0) !== 0 && !file.endsWith("-proxy")) {
-                let bare = bareNodeModule(file);
-                importMap.imports[bare] = outputUrl;
-            }
-        }
-        importMap.imports[module] = outputUrl;
     }
 
     const isModule = /\.m?[tj]sx?$/;
@@ -191,7 +200,9 @@ export const useWebModules = memoized((options: WebModulesOptions = defaultOptio
                         if (bundled) {
                             resolved = bundled;
                         } else {
-                            resolved = `/web_modules/${module}/${filename}`;
+                            let target = `${module}/${filename}`;
+                            await rollupWebModule(target);
+                            resolved = `/web_modules/${target}`;
                         }
                     } else {
                         resolved = filename;
@@ -238,10 +249,22 @@ export const useWebModules = memoized((options: WebModulesOptions = defaultOptio
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    function requireManifest(module: string) {
-        return new Promise<PackageMeta>(function (done, fail) {
-            resolve(`${module}/package.json`, resolveOptions, (err, resolved, pkg) => pkg ? done(pkg) : fail(err));
-        });
+    function readManifest(module: string, deep: boolean = false) {
+        return readJson(resolve.sync(`${module}/package.json`, resolveOptions));
+    }
+
+    function closestManifest(entryModule: string) {
+        let dirname = path.dirname(entryModule);
+        while (true) try {
+            return readJson(`${dirname}/package.json`);
+        } catch (e) {
+            const parent = path.dirname(dirname);
+            if (parent.endsWith("node_modules")) {
+                break;
+            }
+            dirname = parent;
+        }
+        throw new Error("No package.json found starting from: " + entryModule);
     }
 
     function getModuleDirectories(options: WebModulesOptions) {
@@ -286,29 +309,7 @@ export const useWebModules = memoized((options: WebModulesOptions = defaultOptio
     const pluginTerser = rollupPluginTerser(options.terser);
     const pluginCatchUnresolved = rollupPluginCatchUnresolved();
 
-    function selectTaskPlugins(pkg: PackageMeta, filename: string | null): Plugin[] | null {
-        if (!pkg.main && !filename) {
-            return null;
-        }
-        let isEsm = pkg.module || pkg["jsnext:main"] || (pkg.main || filename).endsWith(".mjs");
-        return [
-            filename ? false : isEsm ? pluginEsmProxy : pluginCjsProxy,
-            pluginReplace,
-            pluginRewriteImports,
-            isEsm ? pluginEsmNodeResolve : pluginCjsNodeResolve,
-            pluginCommonJS,
-            pluginJson,
-            pluginSourcemaps,
-            options.terser ? pluginTerser : false,
-            pluginCatchUnresolved,
-            ...(
-                options.rollup.plugins!
-            )
-        ].filter(Boolean) as Plugin[];
-    }
-
-    const ALREADY_RESOLVED = Promise.resolve();
-    const pending = new Map<string, Promise<void>>();
+    const pendingTasks = new Map<string, Promise<void>>();
 
     /**
      *              _ _         __          __  _     __  __           _       _
@@ -320,73 +321,110 @@ export const useWebModules = memoized((options: WebModulesOptions = defaultOptio
      *                       | |
      *                       |_|
      *
-     * @param pathname
+     * @param source
      */
-    function rollupWebModule(pathname: string): Promise<void> {
+    function rollupWebModule(source: string): Promise<void> {
 
-        if (importMap.imports[pathname]) {
+        if (importMap.imports[source]) {
             return ALREADY_RESOLVED;
         }
 
-        if (!pending.has(pathname)) {
-            let [module, filename] = parsePathname(pathname) as [string, string | null];
-            pending.set(pathname, rollupWebModuleTask(module, filename)
+        if (!pendingTasks.has(source)) {
+            let [module, filename] = parsePathname(source) as [string, string | null];
+            pendingTasks.set(source, rollupWebModuleTask(module, filename)
                 .catch(function (err) {
-                    log.error("failed to rollup:", pathname, err);
+                    log.error("failed to rollup:", source, err);
                     throw err;
                 })
                 .finally(function () {
-                    pending.delete(pathname);
+                    pendingTasks.delete(source);
                 })
             );
         }
 
-        return pending.get(pathname)!;
+        return pendingTasks.get(source)!;
 
         async function rollupWebModuleTask(module: string, filename: string | null): Promise<void> {
 
-            log.info("rollup web module:", pathname);
+            log.info("rollup web module:", source);
 
             if (filename && !importMap.imports[module]) {
                 await rollupWebModule(module);
             }
 
-            let pkg = await requireManifest(module);
-            while (pkg && pkg.main && !posix.extname(pkg.main)) try {
-                pkg = await requireManifest(posix.join(module, pkg.main));
-            } catch (ignored) {
-            }
-
             const startTime = Date.now();
 
-            let plugins = selectTaskPlugins(pkg, filename);
-            if (plugins === null) {
-                log.info`nothing to roll up for: ${chalk.magenta(pathname)}`;
-                importMap.imports[module] = `/web_modules/${module}/${module}.js`;
-                return;
+            let inputFilename: string;
+            try {
+                inputFilename = resolve.sync(source, resolveOptions);
+            } catch (ignored) {
+                if (filename) {
+                    inputFilename = source;
+                } else {
+                    log.info`nothing to roll up for: ${chalk.magenta(source)}`;
+                    importMap.imports[module] = `/node_modules/${source}`;
+                    await writeImportMap(outDir, importMap);
+                    return;
+                }
             }
+
+            let pkg = closestManifest(inputFilename);
+            let isEsm = pkg.module || pkg["jsnext:main"] || inputFilename.endsWith(".mjs");
 
             const bundle = await rollup({
                 ...options.rollup,
-                input: pathname,
-                plugins: plugins,
+                input: inputFilename,
+                plugins: [
+                    filename ? false : isEsm ? pluginEsmProxy : pluginCjsProxy,
+                    pluginReplace,
+                    pluginRewriteImports,
+                    isEsm ? pluginEsmNodeResolve : pluginCjsNodeResolve,
+                    pluginCommonJS,
+                    pluginJson,
+                    pluginSourcemaps,
+                    options.terser ? pluginTerser : false,
+                    pluginCatchUnresolved,
+                    ...(
+                        options.rollup.plugins!
+                    )
+                ].filter(Boolean) as Plugin[],
                 treeshake: options.rollup?.treeshake ?? {moduleSideEffects: "no-external"},
                 onwarn: warningHandler
             });
 
             try {
+                let outFile = filename ? source : module + ".js";
                 await bundle.write({
-                    file: `${outDir}/${filename ? pathname : module + ".js"}`,
+                    file: `${outDir}/${outFile}`,
                     sourcemap: !options.terser
                 });
+
+                let outputUrl = `/web_modules/${outFile}`;
+                importMap.imports[source] = outputUrl;
+
                 if (!filename) {
-                    updateImportMap(module, bundle);
+                    importMap.imports[module] = outputUrl;
+                    for (const {meta} of bundle.cache!.modules) {
+                        const bundle = meta && meta["entry-proxy"]?.bundle;
+                        if (bundle) {
+                            for (const bare of bundle) {
+                                if (!importMap.imports[bare]) {
+                                    importMap.imports[bare] = outputUrl;
+                                } else {
+                                    log.warn("an import mapping already exists for:", bare);
+                                }
+                            }
+                            break;
+                        }
+                    }
                 }
+
                 await writeImportMap(outDir, importMap);
+
             } finally {
                 await bundle.close();
                 const elapsed = Date.now() - startTime;
-                log.info`rolled up: ${chalk.magenta(pathname)} in: ${chalk.magenta(elapsed)}ms`;
+                log.info`rolled up: ${chalk.magenta(source)} in: ${chalk.magenta(elapsed)}ms`;
             }
         }
     }

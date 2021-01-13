@@ -100,7 +100,7 @@ describe("web modules", function () {
 
         let [importMap] = readImportMap(`fixture/react/web_modules/import-map.json`);
         expect(importMap).to.include.members([
-            "object-assign/index.js",
+            "object-assign",
             "react/index.js",
             "react/cjs/react.development.js",
             "react"
@@ -108,6 +108,8 @@ describe("web modules", function () {
     });
 
     it("can bundle react-dom", async function () {
+
+        this.timeout(10000);
 
         let {rollupWebModule} = setup("/react");
 
@@ -137,7 +139,7 @@ describe("web modules", function () {
         expect(importMap).to.include.members([
             "react/index.js",
             "react/cjs/react.development.js",
-            "object-assign/index.js",
+            "object-assign",
             "react",
             "react-dom/index.js",
             "react-dom/cjs/react-dom.development.js",
@@ -198,7 +200,7 @@ describe("web modules", function () {
 
     it("can bundle react-icons", async function () {
 
-        let {rollupWebModule, resolveImport} = setup("/react");
+        let {rollupWebModule} = setup("/react");
 
         await rollupWebModule("react-icons/bs");
 
@@ -240,15 +242,13 @@ describe("web modules", function () {
 
         let [importMap] = readImportMap(`fixture/iife/web_modules/import-map.json`);
         expect(importMap).to.include.members([
-            "countries-and-timezones/lib/esm/iconsManifest.js",
-            "countries-and-timezones/lib/esm/iconBase.js",
-            "countries-and-timezones/lib/esm/iconContext.js",
+            "countries-and-timezones/dist/index.js",
             "countries-and-timezones"
         ]);
 
     });
 
-    it("can bundle antd", async function (this: Mocha.Context) {
+    it("can bundle antd", async function (this) {
 
         this.timeout(60000);
 
@@ -282,7 +282,7 @@ describe("web modules", function () {
             "replaceElement", "resetWarned", "resolveOnChange", "responsiveArray", "responsiveMap", "sortGradient",
             "throttleByAnimationFrame", "throttleByAnimationFrameDecorator", "toArray", "triggerFocus", "tuple",
             "tupleNum", "useForm", "useLocaleReceiver", "validProgress", "version", "withConfigConsumer",
-            "withConfirm", "withError", "withInfo", "withSuccess", "withWarn", "default"
+            "withConfirm", "withError", "withInfo", "withSuccess", "withWarn", "default", "icons"
         ]);
 
         let [importMap] = readImportMap(`fixture/react/web_modules/import-map.json`);
@@ -291,16 +291,15 @@ describe("web modules", function () {
             "lodash/lodash.js",
             "lodash",
             "moment",
-            "object-assign/index.js",
+            "object-assign",
             "react",
             "react-dom/index.js",
             "react-dom",
             "antd/es/index.js",
-            "@babel/runtime/helpers/toArray.js",
+            "@babel/runtime",
             "classnames/index.js",
             "omit.js/es/index.js",
-            "rc-util/es/warning.js",
-            "@babel/runtime/helpers/assertThisInitialized.js",
+            "rc-util",
             "dom-align/dist-web/index.js",
             "antd"
         ]);
@@ -598,7 +597,7 @@ describe("web modules", function () {
         expect(module).to.have.string(`function _arrayWithHoles(arr) {\n  if (Array.isArray(arr)) return arr;\n}`);
 
         let [importMap] = readImportMap(`fixture/babel-runtime/web_modules/import-map.json`);
-        expect(importMap).not.to.include.members([
+        expect(importMap).to.include.members([
             "@babel/runtime"
         ]);
 
@@ -651,17 +650,42 @@ describe("web modules", function () {
 
     it("react & react-dom share object-assign causing split", async function () {
 
-        let {rollupWebModule} = setup("/react");
+        this.timeout(10000);
+
+        let {rollupWebModule, resolveImport} = setup("/react");
 
         await rollupWebModule("react");
         await rollupWebModule("react-dom");
+
+        let [_,imports] = readImportMap(`fixture/react/web_modules/import-map.json`);
+        expect(imports["object-assign"]).to.equal("/web_modules/object-assign.js");
+
+        expect(existsSync(join(__dirname, "/web_modules/object-assign.js"))).to.be.false;
+
+        await rollupWebModule("object-assign/index.js");
 
         let exports = readExports(`fixture/react/web_modules/object-assign.js`);
         expect(exports).to.have.members([
             "default"
         ]);
 
-        let [_,imports] = readImportMap(`fixture/react/web_modules/import-map.json`);
-        expect(imports["object-assign/index.js"]).to.equal("/web_modules/object-assign/index.js");
+        expect(await resolveImport("object-assign/index.js")).to.equal("/web_modules/object-assign.js");
+    })
+
+    it("can bundle @ant-design/icons", async function () {
+
+        this.timeout(60000);
+
+        let {outDir, rollupWebModule, resolveImport} = setup("/ant-design");
+
+        await rollupWebModule("rc-util/es/omit");
+        await rollupWebModule("@ant-design/icons");
+        await rollupWebModule("antd");
+
+        let [_,imports] = readImportMap(`/fixture/ant-design/web_modules/import-map.json`);
+        expect(imports["@ant-design/icons"]).to.equal("/web_modules/@ant-design/icons.js");
+
+        expect(existsSync(join(outDir, "/@ant-design/icons.js"))).to.be.true;
+        expect(existsSync(join(outDir, "/@babel/runtime/helpers/esm/extends.js"))).to.be.true;
     })
 });

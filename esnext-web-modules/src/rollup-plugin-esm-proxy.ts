@@ -2,36 +2,41 @@ import {init as parseEsmReady, parse as parseEsm} from "es-module-lexer";
 import * as fs from "fs";
 import * as path from "path";
 import {Plugin} from "rollup";
-import {isBare, toPosix} from "./es-import-utils";
+import {bareNodeModule, isBare, toPosix} from "./es-import-utils";
 
 function scanEsm(
     filename: string,
-    exportsByFilename = new Map<string, string[]>(),
+    exportsByFilename = new Map<string, string[]|null>(),
     exports = new Set<string>()
-): Map<string, string[]> {
+): Map<string, string[]|null> {
     let source = fs.readFileSync(filename, "utf-8");
     let [
-        moduleImports,
-        moduleExports
+        imported,
+        exported
     ] = parseEsm(source);
 
-    let uniqueExports: string[] = [];
-    for (const e of moduleExports) if (!exports.has(e)) {
-        uniqueExports.push(e);
-        exports.add(e);
+    let uniqueExports: string[] = exportsByFilename.get(filename) || [];
+    for (const e of exported) {
+        if (e === "default") {
+            exportsByFilename.set(filename, null);
+            return exportsByFilename;
+        } else if (!exports.has(e)) {
+            uniqueExports.push(e);
+            exports.add(e);
+        }
     }
 
     exportsByFilename.set(filename, uniqueExports);
 
-    for (const {s, e} of moduleImports) {
-        let moduleImport = source.substring(s, e);
-        if (!isBare(moduleImport)) {
-            if (moduleImport === "..") {
-                moduleImport = "../index";
-            } else if (moduleImport === ".") {
-                moduleImport = "./index";
+    for (const {s, e} of imported) {
+        let module = source.substring(s, e);
+        if (!isBare(module)) {
+            if (module === "..") {
+                module = "../index";
+            } else if (module === ".") {
+                module = "./index";
             }
-            let importedFilename = require.resolve(moduleImport, {paths: [path.dirname(filename)]});
+            let importedFilename = require.resolve(module, {paths: [path.dirname(filename)]});
             if (!exportsByFilename.has(importedFilename)) {
                 scanEsm(importedFilename, exportsByFilename, exports);
             }
@@ -64,7 +69,7 @@ export function rollupPluginEsmProxy({entryModules}: PluginEsmProxyOptions): Plu
             await parseEsmReady;
         },
         async resolveId(source, importer) {
-            if (!importer && entryModules.has(source)) {
+            if (!importer) {
                 let resolution = await this.resolve(source, importer, {skipSelf: true});
                 if (resolution) {
                     return `${resolution.id}?esm-proxy`;
@@ -77,8 +82,13 @@ export function rollupPluginEsmProxy({entryModules}: PluginEsmProxyOptions): Plu
                 const entryId = id.slice(0, -10);
                 const entryUrl = toPosix(entryId);
                 const exportsByFilename = scanEsm(entryId);
+                const excluded = new Set<string>();
                 let proxy = "";
                 for (const [filename, exports] of exportsByFilename.entries()) {
+                    if (exports === null) {
+                        excluded.add(filename);
+                        continue;
+                    }
                     if (exports.length > 0) {
                         let importUrl = toPosix(filename);
                         proxy += `export {\n${exports.join(",\n")}\n} from "${importUrl}";\n`;
@@ -87,7 +97,10 @@ export function rollupPluginEsmProxy({entryModules}: PluginEsmProxyOptions): Plu
                 if (entryUrl.endsWith("redux-toolkit.esm.js")) {
                     proxy += `export * from "redux";`;
                 }
-                return proxy || fs.readFileSync(entryId, "utf-8");
+                return {
+                    code: proxy || fs.readFileSync(entryId, "utf-8"),
+                    meta: {"entry-proxy": {bundle: [...exportsByFilename.keys()].filter(f => !excluded.has(f)).map(bareNodeModule)}}
+                };
             }
             return null;
         }

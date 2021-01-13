@@ -54,6 +54,10 @@ function rollupPluginRewriteImports(options) {
                     let moduleBareUrl = es_import_utils_1.bareNodeModule(absolute);
                     let resolved = importMap.imports[moduleBareUrl];
                     if (resolved) {
+                        let moduleInfo = this.getModuleInfo(source);
+                        if (moduleInfo) {
+                            return moduleInfo.id;
+                        }
                         return { id: source, external: true, meta: { [REWRITE_IMPORT]: resolved } };
                     }
                 }
