@@ -678,7 +678,6 @@ describe("web modules", function () {
 
         let {outDir, rollupWebModule, resolveImport} = setup("/ant-design");
 
-        await rollupWebModule("rc-util/es/omit");
         await rollupWebModule("@ant-design/icons");
         await rollupWebModule("antd");
 

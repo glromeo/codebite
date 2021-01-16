@@ -41,6 +41,7 @@
     "chokidar": "^3.4.1",
     "cors": "^2.8.5",
     "deepmerge": "^4.2.2",
+    "es-module-lexer": "^0.3.26",
     "etag": "^1.8.1",
     "fast-decode-uri-component": "^1.0.1",
     "fast-url-parser": "^1.1.3",

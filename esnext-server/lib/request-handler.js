@@ -48,19 +48,15 @@ function createRequestHandler(options, watcher) {
         tiny_node_logger_1.default.debug(req.method, req.url);
         try {
             const { pathname, content, headers, links } = await provideResource(req.url, req.headers);
+            res.writeHead(200, headers);
             if (res instanceof http2_1.Http2ServerResponse) {
                 if (links && options.http2 === "push") {
-                    res.writeHead(200, headers);
-                    res.write(content);
-                    await http2Push(res.stream, pathname, links, req.headers);
-                    res.end();
-                    return;
+                    http2Push(res.stream, pathname, links, req.headers);
                 }
                 if (links && options.http2 === "preload") {
                     res.setHeader("link", [...links].map(src => `<${src}>; crossorigin; rel=preload; as=${src.endsWith(".css") ? "style" : "script"}`));
                 }
             }
-            res.writeHead(200, headers);
             res.end(content);
         }
         catch (error) {

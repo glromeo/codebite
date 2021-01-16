@@ -101,7 +101,7 @@ export const useResourceProvider = memoized(function (options: ESNextOptions, wa
         let {
             filename,
             content,
-            headers
+            headers,
         } = await readWorkspaceFile(pathname);
 
         let links, watch;

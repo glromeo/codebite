@@ -17,8 +17,7 @@ exports.useHttp2Push = nano_memoize_1.default((options, watcher) => {
         try {
             const { content, headers } = await provideResource(url, clientHeaders);
             stream.pushStream({
-                [HTTP2_HEADER_PATH]: url,
-                [HTTP2_HEADER_METHOD]: HTTP2_METHOD_CONNECT
+                [HTTP2_HEADER_PATH]: url
             }, function (err, push) {
                 if (err) {
                     reject(err);
@@ -52,20 +51,20 @@ exports.useHttp2Push = nano_memoize_1.default((options, watcher) => {
             reject(error);
         }
     });
-    async function http2Push(stream, pathname, links, clientHeaders) {
+    function http2Push(stream, pathname, links, clientHeaders) {
         if (stream) {
             const dirname = path_1.default.posix.dirname(pathname);
-            await Promise.all([...links].map(link => {
+            for (let link of links) {
                 const url = link.startsWith("/") ? link : path_1.default.posix.resolve(dirname, link);
                 if (stream.pushAllowed) {
-                    return serverPush(stream, url, clientHeaders).catch(error => {
+                    serverPush(stream, url, clientHeaders).catch(error => {
                         tiny_node_logger_1.default.warn("internal error pushing:", link, "from:", pathname);
                     });
                 }
                 else {
                     tiny_node_logger_1.default.warn("not allowed to push:", link, "from:", pathname);
                 }
-            }));
+            }
         }
     }
     return {

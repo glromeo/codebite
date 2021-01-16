@@ -1,8 +1,10 @@
-import {init as parseEsmReady, parse as parseEsm} from "es-module-lexer";
+import {init, parse as parseEsm} from "es-module-lexer";
 import * as fs from "fs";
 import * as path from "path";
 import {Plugin} from "rollup";
 import {bareNodeModule, isBare, toPosix} from "./es-import-utils";
+
+const parseEsmReady = init;
 
 function scanEsm(
     filename: string,

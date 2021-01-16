@@ -24,6 +24,7 @@ const es_module_lexer_1 = require("es-module-lexer");
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
 const es_import_utils_1 = require("./es-import-utils");
+const parseEsmReady = es_module_lexer_1.init;
 function scanEsm(filename, exportsByFilename = new Map(), exports = new Set()) {
     let source = fs.readFileSync(filename, "utf-8");
     let [imported, exported] = es_module_lexer_1.parse(source);
@@ -60,7 +61,7 @@ function rollupPluginEsmProxy({ entryModules }) {
     return {
         name: "rollup-plugin-esm-proxy",
         async buildStart(options) {
-            await es_module_lexer_1.init;
+            await parseEsmReady;
         },
         async resolveId(source, importer) {
             if (!importer) {

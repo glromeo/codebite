@@ -26,8 +26,7 @@ export const useHttp2Push = memoized((options: ESNextOptions, watcher: FSWatcher
             } = await provideResource(url, clientHeaders);
 
             stream.pushStream({
-                [HTTP2_HEADER_PATH]: url,
-                [HTTP2_HEADER_METHOD]: HTTP2_METHOD_CONNECT
+                [HTTP2_HEADER_PATH]: url
             }, function (err, push) {
                 if (err) {
                     reject(err);
@@ -62,19 +61,19 @@ export const useHttp2Push = memoized((options: ESNextOptions, watcher: FSWatcher
         }
     });
 
-    async function http2Push(stream, pathname, links, clientHeaders) {
+    function http2Push(stream, pathname, links, clientHeaders) {
         if (stream) {
             const dirname = path.posix.dirname(pathname);
-            await Promise.all([...links].map(link => {
+            for (let link of links) {
                 const url = link.startsWith("/") ? link : path.posix.resolve(dirname, link);
                 if (stream.pushAllowed) {
-                    return serverPush(stream, url, clientHeaders).catch(error => {
+                    serverPush(stream, url, clientHeaders).catch(error => {
                         log.warn("internal error pushing:", link, "from:", pathname);
                     });
                 } else {
                     log.warn("not allowed to push:", link, "from:", pathname);
                 }
-            });
+            }
         }
     }
 

@@ -12,7 +12,7 @@ import {ESNextOptions} from "./configure";
 import {useResourceProvider} from "./providers/resource-provider";
 import {createRouter} from "./router";
 import {useHttp2Push} from "./util/http2-push";
-import {contentType} from "./util/mime-types";
+import {contentType, JAVASCRIPT_CONTENT_TYPE} from "./util/mime-types";
 
 export function createRequestHandler<V extends Router.HTTPVersion = Router.HTTPVersion.V1>(options: ESNextOptions, watcher: FSWatcher) {
 
@@ -58,13 +58,11 @@ export function createRequestHandler<V extends Router.HTTPVersion = Router.HTTPV
                 links
             } = await provideResource(req.url, req.headers);
 
+            res.writeHead(200, headers);
+
             if (res instanceof Http2ServerResponse) {
                 if (links && options.http2 === "push") {
-                    res.writeHead(200, headers);
-                    res.write(content);
-                    await http2Push(res.stream, pathname, links, req.headers);
-                    res.end();
-                    return;
+                    http2Push(res.stream, pathname, links, req.headers);
                 }
                 if (links && options.http2 === "preload") {
                     res.setHeader("link", [...links].map(
@@ -73,7 +71,6 @@ export function createRequestHandler<V extends Router.HTTPVersion = Router.HTTPV
                 }
             }
 
-            res.writeHead(200, headers);
             res.end(content);
 
         } catch (error) {
