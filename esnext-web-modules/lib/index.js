@@ -11,7 +11,7 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.useWebModulesPlugin = exports.parsePathname = exports.toPosix = exports.bareNodeModule = exports.isBare = void 0;
-__exportStar(require("./web-modules"), exports);
+__exportStar(require("./esbuild-web-modules"), exports);
 var es_import_utils_1 = require("./es-import-utils");
 Object.defineProperty(exports, "isBare", { enumerable: true, get: function () { return es_import_utils_1.isBare; } });
 Object.defineProperty(exports, "bareNodeModule", { enumerable: true, get: function () { return es_import_utils_1.bareNodeModule; } });

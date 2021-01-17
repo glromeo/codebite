@@ -19,7 +19,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.rollupPluginEsmProxy = void 0;
+exports.rollupPluginEsmProxy = exports.generateEsmProxy = void 0;
 const es_module_lexer_1 = require("es-module-lexer");
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
@@ -30,7 +30,7 @@ function scanEsm(filename, exportsByFilename = new Map(), exports = new Set()) {
     let [imported, exported] = es_module_lexer_1.parse(source);
     let uniqueExports = exportsByFilename.get(filename) || [];
     for (const e of exported) {
-        if (e === "default") {
+        if (e === "default" && exportsByFilename.size > 0) {
             exportsByFilename.set(filename, null);
             return exportsByFilename;
         }
@@ -57,6 +57,30 @@ function scanEsm(filename, exportsByFilename = new Map(), exports = new Set()) {
     }
     return exportsByFilename;
 }
+function generateEsmProxy(entryId) {
+    const entryUrl = es_import_utils_1.toPosix(entryId);
+    const exportsByFilename = scanEsm(entryId);
+    const excluded = new Set();
+    let proxy = "";
+    for (const [filename, exports] of exportsByFilename.entries()) {
+        if (exports === null) {
+            excluded.add(filename);
+            continue;
+        }
+        if (exports.length > 0) {
+            let importUrl = es_import_utils_1.toPosix(filename);
+            proxy += `export {\n${exports.join(",\n")}\n} from "${importUrl}";\n`;
+        }
+    }
+    if (entryUrl.endsWith("redux-toolkit.esm.js")) {
+        proxy += `export * from "redux";`;
+    }
+    return {
+        code: proxy || fs.readFileSync(entryId, "utf-8"),
+        meta: { "entry-proxy": { bundle: [...exportsByFilename.keys()].filter(f => !excluded.has(f)).map(es_import_utils_1.bareNodeModule) } }
+    };
+}
+exports.generateEsmProxy = generateEsmProxy;
 function rollupPluginEsmProxy({ entryModules }) {
     return {
         name: "rollup-plugin-esm-proxy",
@@ -75,27 +99,7 @@ function rollupPluginEsmProxy({ entryModules }) {
         load(id) {
             if (id.endsWith("?esm-proxy")) {
                 const entryId = id.slice(0, -10);
-                const entryUrl = es_import_utils_1.toPosix(entryId);
-                const exportsByFilename = scanEsm(entryId);
-                const excluded = new Set();
-                let proxy = "";
-                for (const [filename, exports] of exportsByFilename.entries()) {
-                    if (exports === null) {
-                        excluded.add(filename);
-                        continue;
-                    }
-                    if (exports.length > 0) {
-                        let importUrl = es_import_utils_1.toPosix(filename);
-                        proxy += `export {\n${exports.join(",\n")}\n} from "${importUrl}";\n`;
-                    }
-                }
-                if (entryUrl.endsWith("redux-toolkit.esm.js")) {
-                    proxy += `export * from "redux";`;
-                }
-                return {
-                    code: proxy || fs.readFileSync(entryId, "utf-8"),
-                    meta: { "entry-proxy": { bundle: [...exportsByFilename.keys()].filter(f => !excluded.has(f)).map(es_import_utils_1.bareNodeModule) } }
-                };
+                return generateEsmProxy(entryId);
             }
             return null;
         }

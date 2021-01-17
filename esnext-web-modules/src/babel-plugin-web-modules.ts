@@ -3,7 +3,7 @@ import memoized from "nano-memoize";
 import path from "path";
 import log from "tiny-node-logger";
 import {isBare} from "./es-import-utils";
-import {useWebModules} from "./web-modules";
+import {useWebModules} from "./index";
 
 export const useWebModulesPlugin = memoized(config => {
 

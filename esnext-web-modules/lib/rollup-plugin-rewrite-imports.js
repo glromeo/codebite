@@ -55,7 +55,7 @@ function rollupPluginRewriteImports(options) {
                     let resolved = importMap.imports[moduleBareUrl];
                     if (resolved) {
                         let moduleInfo = this.getModuleInfo(source);
-                        if (moduleInfo) {
+                        if (moduleInfo && !moduleInfo.isExternal) {
                             return moduleInfo.id;
                         }
                         return { id: source, external: true, meta: { [REWRITE_IMPORT]: resolved } };

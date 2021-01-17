@@ -9,9 +9,9 @@ const nano_memoize_1 = __importDefault(require("nano-memoize"));
 const path_1 = __importDefault(require("path"));
 const tiny_node_logger_1 = __importDefault(require("tiny-node-logger"));
 const es_import_utils_1 = require("./es-import-utils");
-const web_modules_1 = require("./web-modules");
+const index_1 = require("./index");
 exports.useWebModulesPlugin = nano_memoize_1.default(config => {
-    const { resolveImport } = web_modules_1.useWebModules(config);
+    const { resolveImport } = index_1.useWebModules(config);
     function resolveBabelRuntime(importUrl) {
         if (importUrl.startsWith("@babel/"))
             return `/web_modules/${importUrl}.js`;

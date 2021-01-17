@@ -11,8 +11,6 @@ export function useWorkspaceFiles(config) {
         mount = {}
     } = config;
 
-    const {rollupWebModule} = useWebModules(config);
-
     const regExp = /\/[^/?]+/;
 
     async function resolve(pathname) {
@@ -20,26 +18,7 @@ export function useWorkspaceFiles(config) {
         if (match) {
             const segment = match[0];
             if (segment === "/web_modules") {
-
-                // const {module, filename} = parsePathname(pathname.substring(13));
-                //
-                // log.debug`resolving: ${module}/${filename}`;
-                //
-                // const webPkg = await resolveImport(module);
-                // const resolved = await webPkg.resolve(filename);
-                //
-                // if (webPkg.local) {
-                //     return {route: "/", filename: path.join(rootDir, resolved)};
-                // }
-
-                // if (resolved !== filename)
-                //     throw {
-                //         code: HttpStatus.PERMANENT_REDIRECT,
-                //         headers: {"location": path.posix.join(segment, module, resolved)}
-                //     };
-
                 return {route: segment, filename: path.join(rootDir, pathname)};
-
             } else if (segment === "/workspaces") {
                 return {route: segment, filename: path.join(rootDir, pathname.substring("/workspaces".length))};
             } else if (mount[segment]) {
@@ -54,13 +33,6 @@ export function useWorkspaceFiles(config) {
         const {route, filename} = await resolve(pathname);
 
         const stats = await fs.stat(filename).catch(error => {
-            // if (error.code === "ENOENT") {
-            //     if (route === "/web_modules") {
-            //         return rollupWebModule(pathname.substring(13)).then(() => fs.stat(filename));
-            //     }
-            // }
-            throw error;
-        }).catch(error => {
             if (error.code === "ENOENT") {
                 if (pathname === "/favicon.ico") {
                     throw {code: HttpStatus.PERMANENT_REDIRECT, headers: {"location": "/resources/javascript.png"}};

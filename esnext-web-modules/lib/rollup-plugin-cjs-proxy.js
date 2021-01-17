@@ -19,7 +19,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.rollupPluginCjsProxy = void 0;
+exports.rollupPluginCjsProxy = exports.generateCjsProxy = void 0;
 const cjs_module_lexer_1 = require("cjs-module-lexer");
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
@@ -45,6 +45,32 @@ function scanCjs(filename, collected = new Set()) {
     }
     return collected;
 }
+function generateCjsProxy(entryId) {
+    const entryUrl = es_import_utils_1.toPosix(entryId);
+    const exports = scanCjs(entryId);
+    exports.delete("__esModule");
+    let proxy = "";
+    if (!exports.has("default")) {
+        proxy += `import __default__ from "${entryUrl}";\nexport default __default__;\n`;
+    }
+    if (exports.size > 0) {
+        proxy += `export {\n${Array.from(exports).join(",\n")}\n} from "${entryUrl}";\n`;
+    }
+    else {
+        let moduleInstance = require(entryId);
+        if (!(!moduleInstance || moduleInstance.constructor !== Object)) {
+            let filteredExports = Object.keys(moduleInstance).filter(function (moduleExport) {
+                return moduleExport !== "default" && moduleExport !== "__esModule";
+            });
+            proxy += `export {\n${filteredExports.join(",\n")}\n} from "${entryUrl}";\n`;
+        }
+    }
+    return {
+        code: proxy || fs.readFileSync(entryId, "utf-8"),
+        meta: { "entry-proxy": { bundle: [es_import_utils_1.bareNodeModule(entryId)] } }
+    };
+}
+exports.generateCjsProxy = generateCjsProxy;
 function rollupPluginCjsProxy({ entryModules }) {
     return {
         name: "rollup-plugin-cjs-proxy",
@@ -63,29 +89,7 @@ function rollupPluginCjsProxy({ entryModules }) {
         load(id) {
             if (id.endsWith("?cjs-proxy")) {
                 const entryId = id.slice(0, -10);
-                const entryUrl = es_import_utils_1.toPosix(entryId);
-                const exports = scanCjs(entryId);
-                exports.delete("__esModule");
-                let proxy = "";
-                if (!exports.has("default")) {
-                    proxy += `import __default__ from "${entryUrl}";\nexport default __default__;\n`;
-                }
-                if (exports.size > 0) {
-                    proxy += `export {\n${Array.from(exports).join(",\n")}\n} from "${entryUrl}";\n`;
-                }
-                else {
-                    let moduleInstance = require(entryId);
-                    if (!(!moduleInstance || moduleInstance.constructor !== Object)) {
-                        let filteredExports = Object.keys(moduleInstance).filter(function (moduleExport) {
-                            return moduleExport !== "default" && moduleExport !== "__esModule";
-                        });
-                        proxy += `export {\n${filteredExports.join(",\n")}\n} from "${entryUrl}";\n`;
-                    }
-                }
-                return {
-                    code: proxy || fs.readFileSync(entryId, "utf-8"),
-                    meta: { "entry-proxy": { bundle: [es_import_utils_1.bareNodeModule(entryId)] } }
-                };
+                return generateCjsProxy(entryId);
             }
             return null;
         }
