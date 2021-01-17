@@ -5,14 +5,14 @@ import Router, {Req, Res} from "find-my-way";
 import {createReadStream} from "fs";
 import HttpStatus from "http-status-codes";
 import {Http2ServerResponse} from "http2";
-import {join} from "path";
+import {join, posix} from "path";
 import {Writable} from "stream";
 import log from "tiny-node-logger";
 import {ESNextOptions} from "./configure";
 import {useResourceProvider} from "./providers/resource-provider";
 import {createRouter} from "./router";
 import {useHttp2Push} from "./util/http2-push";
-import {contentType, JAVASCRIPT_CONTENT_TYPE} from "./util/mime-types";
+import {contentType} from "./util/mime-types";
 
 export function createRequestHandler<V extends Router.HTTPVersion = Router.HTTPVersion.V1>(options: ESNextOptions, watcher: FSWatcher) {
 
@@ -48,29 +48,30 @@ export function createRequestHandler<V extends Router.HTTPVersion = Router.HTTPV
      *                               |_|
      */
     router.get("/*", async function workspaceMiddleware(req: Req<V>, res: Res<V>) {
-
-        log.debug(req.method!, req.url);
         try {
             const {
                 pathname,
                 content,
                 headers,
                 links
-            } = await provideResource(req.url, req.headers);
+            } = await provideResource(req.url!, req.headers);
 
-            res.writeHead(200, headers);
+            req.on("error", log.error);
+            res.on("error", log.error);
 
-            if (res instanceof Http2ServerResponse) {
-                if (links && options.http2 === "push") {
-                    http2Push(res.stream, pathname, links, req.headers);
-                }
-                if (links && options.http2 === "preload") {
-                    res.setHeader("link", [...links].map(
-                        src => `<${src}>; crossorigin; rel=preload; as=${src.endsWith(".css") ? "style" : "script"}`
-                    ));
-                }
+            if (links && options.http2 === "push" && res instanceof Http2ServerResponse) {
+                res.writeHead(200, headers);
+                http2Push(res.stream, pathname, links, req.headers);
+                res.end(content);
+                return;
+            }
+            if (links && options.http2 === "preload") {
+                headers.link = [...links].map(link => {
+                    return `<${link}>; crossorigin; rel=preload; as=${link.endsWith(".css") ? "style" : "script"}`;
+                });
             }
 
+            res.writeHead(200, headers);
             res.end(content);
 
         } catch (error) {
@@ -115,6 +116,7 @@ export function createRequestHandler<V extends Router.HTTPVersion = Router.HTTPV
     };
 
     return function requestHandler(req: Req<V>, res: Res<V>): void {
+        log.debug(req.method!, req.url);
         cors(req, res, next(req, res));
     };
 }

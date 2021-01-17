@@ -1,13 +1,12 @@
 import chalk from "chalk";
-import * as esbuild from "esbuild";
-import {BuildOptions} from "esbuild";
+import {BuildOptions, Service, startService} from "esbuild";
 import {parse} from "fast-url-parser";
-import {existsSync, mkdirSync, promises as fsp, readFileSync, rmdirSync, statSync} from "fs";
+import {existsSync, mkdirSync, promises as fsp, readFileSync, rmdirSync, statSync, writeFileSync} from "fs";
 import memoized from "nano-memoize";
 import path, {posix} from "path";
 import resolve, {Opts} from "resolve";
 import log from "tiny-node-logger";
-import {bareNodeModule, parsePathname} from "./es-import-utils";
+import {isBare, parseModuleUrl, pathnameToModuleUrl} from "./es-import-utils";
 import {generateCjsProxy} from "./rollup-plugin-cjs-proxy";
 import {generateEsmProxy} from "./rollup-plugin-esm-proxy";
 import {readWorkspaces} from "./workspaces";
@@ -28,31 +27,76 @@ export interface ImportMap {
 
 export type WebModulesOptions = {
     rootDir: string
-    clean?: boolean
+    clean?: boolean                 // cleans the contents of web_modules before init
+    init?: boolean                  // bundle all the dependencies at startup
     environment: string
     resolve: Opts
     external: string | string[]
-    esbuild: BuildOptions
+    squash?: string[];
+    esbuild?: BuildOptions
 };
 
 export type ImportResolver = (url: string, basedir?: string) => Promise<string>;
+
+export type EntryProxyResult = {
+    code: string         // The entry proxy code
+    imports: string[]    // Imports that will end up in the importMap as imports because they have been squashed in
+    external: string[]   // Imports that have to be treated as external during the bundling of this module
+}
 
 export function defaultOptions(): WebModulesOptions {
     return require(require.resolve(`${process.cwd()}/web-modules.config.js`));
 }
 
-function initFileSystem(rootDir: string, clean?: boolean): { outDir: string } {
+function readImportMap(rootDir: string, outDir: string): ImportMap {
+    try {
+        let importMap = JSON.parse(readFileSync(`${outDir}/import-map.json`, "utf-8"));
+
+        for (const [key, pathname] of Object.entries(importMap.imports)) {
+            try {
+                // let {mtime} = statSync(path.join(rootDir, String(pathname)));
+                log.debug("web_module:", chalk.green(key), "->", chalk.gray(pathname));
+            } catch (e) {
+                delete importMap[key];
+            }
+        }
+
+        return importMap;
+    } catch (e) {
+        return {imports: {}};
+    }
+}
+
+function init({rootDir, clean, init}: WebModulesOptions): { outDir: string, importMap: ImportMap } {
+
     const outDir = path.join(rootDir, "web_modules");
     if (clean && existsSync(outDir)) {
         rmdirSync(outDir, {recursive: true});
         log.info("cleaned web_modules directory");
     }
     mkdirSync(outDir, {recursive: true});
-    return {outDir};
+
+    const importMap = {
+        imports: {
+            ...readImportMap(rootDir, outDir).imports,
+            ...readWorkspaces(rootDir).imports
+        }
+    };
+
+    if (init) {
+        // TODO: refactor the code to implement options.init
+    }
+
+    return {outDir, importMap};
 }
 
 function readJson(filename) {
     return JSON.parse(readFileSync(filename, "utf-8"));
+}
+
+function stripExt(filename: string) {
+    const end = filename.lastIndexOf('.');
+    return end > 0 ? filename.substring(0, end) : filename;
 }
 
 /**
@@ -66,34 +110,39 @@ function readJson(filename) {
  */
 export const useWebModules = memoized((options: WebModulesOptions = defaultOptions()) => {
 
-    const {outDir} = initFileSystem(options.rootDir, options.clean);
+    const {outDir, importMap} = init(options);
 
     if (!options.environment) options.environment = "development";
     if (!options.resolve) options.resolve = {};
-    if (!options.resolve.paths) options.resolve.paths = [path.join(options.rootDir, "node_modules")];
     if (!options.resolve.extensions) options.resolve.extensions = [".ts", ".tsx", ".js", ".jsx"];
     if (!options.external) options.external = ["@babel/runtime/**"];
     if (!options.esbuild) options.esbuild = {};
-    if (!options.esbuild.plugins) options.esbuild.plugins = [];
+
+    options.esbuild = {
+        define: {
+            "process.env.NODE_ENV": `"${options.environment}"`,
+            ...options.esbuild.define
+        },
+        sourcemap: true,
+        target: ["chrome80"],
+        ...options.esbuild,
+        format: "esm",
+        bundle: true
+    };
 
     const ALREADY_RESOLVED = Promise.resolve();
     const resolveOptions = {
         basedir: options.rootDir,
+        includeCoreModules: false,
         packageFilter(pkg: any, pkgfile: string) {
             return {main: pkg.module || pkg["jsnext:main"] || pkg.main};
         },
         ...options.resolve
     } as Opts;
 
-    const importMap = {
-        imports: {
-            ...readImportMap(outDir).imports,
-            ...readWorkspaces(options.rootDir).imports
-        }
-    };
-
-    const appPkg: PackageMeta = readJson(require.resolve("./package.json", {paths: [options.rootDir]}));
+    const appPkg: PackageMeta = readManifest(".");
     const entryModules = collectEntryModules(appPkg);
+    const squash = new Set<string>(options.squash);
 
     function collectDependencies(entryModule: PackageMeta) {
         return new Set([
@@ -116,24 +165,6 @@ export const useWebModules = memoized((options: WebModulesOptions = defaultOptio
         return entryModules;
     }
 
-    function readImportMap(outDir: string): ImportMap {
-        try {
-            let importMap = JSON.parse(readFileSync(`${outDir}/import-map.json`, "utf-8"));
-
-            for (const [key, pathname] of Object.entries(importMap.imports)) {
-                try {
-                    let {mtime} = statSync(path.join(options.rootDir, String(pathname)));
-                    log.debug("web_module:", chalk.green(key), "->", chalk.gray(pathname));
-                } catch (e) {
-                    delete importMap[key];
-                }
-            }
-
-            return importMap;
-        } catch (e) {
-            return {imports: {}};
-        }
-    }
 
     function writeImportMap(outDir: string, importMap: ImportMap): Promise<void> {
         return fsp.writeFile(`${outDir}/import-map.json`, JSON.stringify(importMap, null, "  "));
@@ -167,7 +198,7 @@ export const useWebModules = memoized((options: WebModulesOptions = defaultOptio
 
         let resolved = importMap.imports[pathname];
         if (!resolved) {
-            let [module, filename] = parsePathname(pathname);
+            let [module, filename] = parseModuleUrl(pathname);
             if (module !== null && !importMap.imports[module]) {
                 await esbuildWebModule(module);
                 resolved = importMap.imports[module];
@@ -175,8 +206,8 @@ export const useWebModules = memoized((options: WebModulesOptions = defaultOptio
             if (filename) {
                 let ext = posix.extname(filename);
                 if (!ext) {
-                    ext = resolveExt(module, filename, basedir);
-                    filename += ext;
+                    filename = resolveFilename(module, filename, basedir);
+                    ext = path.extname(filename);
                 }
                 if (!isModule.test(ext)) {
                     let type = resolveModuleType(ext, basedir);
@@ -210,28 +241,33 @@ export const useWebModules = memoized((options: WebModulesOptions = defaultOptio
         }
     }
 
-    function resolveExt(module: string | null, filename: string, basedir: string) {
-        let pathname;
+    function resolveFilename(module: string | null, filename: string, basedir: string): string {
+        let pathname, resolved;
         if (module) {
-            const resolved = resolve.sync(`${module}/${filename}`, resolveOptions);
-            pathname = path.join(resolved.substring(0, resolved.lastIndexOf("node_modules" + path.sep)), "node_modules", module, filename);
+            pathname = resolve.sync(`${module}/${filename}`, resolveOptions);
+            resolved = parseModuleUrl(pathnameToModuleUrl(pathname))[1]!;
         } else {
             pathname = path.join(basedir, filename);
+            resolved = filename;
         }
         try {
             let stats = statSync(pathname);
             if (stats.isDirectory()) {
                 pathname = path.join(pathname, "index");
                 for (const ext of options.resolve.extensions!) {
-                    if (existsSync(pathname + ext)) return `/index${ext}`;
+                    if (existsSync(pathname + ext)) {
+                        return `${resolved}/index${ext}`;
+                    }
                 }
             }
-            return "";
+            return resolved;
         } catch (ignored) {
             for (const ext of options.resolve.extensions!) {
-                if (existsSync(pathname + ext)) return ext;
+                if (existsSync(pathname + ext)) {
+                    return `${resolved}${ext}`;
+                }
             }
-            return "";
+            return resolved;
         }
     }
 
@@ -264,35 +300,16 @@ export const useWebModules = memoized((options: WebModulesOptions = defaultOptio
         return Array.isArray(moduleDirectory) ? [...moduleDirectory] : moduleDirectory ? [moduleDirectory] : undefined;
     }
 
-    // const pluginEsmNodeResolve = esbuildPluginNodeResolve({
-    //     rootDir: options.rootDir,
-    //     mainFields: ["browser:module", "module", "browser", "main"],
-    //     extensions: [".mjs", ".cjs", ".js", ".json"],
-    //     preferBuiltins: true,
-    //     moduleDirectories: getModuleDirectories(options)
-    // });
-    // const pluginCommonJS = esbuildPluginCommonJS();
-    // const pluginJson = esbuildPluginJson({
-    //     preferConst: true,
-    //     indent: "  ",
-    //     compact: false,
-    //     namedExports: true
-    // });
-    // const pluginSourcemaps = esbuildPluginSourcemaps();
-    // const pluginTerser = esbuildPluginTerser(options.terser);
-    // const pluginCatchUnresolved = esbuildPluginCatchUnresolved();
-
     const pendingTasks = new Map<string, Promise<void>>();
 
+    let esbuild: Service;
+
     /**
-     *              _ _         __          __  _     __  __           _       _
-     *             | | |        \ \        / / | |   |  \/  |         | |     | |
-     *    _ __ ___ | | |_   _ _ _\ \  /\  / /__| |__ | \  / | ___   __| |_   _| | ___
-     *   | '__/ _ \| | | | | | '_ \ \/  \/ / _ \ '_ \| |\/| |/ _ \ / _` | | | | |/ _ \
-     *   | | | (_) | | | |_| | |_) \  /\  /  __/ |_) | |  | | (_) | (_| | |_| | |  __/
-     *   |_|  \___/|_|_|\__,_| .__/ \/  \/ \___|_.__/|_|  |_|\___/ \__,_|\__,_|_|\___|
-     *                       | |
-     *                       |_|
+     *             _           _ _     ___        __   _     __  __           _       _
+     *    ___  ___| |__  _   _(_) | __| \ \      / /__| |__ |  \/  | ___   __| |_   _| | ___
+     *   / _ \/ __| '_ \| | | | | |/ _` |\ \ /\ / / _ \ '_ \| |\/| |/ _ \ / _` | | | | |/ _ \
+     *  |  __/\__ \ |_) | |_| | | | (_| | \ V  V /  __/ |_) | |  | | (_) | (_| | |_| | |  __/
+     *   \___||___/_.__/ \__,_|_|_|\__,_|  \_/\_/ \___|_.__/|_|  |_|\___/ \__,_|\__,_|_|\___|
      *
      * @param source
      */
@@ -303,8 +320,7 @@ export const useWebModules = memoized((options: WebModulesOptions = defaultOptio
         }
 
         if (!pendingTasks.has(source)) {
-            let [module, filename] = parsePathname(source) as [string, string | null];
-            pendingTasks.set(source, esbuildWebModuleTask(module, filename)
+            pendingTasks.set(source, esbuildWebModuleTask(source)
                 .catch(function (err) {
                     log.error("failed to esbuild:", source, err);
                     throw err;
@@ -317,117 +333,165 @@ export const useWebModules = memoized((options: WebModulesOptions = defaultOptio
 
         return pendingTasks.get(source)!;
 
-        async function esbuildWebModuleTask(module: string, filename: string | null): Promise<void> {
+        async function esbuildWebModuleTask(source: string): Promise<void> {
 
-            log.info("esbuild web module:", source);
-
-            if (filename && !importMap.imports[module]) {
-                await esbuildWebModule(module);
-            }
-
-            const startTime = Date.now();
-
-            let inputFilename: string;
+            log.info("bundling web module:", source);
+            let startTime = Date.now();
             try {
-                inputFilename = resolve.sync(source, resolveOptions);
-                let resolved = bareNodeModule(inputFilename);
-                if (filename && resolved !== source) {
-                    await esbuildWebModule(resolved);
-                    log.info("aliasing:", source, "as:", resolved);
-                    importMap.imports[source] = `/web_modules/${resolved}`;
-                    return
+                let entryFile = resolve.sync(source, resolveOptions);
+                let entryUrl = pathnameToModuleUrl(entryFile);
+                let pkg = closestManifest(entryFile);
+
+                let [entryModule, pathname] = parseModuleUrl(source);
+                if (entryModule && !importMap.imports[entryModule] && entryModule !== source) {
+                    await esbuildWebModule(entryModule);
                 }
-            } catch (ignored) {
-                if (filename) {
-                    inputFilename = source;
-                } else {
-                    log.info(`nothing to roll up for: ${chalk.magenta(source)}`);
-                    importMap.imports[module] = `/node_modules/${source}`;
-                    await writeImportMap(outDir, importMap);
-                    return;
-                }
-            }
 
-            let pkg = closestManifest(inputFilename);
-            let isEsm = pkg.module || pkg["jsnext:main"] || inputFilename.endsWith(".mjs");
+                let outFile = `${stripExt(source)}.js`;
+                let outUrl = `/web_modules/${outFile}`;
 
-            let externals = [...entryModules].filter(m => m !== module);
-            let outFile = filename ? source : module + ".js";
-            let bundle;
+                if (pathname) {
 
-            await esbuild.build({
-                ...options.esbuild,
-                entryPoints: [inputFilename],
-                bundle: true,
-                format: "esm",
-                outfile: path.join(outDir, outFile),
-                sourcemap: true,
-                define: {
-                    "process.env.NODE_ENV": `"${options.environment}"`,
-                    ...options.esbuild.define
-                },
-                target:["chrome80"],
-                plugins: [
-                    {
-                        name: "web_modules",
-                        setup(build) {
-                            build.onResolve({filter: /./}, args => {
-                                //log.info("resolve:", args.path);
-                                return null;
-                            });
-                            if (externals.length) {
-                                build.onResolve({filter: new RegExp(`^(${externals.join("|")})`)}, async args => {
-                                    let external = args.path;
-                                    // todo: implement aliases
-                                    // if (external.indexOf("@babel/runtime/helpers") >= 0 && external.indexOf("/esm") === -1) {
-                                    //     external = external.replace("/helpers", "/helpers/esm");
-                                    // }
-                                    return {path: await resolveImport(external), external: true};
+                    await (esbuild || (esbuild = await startService())).build({
+                        ...options.esbuild,
+                        entryPoints: [entryUrl],
+                        outfile: path.join(outDir, outFile),
+                        plugins: [{
+                            name: "web_modules",
+                            setup(build) {
+                                build.onResolve({filter: /./}, async function ({path: url, importer}) {
+                                    if (isBare(url)) {
+                                        if (url === entryUrl) {
+                                            return null;
+                                        }
+                                        let webModuleUrl = importMap.imports[url];
+                                        if (webModuleUrl) {
+                                            return {path: webModuleUrl, external: true, namespace: "web_modules"};
+                                        }
+                                        let [m] = parseModuleUrl(url);
+                                        if (entryModules.has(m!)) {
+                                            return {path: await resolveImport(url), external: true, namespace: "web_modules"};
+                                        }
+                                        return null;
+                                    } else {
+                                        let bareUrl = resolveToBareUrl(importer, url);
+                                        let webModuleUrl = importMap.imports[bareUrl];
+                                        if (webModuleUrl) {
+                                            return {path: webModuleUrl, external: true, namespace: "web_modules"};
+                                        }
+                                        return {path: `/web_modules/${bareUrl}`, external: true, namespace: "web_modules"};
+                                    }
                                 });
                             }
-                            build.onResolve({filter: /^\.\.?\//}, args => {
-                                let absolute = path.join(args.resolveDir, args.path);
-                                let moduleBareUrl = bareNodeModule(absolute);
-                                let resolved = importMap.imports[moduleBareUrl];
-                                if (resolved) {
-                                    return {path: resolved, external: true};
-                                }
-                                return null;
-                            });
-                            build.onLoad({filter: new RegExp(`^${inputFilename.replace(/[.\\]/g, '\\$&')}$`)}, async (args) => {
-                                const {code, meta} = isEsm || args.path.indexOf("\\es\\") > 0 || args.path.indexOf("\\esm\\") > 0 ? generateEsmProxy(args.path) : generateCjsProxy(args.path);
-                                bundle = meta && meta["entry-proxy"]?.bundle;
-                                return {contents:code};
-                            });
-                        }
-                    },
-                    ...options.esbuild.plugins || []
-                ]
-            });
+                        }]
+                    });
 
-            try {
-                let outputUrl = `/web_modules/${outFile}`;
-                importMap.imports[source] = outputUrl;
+                } else {
 
-                if (!filename) {
-                    importMap.imports[module] = outputUrl;
-                    if (bundle) {
-                        for (const bare of bundle) {
-                            if (!importMap.imports[bare]) {
-                                importMap.imports[bare] = outputUrl;
-                            } else {
-                                log.warn("an import mapping already exists for:", bare);
+                    let isESM = pkg.module || pkg["jsnext:main"]
+                        || entryFile.endsWith(".mjs")
+                        || entryFile.indexOf("\\es\\") > 0
+                        || entryFile.indexOf("\\esm\\") > 0;
+
+                    let entryProxy = isESM ? generateEsmProxy(entryFile) : generateCjsProxy(entryFile);
+                    let imported = new Set(entryProxy.imports);
+                    let external = new Set(entryProxy.external);
+
+                    await (esbuild || (esbuild = await startService())).build({
+                        ...options.esbuild,
+                        stdin: {
+                            contents: entryProxy.code,
+                            resolveDir: options.rootDir,
+                            sourcefile: `entry-proxy`,
+                            loader: "js"
+                        },
+                        outfile: path.join(outDir, outFile),
+                        plugins: [{
+                            name: "web_modules",
+                            setup(build) {
+                                build.onResolve({filter: /./}, async function ({path: url, importer}) {
+                                    if (isBare(url)) {
+                                        if (imported.has(url)) {
+                                            let webModuleUrl = importMap.imports[url];
+                                            if (webModuleUrl) {
+                                                imported.delete(url);
+                                                return {path: webModuleUrl, external: true, namespace: "web_modules"};
+                                            }
+                                            return null;
+                                        }
+                                        let [m] = parseModuleUrl(url);
+                                        if (entryModules.has(m!)) {
+                                            return {path: await resolveImport(url), external: true, namespace: "web_modules"};
+                                        }
+                                        return null;
+                                    }
+                                    if (external.has(url) && false) {
+                                        let bareUrl = resolveToBareUrl(importer, url);
+                                        return {path: `/web_modules/${bareUrl}`, external: true, namespace: "web_modules"};
+                                    }
+                                    // if (/^@ant-design\/icons\/es\/icons\//.test(bareUrl) && !bareUrl.endsWith("/index.js")) {
+                                    //     return {path: `/web_modules/${bareUrl}`, external: true, namespace: "web_modules"};
+                                    // }
+                                    return null;
+                                });
                             }
+                        }]
+                    });
+
+                    for (const i of imported) {
+                        if (!importMap.imports[i]) {
+                            importMap.imports[i] = outUrl;
+                        } else {
+                            log.warn("an import mapping already exists for:", i, "and is:", importMap.imports[i]);
                         }
                     }
                 }
 
-                await writeImportMap(outDir, importMap);
+                importMap.imports[source] = outUrl;
+                importMap.imports[entryUrl] = outUrl;
 
+                await Promise.all([
+                    replaceRequire(outFile),
+                    writeImportMap(outDir, importMap)
+                ]);
+
+            } catch(error) {
+                importMap.imports[source] = `/web_modules/${source}`;
+                log.warn("unable to bundle:", source, error.message);
+                await writeImportMap(outDir, importMap);
             } finally {
                 const elapsed = Date.now() - startTime;
-                log.info`rolled up: ${chalk.magenta(source)} in: ${chalk.magenta(elapsed)}ms`;
+                log.info`bundled: ${chalk.magenta(source)} in: ${chalk.magenta(elapsed)}ms`;
             }
+        }
+    }
+
+    function resolveToBareUrl(importer, url) {
+        let absolute = resolve.sync(path.join(path.dirname(importer), url), resolveOptions);
+        return pathnameToModuleUrl(absolute);
+    }
+
+    async function replaceRequire(outFile) {
+
+        let out = readFileSync(path.join(outDir, outFile), "utf-8");
+        let requires = new Set<string>();
+        let re = /require\s*\(([^)]+)\)/g;
+        for (let match = re.exec(out); match; match = re.exec(out)) {
+            let required = match[1].trim().slice(1, -1);
+            requires.add(await resolveImport(required));
+        }
+
+        if (requires.size) {
+            let r = 0;
+            let cjsImports = ``;
+            let cjsRequire = `function require(name) {\n  switch(name) {\n`;
+            for (const url of requires) {
+                cjsImports += `import require$${r} from "${url}";\n`;
+                cjsRequire += `    case "${url}": return require$${r++};\n`;
+            }
+            cjsRequire += `  }\n}\n`;
+            let code = cjsImports + cjsRequire + out;
+            writeFileSync(path.join(outDir, outFile), code);
         }
     }
 

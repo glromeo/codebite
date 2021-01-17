@@ -47,6 +47,10 @@ async function startServer(options, services = {}) {
         sockets.add(socket);
         socket.on("close", () => sockets.delete(socket));
     });
+    server.on("secureConnection", function (socket) {
+        sockets.add(socket);
+        socket.on("close", () => sockets.delete(socket));
+    });
     let closed;
     async function shutdown() {
         if (closed) {

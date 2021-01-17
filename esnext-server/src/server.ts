@@ -79,6 +79,10 @@ export async function startServer(options: ESNextOptions, services: Services = {
         sockets.add(socket);
         socket.on("close", () => sockets.delete(socket));
     });
+    server.on("secureConnection", function (socket) {
+        sockets.add(socket);
+        socket.on("close", () => sockets.delete(socket));
+    });
 
     let closed;
 

@@ -20,21 +20,22 @@ export function isBare(url: string): boolean {
     return true;
 }
 
-function modulePathname(pathname: string): string {
+export function posixPathnameToModuleUrl(pathname: string): string {
     const index = pathname.lastIndexOf("/node_modules/");
     return index !== -1 ? pathname.substring(index + 14) : pathname;
 }
 
 const BACKSLASH_REGEXP = /\\/g;
+const POSIX_SEP = path.posix.sep;
 
-export const bareNodeModule = path.sep === "/"
-    ? modulePathname
+export const pathnameToModuleUrl = path.sep === POSIX_SEP
+    ? posixPathnameToModuleUrl
     : function (filename: string): string {
-        return modulePathname(filename.replace(BACKSLASH_REGEXP, "/"));
+        return posixPathnameToModuleUrl(filename.replace(BACKSLASH_REGEXP, POSIX_SEP));
     };
 
 
-export function parsePathname(pathname: string): [string | null, string | null] {
+export function parseModuleUrl(pathname: string): [string | null, string | null] {
     let namespace = pathname.charAt(0) === "@";
     let separator = namespace ? pathname.indexOf("/", pathname.indexOf("/", 1) + 1) : pathname.indexOf("/", 0);
     if (separator === -1) return [

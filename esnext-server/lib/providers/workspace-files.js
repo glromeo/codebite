@@ -4,11 +4,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.useWorkspaceFiles = void 0;
+const esbuild_web_modules_1 = require("esnext-web-modules/lib/esbuild-web-modules");
 const fs_1 = require("fs");
 const http_status_codes_1 = __importDefault(require("http-status-codes"));
 const path_1 = __importDefault(require("path"));
 const mime_types_1 = require("../util/mime-types");
 function useWorkspaceFiles(config) {
+    const { esbuildWebModule } = esbuild_web_modules_1.useWebModules(config);
     const { rootDir = process.cwd(), mount = {} } = config;
     const regExp = /\/[^/?]+/;
     async function resolve(pathname) {
@@ -30,6 +32,13 @@ function useWorkspaceFiles(config) {
     async function readWorkspaceFile(pathname) {
         const { route, filename } = await resolve(pathname);
         const stats = await fs_1.promises.stat(filename).catch(error => {
+            if (error.code === "ENOENT") {
+                if (route === "/web_modules") {
+                    return esbuildWebModule(pathname.substring(13)).then(() => fs_1.promises.stat(filename));
+                }
+            }
+            throw error;
+        }).catch(error => {
             if (error.code === "ENOENT") {
                 if (pathname === "/favicon.ico") {
                     throw { code: http_status_codes_1.default.PERMANENT_REDIRECT, headers: { "location": "/resources/javascript.png" } };

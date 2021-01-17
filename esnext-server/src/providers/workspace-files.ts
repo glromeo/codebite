@@ -1,10 +1,13 @@
-import {useWebModules} from "esnext-web-modules";
+import {useWebModules} from "esnext-web-modules/lib/esbuild-web-modules";
 import {promises as fs} from "fs";
+import {OutgoingHttpHeaders} from "http";
 import HttpStatus from "http-status-codes";
 import path from "path";
 import {contentType} from "../util/mime-types";
 
 export function useWorkspaceFiles(config) {
+
+    const {esbuildWebModule} = useWebModules(config);
 
     const {
         rootDir = process.cwd(),
@@ -34,6 +37,13 @@ export function useWorkspaceFiles(config) {
 
         const stats = await fs.stat(filename).catch(error => {
             if (error.code === "ENOENT") {
+                if (route === "/web_modules") {
+                    return esbuildWebModule(pathname.substring(13)).then(() => fs.stat(filename));
+                }
+            }
+            throw error;
+        }).catch(error => {
+            if (error.code === "ENOENT") {
                 if (pathname === "/favicon.ico") {
                     throw {code: HttpStatus.PERMANENT_REDIRECT, headers: {"location": "/resources/javascript.png"}};
                 } else {
@@ -62,7 +72,7 @@ export function useWorkspaceFiles(config) {
                     "content-length": stats.size,
                     "last-modified": stats.mtime.toUTCString(),
                     "cache-control": route === "/web_modules" ? "public, max-age=86400, immutable" : "no-cache"
-                }
+                } as OutgoingHttpHeaders
             };
         }
     }

@@ -1,6 +1,5 @@
 export declare function isBare(url: string): boolean;
-declare function modulePathname(pathname: string): string;
-export declare const bareNodeModule: typeof modulePathname;
-export declare function parsePathname(pathname: string): [string | null, string | null];
+export declare function posixPathnameToModuleUrl(pathname: string): string;
+export declare const pathnameToModuleUrl: typeof posixPathnameToModuleUrl;
+export declare function parseModuleUrl(pathname: string): [string | null, string | null];
 export declare const toPosix: (pathname: any) => any;
-export {};

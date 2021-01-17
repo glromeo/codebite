@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.toPosix = exports.parsePathname = exports.bareNodeModule = exports.isBare = void 0;
+exports.toPosix = exports.parseModuleUrl = exports.pathnameToModuleUrl = exports.posixPathnameToModuleUrl = exports.isBare = void 0;
 const path_1 = __importDefault(require("path"));
 function isBare(url) {
     let cc = url.charAt(0);
@@ -31,17 +31,19 @@ function isBare(url) {
     return true;
 }
 exports.isBare = isBare;
-function modulePathname(pathname) {
+function posixPathnameToModuleUrl(pathname) {
     const index = pathname.lastIndexOf("/node_modules/");
     return index !== -1 ? pathname.substring(index + 14) : pathname;
 }
+exports.posixPathnameToModuleUrl = posixPathnameToModuleUrl;
 const BACKSLASH_REGEXP = /\\/g;
-exports.bareNodeModule = path_1.default.sep === "/"
-    ? modulePathname
+const POSIX_SEP = path_1.default.posix.sep;
+exports.pathnameToModuleUrl = path_1.default.sep === POSIX_SEP
+    ? posixPathnameToModuleUrl
     : function (filename) {
-        return modulePathname(filename.replace(BACKSLASH_REGEXP, "/"));
+        return posixPathnameToModuleUrl(filename.replace(BACKSLASH_REGEXP, POSIX_SEP));
     };
-function parsePathname(pathname) {
+function parseModuleUrl(pathname) {
     let namespace = pathname.charAt(0) === "@";
     let separator = namespace ? pathname.indexOf("/", pathname.indexOf("/", 1) + 1) : pathname.indexOf("/", 0);
     if (separator === -1)
@@ -59,7 +61,7 @@ function parsePathname(pathname) {
         pathname
     ];
 }
-exports.parsePathname = parsePathname;
+exports.parseModuleUrl = parseModuleUrl;
 exports.toPosix = path_1.default.sep === "/"
     ? pathname => pathname
     : pathname => pathname.replace(/\\/g, "/");

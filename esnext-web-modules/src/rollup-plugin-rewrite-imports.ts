@@ -3,7 +3,7 @@ import * as path from "path";
 import picomatch from "picomatch";
 import resolve, {Opts} from "resolve";
 import {OutputOptions, Plugin, RenderedChunk} from "rollup";
-import {bareNodeModule, isBare, parsePathname} from "./es-import-utils";
+import {pathnameToModuleUrl, isBare, parseModuleUrl} from "./es-import-utils";
 import {ImportMap, ImportResolver} from "./web-modules";
 
 export type PluginRewriteImportsOptions = {
@@ -24,12 +24,12 @@ export function rollupPluginRewriteImports(options: PluginRewriteImportsOptions)
         async resolveId(source, importer) {
             if (importer && source.charCodeAt(0) !== 0) {
                 if (isBare(source)) {
-                    let [module] = parsePathname(source);
+                    let [module] = parseModuleUrl(source);
                     if (module && entryModules.has(module) || entryModules.has(source)) {
                         return {id: source, external: true, meta: {[REWRITE_IMPORT]: await resolveImport(source)}};
                     }
                     if (isExternal(source)) {
-                        let external = bareNodeModule(resolve.sync(source, resolveOptions));
+                        let external = pathnameToModuleUrl(resolve.sync(source, resolveOptions));
                         if (external.indexOf("@babel/runtime/helpers") >= 0 && external.indexOf("/esm") === -1) {
                             // todo: is this even reached?
                             external = external.replace("/helpers", "/helpers/esm");
@@ -38,7 +38,7 @@ export function rollupPluginRewriteImports(options: PluginRewriteImportsOptions)
                     }
                 } else {
                     let absolute = path.resolve(path.dirname(importer), source);
-                    let moduleBareUrl = bareNodeModule(absolute);
+                    let moduleBareUrl = pathnameToModuleUrl(absolute);
                     let resolved = importMap.imports[moduleBareUrl];
                     if (resolved) {
                         let moduleInfo = this.getModuleInfo(source);

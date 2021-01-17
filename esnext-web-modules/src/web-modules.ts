@@ -12,7 +12,7 @@ import {Plugin, rollup, RollupOptions, RollupWarning} from "rollup";
 import rollupPluginSourcemaps from "rollup-plugin-sourcemaps";
 import {Options as TerserOptions, terser as rollupPluginTerser} from "rollup-plugin-terser";
 import log from "tiny-node-logger";
-import {parsePathname} from "./es-import-utils";
+import {pathnameToModuleUrl, parseModuleUrl} from "./es-import-utils";
 import {rollupPluginCatchUnresolved} from "./rollup-plugin-catch-unresolved";
 import {rollupPluginCjsProxy} from "./rollup-plugin-cjs-proxy";
 import {rollupPluginEsmProxy} from "./rollup-plugin-esm-proxy";
@@ -87,8 +87,9 @@ export const useWebModules = memoized((options: WebModulesOptions = defaultOptio
     const ALREADY_RESOLVED = Promise.resolve();
     const resolveOptions = {
         basedir: options.rootDir,
+        includeCoreModules: false,
         packageFilter(pkg: any, pkgfile: string) {
-            return {main: pkg.module || pkg["jsnext:main"] || pkg.main}
+            return {main: pkg.module || pkg["jsnext:main"] || pkg.main};
         },
         ...options.resolve
     } as Opts;
@@ -175,7 +176,7 @@ export const useWebModules = memoized((options: WebModulesOptions = defaultOptio
 
         let resolved = importMap.imports[pathname];
         if (!resolved) {
-            let [module, filename] = parsePathname(pathname);
+            let [module, filename] = parseModuleUrl(pathname);
             if (module !== null && !importMap.imports[module]) {
                 await rollupWebModule(module);
                 resolved = importMap.imports[module];
@@ -183,8 +184,8 @@ export const useWebModules = memoized((options: WebModulesOptions = defaultOptio
             if (filename) {
                 let ext = posix.extname(filename);
                 if (!ext) {
-                    ext = resolveExt(module, filename, basedir);
-                    filename += ext;
+                    filename = resolveFilename(module, filename, basedir);
+                    ext = path.extname(filename);
                 }
                 if (!isModule.test(ext)) {
                     let type = resolveModuleType(ext, basedir);
@@ -218,28 +219,33 @@ export const useWebModules = memoized((options: WebModulesOptions = defaultOptio
         }
     }
 
-    function resolveExt(module: string | null, filename: string, basedir: string) {
-        let pathname;
+    function resolveFilename(module: string | null, filename: string, basedir: string): string {
+        let pathname, resolved;
         if (module) {
-            const resolved = resolve.sync(`${module}/${filename}`, resolveOptions);
-            pathname = path.join(resolved.substring(0, resolved.lastIndexOf("node_modules" + path.sep)), "node_modules", module, filename);
+            pathname = resolve.sync(`${module}/${filename}`, resolveOptions);
+            resolved = parseModuleUrl(pathnameToModuleUrl(pathname))[1]!;
         } else {
             pathname = path.join(basedir, filename);
+            resolved = filename;
         }
         try {
             let stats = statSync(pathname);
             if (stats.isDirectory()) {
                 pathname = path.join(pathname, "index");
                 for (const ext of options.resolve.extensions!) {
-                    if (existsSync(pathname + ext)) return `/index${ext}`;
+                    if (existsSync(pathname + ext)) {
+                        return `${resolved}/index${ext}`;
                 }
             }
-            return "";
+            }
+            return resolved;
         } catch (ignored) {
             for (const ext of options.resolve.extensions!) {
-                if (existsSync(pathname + ext)) return ext;
+                if (existsSync(pathname + ext)) {
+                    return `${resolved}${ext}`;
             }
-            return "";
+            }
+            return resolved;
         }
     }
 
@@ -330,7 +336,7 @@ export const useWebModules = memoized((options: WebModulesOptions = defaultOptio
         }
 
         if (!pendingTasks.has(source)) {
-            let [module, filename] = parsePathname(source) as [string, string | null];
+            let [module, filename] = parseModuleUrl(source) as [string, string | null];
             pendingTasks.set(source, rollupWebModuleTask(module, filename)
                 .catch(function (err) {
                     log.error("failed to rollup:", source, err);
@@ -357,6 +363,13 @@ export const useWebModules = memoized((options: WebModulesOptions = defaultOptio
             let inputFilename: string;
             try {
                 inputFilename = resolve.sync(source, resolveOptions);
+                let resolved = pathnameToModuleUrl(inputFilename);
+                if (filename && resolved !== source) {
+                    await rollupWebModule(resolved);
+                    log.info("aliasing:", source, "as:", resolved);
+                    importMap.imports[source] = `/web_modules/${resolved}`;
+                    return;
+                }
             } catch (ignored) {
                 if (filename) {
                     inputFilename = source;
@@ -405,9 +418,9 @@ export const useWebModules = memoized((options: WebModulesOptions = defaultOptio
                 if (!filename) {
                     importMap.imports[module] = outputUrl;
                     for (const {meta} of bundle.cache!.modules) {
-                        const bundle = meta && meta["entry-proxy"]?.bundle;
-                        if (bundle) {
-                            for (const bare of bundle) {
+                        const imports = meta && meta["entry-proxy"]?.imports;
+                        if (imports) {
+                            for (const bare of imports) {
                                 if (!importMap.imports[bare]) {
                                     importMap.imports[bare] = outputUrl;
                                 } else {

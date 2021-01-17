@@ -1,11 +1,10 @@
 import {fail} from "assert";
 import {expect} from "chai";
 import * as fs from "fs";
-import {existsSync, readFileSync} from "fs";
+import {existsSync, readFileSync, statSync} from "fs";
 import {join, relative, resolve} from "path";
 import {SourceMapConsumer} from "source-map";
-import {WebModulesOptions} from "../lib";
-import {defaultOptions, useWebModules} from "../src";
+import {defaultOptions, useWebModules, WebModulesOptions} from "../src/web-modules";
 
 function readExports(path: string) {
     let out = fs.readFileSync(join(__dirname, path), "utf-8");
@@ -21,9 +20,7 @@ function readExports(path: string) {
 }
 
 function readImportMap(path: string) {
-    let out = fs.readFileSync(join(__dirname, path), "utf-8");
-    let imports = JSON.parse(out).imports;
-    return [Object.keys(imports), imports];
+    return JSON.parse(fs.readFileSync(join(__dirname, path), "utf-8"));
 }
 
 function readSourceMap(path: string) {
@@ -98,16 +95,17 @@ describe("web modules", function () {
             "default"
         ]);
 
-        let [importMap] = readImportMap(`fixture/react/web_modules/import-map.json`);
-        expect(importMap).to.include.members([
-            "object-assign",
-            "object-assign/index.js",
+        let {imports} = readImportMap(`fixture/react/web_modules/import-map.json`);
+        expect(imports).to.have.keys([
+            "@fixture/react",
             "react",
-            "react/index.js"
+            "react/index.js",
+            "object-assign",
+            "object-assign/index.js"
         ]);
     });
 
-    it("can bundle react-dom", async function () {
+    it("can bundle react-dom (production)", async function (this:Mocha.Context) {
 
         this.timeout(10000);
 
@@ -135,14 +133,15 @@ describe("web modules", function () {
             "default"
         ]);
 
-        let [importMap] = readImportMap(`fixture/react/web_modules/import-map.json`);
-        expect(importMap).to.include.members([
+        let {imports} = readImportMap(`fixture/react/web_modules/import-map.json`);
+        expect(imports).to.have.keys([
+            "@fixture/react",
+            "react-dom",
+            "react-dom/index.js",
             "object-assign",
             "object-assign/index.js",
             "react",
-            "react/index.js",
-            "react-dom",
-            "react-dom/index.js"
+            "react/index.js"
         ]);
 
         let out = readTextFile(`fixture/react/web_modules/react-dom.js`);
@@ -182,14 +181,15 @@ describe("web modules", function () {
             "default"
         ]);
 
-        let [importMap] = readImportMap(`fixture/react/web_modules/import-map.json`);
-        expect(importMap).to.include.members([
+        let {imports} = readImportMap(`fixture/react/web_modules/import-map.json`);
+        expect(imports).to.have.keys([
+            "@fixture/react",
             "object-assign",
             "object-assign/index.js",
-            "react-is",
-            "react-is/index.js",
             "prop-types",
-            "prop-types/index.js"
+            "prop-types/index.js",
+            "react-is",
+            "react-is/index.js"
         ]);
 
     });
@@ -236,8 +236,8 @@ describe("web modules", function () {
             "default"
         ]);
 
-        let [importMap] = readImportMap(`fixture/iife/web_modules/import-map.json`);
-        expect(importMap).to.include.members([
+        let {imports} = readImportMap(`fixture/iife/web_modules/import-map.json`);
+        expect(imports).to.include.keys([
             "countries-and-timezones/dist/index.js",
             "countries-and-timezones"
         ]);
@@ -263,33 +263,36 @@ describe("web modules", function () {
             "Tree", "TreeSelect", "Typography", "Upload", "message", "notification", "version"
         ]);
 
-        let [importMap] = readImportMap(`fixture/react/web_modules/import-map.json`);
-        expect(importMap).to.include.members([
-            "@babel/runtime",
-            "rc-util",
-            "rc-util/es/KeyCode.js",
-            "omit.js",
-            "classnames",
-            "classnames/index.js",
-            "lodash",
-            "lodash/lodash.js",
-            "@babel/runtime/helpers/esm/extends.js",
-            "moment",
-            "rc-util/es/isMobile.js",
-            "@babel/runtime/regenerator/index.js",
-            "react",
-            "react/index.js",
-            "react-is",
-            "react-is/index.js",
-            "react-dom",
-            "react-dom/index.js",
-            "lodash/debounce.js",
-            "@ant-design/colors",
-            "@ant-design/colors/dist/index.esm.js",
-            "rc-select/es/generate.js",
-            "antd",
-            "antd/es/index.js"
-        ]);
+        let {imports} = readImportMap(`fixture/react/web_modules/import-map.json`);
+        expect(imports).to.include({
+            "@babel/runtime": "/node_modules/@babel/runtime",
+            "rc-util": "/node_modules/rc-util",
+            "rc-util/es/KeyCode.js": "/web_modules/rc-util/es/KeyCode.js",
+            "rc-util/es/getScrollBarSize.js": "/web_modules/rc-util/es/getScrollBarSize.js",
+            "omit.js": "/web_modules/omit.js.js",
+            "classnames": "/web_modules/classnames.js",
+            "classnames/index.js": "/web_modules/classnames.js",
+            "lodash": "/web_modules/lodash.js",
+            "lodash/lodash.js": "/web_modules/lodash.js",
+            "@babel/runtime/helpers/esm/typeof.js": "/web_modules/@babel/runtime/helpers/esm/typeof.js",
+            "@babel/runtime/helpers/esm/extends.js": "/web_modules/@babel/runtime/helpers/esm/extends.js",
+            "moment": "/web_modules/moment.js",
+            "resize-observer-polyfill": "/web_modules/resize-observer-polyfill.js",
+            "warning": "/web_modules/warning.js",
+            "warning/warning.js": "/web_modules/warning.js",
+            "shallowequal": "/web_modules/shallowequal.js",
+            "shallowequal/index.js": "/web_modules/shallowequal.js",
+            "@babel/runtime/regenerator/index.js": "/web_modules/@babel/runtime/regenerator/index.js",
+            "react": "/web_modules/react.js",
+            "react/index.js": "/web_modules/react.js",
+            "rc-util/es/hooks/useMemo.js": "/web_modules/rc-util/es/hooks/useMemo.js",
+            "react-is": "/web_modules/react-is.js",
+            "react-is/index.js": "/web_modules/react-is.js",
+            "lodash/isEqual.js": "/web_modules/lodash/isEqual.js",
+            "rc-select/es/generate.js": "/web_modules/rc-select/es/generate.js",
+            "antd": "/web_modules/antd.js",
+            "antd/es/index.js": "/web_modules/antd.js"
+        });
 
     });
 
@@ -350,8 +353,8 @@ describe("web modules", function () {
             "templateFactory"
         ]);
 
-        let [importMap] = readImportMap(`fixture/lit-html/web_modules/import-map.json`);
-        expect(importMap).to.include.members([
+        let {imports} = readImportMap(`fixture/lit-html/web_modules/import-map.json`);
+        expect(imports).to.include.keys([
             "lit-html",
             "lit-html/lit-html.js",
             "lit-html/lib/default-template-processor.js",
@@ -368,7 +371,7 @@ describe("web modules", function () {
 
         let rawSourceMap = readSourceMap(`fixture/lit-html/web_modules/lit-html.js`);
         await SourceMapConsumer.with(rawSourceMap, null, consumer => {
-            expect(consumer.sources).to.have.members([
+            expect(consumer.sources).to.include.members([
                 "../../node_modules/lit-html/src/lib/directive.ts",
                 "../../node_modules/lit-html/src/lib/dom.ts",
                 "../../node_modules/lit-html/src/lib/part.ts",
@@ -405,6 +408,12 @@ describe("web modules", function () {
         expect(await resolveImport("lit-html/lib/render.js")).to.equal("/web_modules/lit-html.js");
         expect(await resolveImport("lit-html/lib/shady-render.js")).to.equal("/web_modules/lit-html/lib/shady-render.js");
         expect(await resolveImport("lit-html/directives/repeat.js")).to.equal("/web_modules/lit-html/directives/repeat.js");
+
+        expect(
+            readTextFile(`fixture/lit-html/web_modules/lit-html/directives/repeat.js`)
+        ).to.have.string(
+            `import {createMarker, directive, NodePart, removeNodes, reparentNodes} from "/web_modules/lit-html.js";`
+        );
     });
 
     it("can bundle lit-html/lib/shady-render.js (with terser)", async function () {
@@ -455,8 +464,8 @@ describe("web modules", function () {
             "templateFactory"
         ]);
 
-        let [importMap] = readImportMap(`fixture/lit-html/web_modules/import-map.json`);
-        expect(importMap).to.include.members([
+        let {imports} = readImportMap(`fixture/lit-html/web_modules/import-map.json`);
+        expect(imports).to.include.keys([
             "lit-html",
             "lit-html/lit-html.js",
             "lit-html/lib/default-template-processor.js",
@@ -521,10 +530,16 @@ describe("web modules", function () {
             "unsafeCSS"
         ]);
 
-        let [importMap] = readImportMap(`fixture/lit-element/web_modules/import-map.json`);
-        expect(importMap).to.include.members([
+        let {imports} = readImportMap(`fixture/lit-element/web_modules/import-map.json`);
+        expect(imports).to.include.keys([
+            "lit-element",
+            "lit-element/lib/css-tag.js",
             "lit-element/lit-element.js",
-            "lit-element"
+            "lit-html",
+            "lit-html/lib/directive.js",
+            "lit-html/lib/shady-render.js",
+            "lit-html/lib/template.js",
+            "lit-html/lit-html.js"
         ]);
 
         let contents = readTextFile(`fixture/lit-element/web_modules/lit-element.js`);
@@ -554,14 +569,14 @@ describe("web modules", function () {
             "default"
         ]);
 
-        let [importMap] = readImportMap(`fixture/bootstrap/web_modules/import-map.json`);
-        expect(importMap).to.include.members([
+        let {imports} = readImportMap(`fixture/bootstrap/web_modules/import-map.json`);
+        expect(imports).to.include.keys([
+            "jquery/dist/jquery.js",
+            "jquery",
             "popper.js/dist/esm/popper.js",
             "popper.js",
-            "jquery",
-            "jquery/dist/jquery.js",
-            "bootstrap",
-            "bootstrap/dist/js/bootstrap.js"
+            "bootstrap/dist/js/bootstrap.js",
+            "bootstrap"
         ]);
 
         try {
@@ -583,9 +598,12 @@ describe("web modules", function () {
         let module = readTextFile(`fixture/babel-runtime/web_modules/@babel/runtime/helpers/esm/decorate.js`);
         expect(module).to.have.string(`function _arrayWithHoles(arr) {\n  if (Array.isArray(arr)) return arr;\n}`);
 
-        let [importMap] = readImportMap(`fixture/babel-runtime/web_modules/import-map.json`);
-        expect(importMap).to.include.members([
-            "@babel/runtime"
+        let {imports} = readImportMap(`fixture/babel-runtime/web_modules/import-map.json`);
+        expect(imports).to.have.keys([
+            "@babel/runtime",
+            "@babel/runtime/helpers/esm/decorate.js",
+            "@babel/runtime/helpers/esm/extends.js",
+            "@fixture/babel-runtime"
         ]);
 
         expect(existsSync(`fixture/babel-runtime/web_modules/@babel/runtime.js`)).to.be.false;
@@ -616,26 +634,24 @@ describe("web modules", function () {
         expect(readTextFile(`fixture/redux/web_modules/@reduxjs/toolkit.js`))
             .to.have.string(`export * from '/web_modules/redux.js';`);
 
-        let [importMap] = readImportMap(`fixture/redux/web_modules/import-map.json`);
-        expect(importMap).to.include.members([
-            "redux-thunk",
-            "redux",
-            "redux/es/redux.js",
+        let {imports} = readImportMap(`fixture/redux/web_modules/import-map.json`);
+        expect(imports).to.include.keys([
             "@reduxjs/toolkit",
             "@reduxjs/toolkit/dist/redux-toolkit.esm.js",
-            "redux-logger",
-            "redux-logger/dist/redux-logger.js",
             "react",
+            "react-dom",
             "react-is",
             "react-redux",
-            "react-redux/es/index.js",
-            "react-redux/es/hooks/useDispatch.js",
             "react-redux/es/hooks/useStore.js",
-            "react-redux/es/hooks/useReduxContext.js",
-            "react-redux/es/hooks/useSelector.js",
-            "react-redux/es/utils/useIsomorphicLayoutEffect.js",
+            "react-redux/es/index.js",
             "react-redux/es/utils/batch.js",
-            "react-redux/es/utils/reactBatchedUpdates.js"
+            "react/index.js",
+            "redux",
+            "redux-logger",
+            "redux-logger/dist/redux-logger.js",
+            "redux-thunk",
+            "redux-thunk/es/index.js",
+            "redux/es/redux.js"
         ]);
     });
 
@@ -648,7 +664,7 @@ describe("web modules", function () {
         await rollupWebModule("react");
         await rollupWebModule("react-dom");
 
-        let [_,imports] = readImportMap(`fixture/react/web_modules/import-map.json`);
+        let {imports} = readImportMap(`fixture/react/web_modules/import-map.json`);
         expect(imports["object-assign"]).to.equal("/web_modules/object-assign.js");
 
         expect(existsSync(join(__dirname, "/web_modules/object-assign.js"))).to.be.false;
@@ -669,13 +685,12 @@ describe("web modules", function () {
 
         let {outDir, rollupWebModule, resolveImport} = setup("/ant-design");
 
-        await rollupWebModule("antd");
         await rollupWebModule("@ant-design/icons");
 
-        let [_,imports] = readImportMap(`/fixture/ant-design/web_modules/import-map.json`);
+        let {imports} = readImportMap(`/fixture/ant-design/web_modules/import-map.json`);
         expect(imports["@ant-design/icons"]).to.equal("/web_modules/@ant-design/icons.js");
 
         expect(existsSync(join(outDir, "/@ant-design/icons.js"))).to.be.true;
-        expect(existsSync(join(outDir, "/@babel/runtime/helpers/esm/extends.js"))).to.be.true;
-    })
+        expect(existsSync(join(outDir, "/@babel/runtime/helpers/esm/typeof.js"))).to.be.true;
+    });
 });

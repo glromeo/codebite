@@ -1,4 +1,5 @@
 import {FSWatcher} from "chokidar";
+import {OutgoingHttpHeaders} from "http";
 import {JSON_CONTENT_TYPE} from "./mime-types";
 import path from "path";
 import log from "tiny-node-logger";
@@ -10,8 +11,8 @@ export type Resource = {
     query: string
     filename: string
     content: string | Buffer
-    headers: { [name: string]: string | number }
-    links: string[]
+    headers: OutgoingHttpHeaders
+    links: Set<string>
     watch: string[]
 }
 
@@ -22,7 +23,7 @@ type Deflate = (content: (string | Buffer)) => Promise<Buffer>;
  *
  * @type {Map<string, string[]|string>}
  * */
-export class ResourceCache extends Map<string, Resource | Promise<Resource>> {
+export class ResourceCache extends Map<string, Promise<Resource>> {
 
     private rootDir: string;
     private watched: Map<string, string | string[]>;
@@ -89,37 +90,33 @@ export class ResourceCache extends Map<string, Resource | Promise<Resource>> {
         }
     }
 
-    set(url: string, resource: Resource): this {
-        if (this.deflate) {
-            super.set(url, this.deflate!(resource.content).then(
-                deflated => {
-                    super.set(url, {
-                        ...resource,
-                        content: deflated,
-                        headers: {
-                            ...resource.headers,
-                            "content-length": Buffer.byteLength(deflated),
-                            "content-encoding": "deflate"
-                        }
-                    });
-                    return super.get(url)!;
-                },
-                err => {
-                    log.error(`failed to deflate resource: ${filename}`, err);
-                    super.set(url, resource);
-                    return resource;
-                }
-            ));
-        } else {
-            super.set(url, resource);
-        }
-        const filename = path.relative(this.rootDir, resource.filename);
-        this.watch(filename, url);
+    set(url: string, pending: Promise<Resource>): this {
 
-        if (resource.watch) for (const watched of resource.watch) {
-            const filename = path.relative(this.rootDir, watched);
+        super.set(url, pending.then(async resource => {
+
+            const filename = path.relative(this.rootDir, resource.filename);
+
+            if (this.deflate) try {
+                let deflated = await this.deflate(resource.content);
+                resource.content = deflated;
+                resource.headers = {
+                    ...resource.headers,
+                    "content-length": Buffer.byteLength(deflated),
+                    "content-encoding": "deflate"
+                }
+            } catch(err) {
+                log.error(`failed to deflate resource: ${filename}`, err);
+            }
+
             this.watch(filename, url);
-        }
+
+            if (resource.watch) for (const watched of resource.watch) {
+                const filename = path.relative(this.rootDir, watched);
+                this.watch(filename, url);
+            }
+
+            return resource;
+        }));
         return this;
     }
 
@@ -130,7 +127,7 @@ export class ResourceCache extends Map<string, Resource | Promise<Resource>> {
             url = url.substring(0, questionMark);
         }
         // @ts-ignore
-        super.set(url + ".map", {
+        super.set(url + ".map", Promise.resolve({
             content: content,
             headers: {
                 "content-type": JSON_CONTENT_TYPE,
@@ -138,7 +135,7 @@ export class ResourceCache extends Map<string, Resource | Promise<Resource>> {
                 "last-modified": new Date().toUTCString(),
                 "cache-control": "no-cache"
             }
-        });
+        }));
     }
 
 }

@@ -37,12 +37,12 @@ function rollupPluginRewriteImports(options) {
         async resolveId(source, importer) {
             if (importer && source.charCodeAt(0) !== 0) {
                 if (es_import_utils_1.isBare(source)) {
-                    let [module] = es_import_utils_1.parsePathname(source);
+                    let [module] = es_import_utils_1.parseModuleUrl(source);
                     if (module && entryModules.has(module) || entryModules.has(source)) {
                         return { id: source, external: true, meta: { [REWRITE_IMPORT]: await resolveImport(source) } };
                     }
                     if (isExternal(source)) {
-                        let external = es_import_utils_1.bareNodeModule(resolve_1.default.sync(source, resolveOptions));
+                        let external = es_import_utils_1.pathnameToModuleUrl(resolve_1.default.sync(source, resolveOptions));
                         if (external.indexOf("@babel/runtime/helpers") >= 0 && external.indexOf("/esm") === -1) {
                             external = external.replace("/helpers", "/helpers/esm");
                         }
@@ -51,7 +51,7 @@ function rollupPluginRewriteImports(options) {
                 }
                 else {
                     let absolute = path.resolve(path.dirname(importer), source);
-                    let moduleBareUrl = es_import_utils_1.bareNodeModule(absolute);
+                    let moduleBareUrl = es_import_utils_1.pathnameToModuleUrl(absolute);
                     let resolved = importMap.imports[moduleBareUrl];
                     if (resolved) {
                         let moduleInfo = this.getModuleInfo(source);

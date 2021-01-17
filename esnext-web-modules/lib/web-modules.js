@@ -78,6 +78,7 @@ exports.useWebModules = nano_memoize_1.default((options = defaultOptions()) => {
     const ALREADY_RESOLVED = Promise.resolve();
     const resolveOptions = {
         basedir: options.rootDir,
+        includeCoreModules: false,
         packageFilter(pkg, pkgfile) {
             return { main: pkg.module || pkg["jsnext:main"] || pkg.main };
         },
@@ -142,7 +143,7 @@ exports.useWebModules = nano_memoize_1.default((options = defaultOptions()) => {
         }
         let resolved = importMap.imports[pathname];
         if (!resolved) {
-            let [module, filename] = es_import_utils_1.parsePathname(pathname);
+            let [module, filename] = es_import_utils_1.parseModuleUrl(pathname);
             if (module !== null && !importMap.imports[module]) {
                 await rollupWebModule(module);
                 resolved = importMap.imports[module];
@@ -150,8 +151,8 @@ exports.useWebModules = nano_memoize_1.default((options = defaultOptions()) => {
             if (filename) {
                 let ext = path_1.posix.extname(filename);
                 if (!ext) {
-                    ext = resolveExt(module, filename, basedir);
-                    filename += ext;
+                    filename = resolveFilename(module, filename, basedir);
+                    ext = path_1.default.extname(filename);
                 }
                 if (!isModule.test(ext)) {
                     let type = resolveModuleType(ext, basedir);
@@ -188,32 +189,35 @@ exports.useWebModules = nano_memoize_1.default((options = defaultOptions()) => {
             return resolved;
         }
     }
-    function resolveExt(module, filename, basedir) {
-        let pathname;
+    function resolveFilename(module, filename, basedir) {
+        let pathname, resolved;
         if (module) {
-            const resolved = resolve_1.default.sync(`${module}/${filename}`, resolveOptions);
-            pathname = path_1.default.join(resolved.substring(0, resolved.lastIndexOf("node_modules" + path_1.default.sep)), "node_modules", module, filename);
+            pathname = resolve_1.default.sync(`${module}/${filename}`, resolveOptions);
+            resolved = es_import_utils_1.parseModuleUrl(es_import_utils_1.pathnameToModuleUrl(pathname))[1];
         }
         else {
             pathname = path_1.default.join(basedir, filename);
+            resolved = filename;
         }
         try {
             let stats = fs_1.statSync(pathname);
             if (stats.isDirectory()) {
                 pathname = path_1.default.join(pathname, "index");
                 for (const ext of options.resolve.extensions) {
-                    if (fs_1.existsSync(pathname + ext))
-                        return `/index${ext}`;
+                    if (fs_1.existsSync(pathname + ext)) {
+                        return `${resolved}/index${ext}`;
+                    }
                 }
             }
-            return "";
+            return resolved;
         }
         catch (ignored) {
             for (const ext of options.resolve.extensions) {
-                if (fs_1.existsSync(pathname + ext))
-                    return ext;
+                if (fs_1.existsSync(pathname + ext)) {
+                    return `${resolved}${ext}`;
+                }
             }
-            return "";
+            return resolved;
         }
     }
     function resolveModuleType(ext, basedir) {
@@ -283,7 +287,7 @@ exports.useWebModules = nano_memoize_1.default((options = defaultOptions()) => {
             return ALREADY_RESOLVED;
         }
         if (!pendingTasks.has(source)) {
-            let [module, filename] = es_import_utils_1.parsePathname(source);
+            let [module, filename] = es_import_utils_1.parseModuleUrl(source);
             pendingTasks.set(source, rollupWebModuleTask(module, filename)
                 .catch(function (err) {
                 tiny_node_logger_1.default.error("failed to rollup:", source, err);
@@ -304,6 +308,13 @@ exports.useWebModules = nano_memoize_1.default((options = defaultOptions()) => {
             let inputFilename;
             try {
                 inputFilename = resolve_1.default.sync(source, resolveOptions);
+                let resolved = es_import_utils_1.pathnameToModuleUrl(inputFilename);
+                if (filename && resolved !== source) {
+                    await rollupWebModule(resolved);
+                    tiny_node_logger_1.default.info("aliasing:", source, "as:", resolved);
+                    importMap.imports[source] = `/web_modules/${resolved}`;
+                    return;
+                }
             }
             catch (ignored) {
                 if (filename) {
@@ -347,9 +358,9 @@ exports.useWebModules = nano_memoize_1.default((options = defaultOptions()) => {
                 if (!filename) {
                     importMap.imports[module] = outputUrl;
                     for (const { meta } of bundle.cache.modules) {
-                        const bundle = meta && ((_c = meta["entry-proxy"]) === null || _c === void 0 ? void 0 : _c.bundle);
-                        if (bundle) {
-                            for (const bare of bundle) {
+                        const imports = meta && ((_c = meta["entry-proxy"]) === null || _c === void 0 ? void 0 : _c.imports);
+                        if (imports) {
+                            for (const bare of imports) {
                                 if (!importMap.imports[bare]) {
                                     importMap.imports[bare] = outputUrl;
                                 }

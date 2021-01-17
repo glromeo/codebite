@@ -25,59 +25,57 @@ const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
 const es_import_utils_1 = require("./es-import-utils");
 const parseEsmReady = es_module_lexer_1.init;
-function scanEsm(filename, exportsByFilename = new Map(), exports = new Set()) {
-    let source = fs.readFileSync(filename, "utf-8");
-    let [imported, exported] = es_module_lexer_1.parse(source);
-    let uniqueExports = exportsByFilename.get(filename) || [];
-    for (const e of exported) {
-        if (e === "default" && exportsByFilename.size > 0) {
-            exportsByFilename.set(filename, null);
-            return exportsByFilename;
-        }
-        else if (!exports.has(e)) {
-            uniqueExports.push(e);
-            exports.add(e);
-        }
+function scanEsm(filename, collected = new Set(), imports = new Map(), external = []) {
+    function notYetCollected(e) {
+        return !collected.has(e) && collected.add(e);
     }
-    exportsByFilename.set(filename, uniqueExports);
-    for (const { s, e } of imported) {
-        let module = source.substring(s, e);
-        if (!es_import_utils_1.isBare(module)) {
-            if (module === "..") {
-                module = "../index";
+    function scanEsm(filename, module) {
+        let source = fs.readFileSync(filename, "utf-8");
+        let [imported, exported] = es_module_lexer_1.parse(source);
+        for (const e of exported)
+            if (e === "default" && module !== null) {
+                external.push(module);
+                return;
             }
-            else if (module === ".") {
-                module = "./index";
-            }
-            let importedFilename = require.resolve(module, { paths: [path.dirname(filename)] });
-            if (!exportsByFilename.has(importedFilename)) {
-                scanEsm(importedFilename, exportsByFilename, exports);
+        let resolveOptions = { paths: [path.dirname(filename)] };
+        for (const { s, e } of imported) {
+            let module = source.substring(s, e);
+            if (!es_import_utils_1.isBare(module)) {
+                if (module === "..") {
+                    module = "../index";
+                }
+                else if (module === ".") {
+                    module = "./index";
+                }
+                const filename = require.resolve(module, resolveOptions);
+                if (!imports.has(filename)) {
+                    scanEsm(filename, module);
+                }
             }
         }
+        imports.set(filename, exported.filter(notYetCollected));
     }
-    return exportsByFilename;
+    scanEsm(filename, null);
+    return { exports: imports, external };
 }
 function generateEsmProxy(entryId) {
-    const entryUrl = es_import_utils_1.toPosix(entryId);
-    const exportsByFilename = scanEsm(entryId);
-    const excluded = new Set();
-    let proxy = "";
-    for (const [filename, exports] of exportsByFilename.entries()) {
-        if (exports === null) {
-            excluded.add(filename);
-            continue;
+    const { exports, external } = scanEsm(entryId);
+    let code = "";
+    let imports = [];
+    for (const [filename, exported] of exports.entries()) {
+        let moduleUrl = es_import_utils_1.pathnameToModuleUrl(filename);
+        if (exported.length > 0) {
+            code += `export {\n${exported.join(",\n")}\n} from "${moduleUrl}";\n`;
         }
-        if (exports.length > 0) {
-            let importUrl = es_import_utils_1.toPosix(filename);
-            proxy += `export {\n${exports.join(",\n")}\n} from "${importUrl}";\n`;
-        }
+        imports.push(moduleUrl);
     }
-    if (entryUrl.endsWith("redux-toolkit.esm.js")) {
-        proxy += `export * from "redux";`;
+    if (entryId.endsWith("redux-toolkit.esm.js")) {
+        code += `export * from "redux";`;
     }
     return {
-        code: proxy || fs.readFileSync(entryId, "utf-8"),
-        meta: { "entry-proxy": { bundle: [...exportsByFilename.keys()].filter(f => !excluded.has(f)).map(es_import_utils_1.bareNodeModule) } }
+        code: code || fs.readFileSync(entryId, "utf-8"),
+        imports,
+        external
     };
 }
 exports.generateEsmProxy = generateEsmProxy;
@@ -99,7 +97,8 @@ function rollupPluginEsmProxy({ entryModules }) {
         load(id) {
             if (id.endsWith("?esm-proxy")) {
                 const entryId = id.slice(0, -10);
-                return generateEsmProxy(entryId);
+                const { code, imports } = generateEsmProxy(entryId);
+                return { code, meta: { "entry-proxy": { imports } } };
             }
             return null;
         }

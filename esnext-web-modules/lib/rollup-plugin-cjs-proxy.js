@@ -27,7 +27,7 @@ const es_import_utils_1 = require("./es-import-utils");
 const parseCjsReady = cjs_module_lexer_1.init();
 function scanCjs(filename, collected = new Set()) {
     let source = fs.readFileSync(filename, "utf-8");
-    let { exports, reexports } = cjs_module_lexer_1.parse(source);
+    let { exports, reexports, } = cjs_module_lexer_1.parse(source);
     for (const e of exports) {
         collected.add(e);
     }
@@ -67,7 +67,8 @@ function generateCjsProxy(entryId) {
     }
     return {
         code: proxy || fs.readFileSync(entryId, "utf-8"),
-        meta: { "entry-proxy": { bundle: [es_import_utils_1.bareNodeModule(entryId)] } }
+        imports: [es_import_utils_1.pathnameToModuleUrl(entryId)],
+        external: []
     };
 }
 exports.generateCjsProxy = generateCjsProxy;
@@ -89,7 +90,8 @@ function rollupPluginCjsProxy({ entryModules }) {
         load(id) {
             if (id.endsWith("?cjs-proxy")) {
                 const entryId = id.slice(0, -10);
-                return generateCjsProxy(entryId);
+                const { code, imports } = generateCjsProxy(entryId);
+                return { code, meta: { "entry-proxy": { imports } } };
             }
             return null;
         }

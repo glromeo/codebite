@@ -2,18 +2,19 @@ import {init as initCjs, parse as parseCjs} from "cjs-module-lexer";
 import * as fs from "fs";
 import * as path from "path";
 import {Plugin} from "rollup";
-import {bareNodeModule, isBare, toPosix} from "./es-import-utils";
+import {pathnameToModuleUrl, isBare, toPosix} from "./es-import-utils";
+import {EntryProxyResult} from "./esbuild-web-modules";
 
 const parseCjsReady = initCjs();
 
 function scanCjs(
     filename: string,
-    collected: Set<string> = new Set<string>()
+    collected = new Set<string>()
 ): Set<string> {
     let source = fs.readFileSync(filename, "utf-8");
     let {
         exports,
-        reexports
+        reexports,
     } = parseCjs(source);
 
     for (const e of exports) {
@@ -39,7 +40,7 @@ export type PluginCjsProxyOptions = {
     entryModules: Set<string>
 }
 
-export function generateCjsProxy(entryId: string) {
+export function generateCjsProxy(entryId: string):EntryProxyResult {
     const entryUrl = toPosix(entryId);
     const exports = scanCjs(entryId);
     exports.delete("__esModule");
@@ -60,7 +61,8 @@ export function generateCjsProxy(entryId: string) {
     }
     return {
         code: proxy || fs.readFileSync(entryId, "utf-8"),
-        meta: {"entry-proxy": {bundle: [bareNodeModule(entryId)]}}
+        imports: [pathnameToModuleUrl(entryId)],
+        external: []
     };
 }
 
@@ -94,7 +96,8 @@ export function rollupPluginCjsProxy({entryModules}: PluginCjsProxyOptions): Plu
         load(id) {
             if (id.endsWith("?cjs-proxy")) {
                 const entryId = id.slice(0, -10);
-                return generateCjsProxy(entryId);
+                const {code, imports} = generateCjsProxy(entryId);
+                return {code, meta: {"entry-proxy": {imports}}};
             }
             return null;
         }

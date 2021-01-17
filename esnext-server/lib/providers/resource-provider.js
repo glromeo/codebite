@@ -11,6 +11,7 @@ const nano_memoize_1 = __importDefault(require("nano-memoize"));
 const picomatch_1 = __importDefault(require("picomatch"));
 const tiny_node_logger_1 = __importDefault(require("tiny-node-logger"));
 const babel_transformer_1 = require("../transformers/babel-transformer");
+const esbuild_transformer_1 = require("../transformers/esbuild-transformer");
 const html_transformer_1 = require("../transformers/html-transformer");
 const sass_transformer_1 = require("../transformers/sass-transformer");
 const resource_cache_1 = require("../util/resource-cache");
@@ -20,6 +21,7 @@ exports.useResourceProvider = nano_memoize_1.default(function (options, watcher)
     const cache = options.cache && new resource_cache_1.ResourceCache(options, watcher);
     const { readWorkspaceFile } = workspace_files_1.useWorkspaceFiles(options);
     const { htmlTransformer } = html_transformer_1.useHtmlTransformer(options);
+    const { esbuildTransformer } = esbuild_transformer_1.useEsBuildTransformer(options);
     const { babelTransformer } = babel_transformer_1.useBabelTransformer(options);
     const { sassTransformer } = sass_transformer_1.useSassTransformer(options);
     function formatHrtime(hrtime) {
@@ -41,7 +43,7 @@ exports.useResourceProvider = nano_memoize_1.default(function (options, watcher)
                     break;
                 case JAVASCRIPT_CONTENT_TYPE:
                 case TYPESCRIPT_CONTENT_TYPE:
-                    task = babelTransformer(filename, content);
+                    task = esbuildTransformer(filename, content) || babelTransformer(filename, content);
                     break;
             }
             if (task !== undefined) {
@@ -66,19 +68,12 @@ exports.useResourceProvider = nano_memoize_1.default(function (options, watcher)
      * @returns {Promise<{headers: *, filename: *, watch: *, query: ({type}|*), links: *, content: *, pathname: any}|V>}
      */
     async function provideResource(url, { "accept": accept, "user-agent": userAgent }) {
-        if (cache) {
-            const cached = cache.get(url);
-            if (cached !== undefined) {
-                tiny_node_logger_1.default.debug("retrieved from cache:", chalk_1.default.magenta(url));
-                return cached;
-            }
-        }
         let { pathname, query } = fast_url_parser_1.parse(url, true);
         if (pathname.endsWith(".scss.js") || pathname.endsWith(".sass.js") || pathname.endsWith(".css.js")) {
             pathname = pathname.slice(0, -3);
             query.type = "module";
         }
-        let { filename, content, headers, } = await readWorkspaceFile(pathname);
+        let { filename, content, headers } = await readWorkspaceFile(pathname);
         let links, watch;
         let transform = headers["x-transformer"] !== "none" && headers["cache-control"] === "no-cache" || query.type;
         if (transform && include) {
@@ -113,13 +108,24 @@ exports.useResourceProvider = nano_memoize_1.default(function (options, watcher)
             links,
             watch
         };
-        if (cache) {
-            cache.set(url, resource);
-        }
         return resource;
     }
     return {
-        provideResource
+        provideResource(url, headers) {
+            let resource;
+            if (cache) {
+                resource = cache.get(url);
+                if (resource !== undefined) {
+                    tiny_node_logger_1.default.debug("retrieved from cache:", chalk_1.default.magenta(url));
+                    return resource;
+                }
+            }
+            resource = provideResource(url, headers);
+            if (cache) {
+                cache.set(url, resource);
+            }
+            return resource;
+        }
     };
 });
 //# sourceMappingURL=resource-provider.js.map

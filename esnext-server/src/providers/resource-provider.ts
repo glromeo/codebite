@@ -8,9 +8,10 @@ import picomatch from "picomatch";
 import log from "tiny-node-logger";
 import {ESNextOptions} from "../configure";
 import {useBabelTransformer} from "../transformers/babel-transformer";
+import {useEsBuildTransformer} from "../transformers/esbuild-transformer";
 import {useHtmlTransformer} from "../transformers/html-transformer";
 import {useSassTransformer} from "../transformers/sass-transformer";
-import {ResourceCache} from "../util/resource-cache";
+import {Resource, ResourceCache} from "../util/resource-cache";
 import {useWorkspaceFiles} from "./workspace-files";
 
 const {
@@ -28,6 +29,7 @@ export const useResourceProvider = memoized(function (options: ESNextOptions, wa
 
     const {readWorkspaceFile} = useWorkspaceFiles(options);
     const {htmlTransformer} = useHtmlTransformer(options);
+    const {esbuildTransformer} = useEsBuildTransformer(options);
     const {babelTransformer} = useBabelTransformer(options);
     const {sassTransformer} = useSassTransformer(options);
 
@@ -52,7 +54,7 @@ export const useResourceProvider = memoized(function (options: ESNextOptions, wa
                     break;
                 case JAVASCRIPT_CONTENT_TYPE:
                 case TYPESCRIPT_CONTENT_TYPE:
-                    task = babelTransformer(filename, content);
+                    task = esbuildTransformer(filename, content) || babelTransformer(filename, content);
                     break;
             }
             if (task !== undefined) {
@@ -78,15 +80,7 @@ export const useResourceProvider = memoized(function (options: ESNextOptions, wa
      * @param userAgent
      * @returns {Promise<{headers: *, filename: *, watch: *, query: ({type}|*), links: *, content: *, pathname: any}|V>}
      */
-    async function provideResource(url, {"accept": accept, "user-agent": userAgent}: IncomingHttpHeaders) {
-
-        if (cache) {
-            const cached = cache.get(url);
-            if (cached !== undefined) {
-                log.debug("retrieved from cache:", chalk.magenta(url));
-                return cached;
-            }
-        }
+    async function provideResource(url: string, {"accept": accept, "user-agent": userAgent}: IncomingHttpHeaders) {
 
         let {
             pathname,
@@ -101,7 +95,7 @@ export const useResourceProvider = memoized(function (options: ESNextOptions, wa
         let {
             filename,
             content,
-            headers,
+            headers
         } = await readWorkspaceFile(pathname);
 
         let links, watch;
@@ -143,15 +137,25 @@ export const useResourceProvider = memoized(function (options: ESNextOptions, wa
             watch
         };
 
-        if (cache) {
-            cache.set(url, resource);
-        }
-
         return resource;
     }
 
     return {
-        provideResource
+        provideResource(url: string, headers: IncomingHttpHeaders): Promise<Resource> {
+            let resource;
+            if (cache) {
+                resource = cache.get(url);
+                if (resource !== undefined) {
+                    log.debug("retrieved from cache:", chalk.magenta(url));
+                    return resource;
+                }
+            }
+            resource = provideResource(url, headers);
+            if (cache) {
+                cache.set(url, resource);
+            }
+            return resource;
+        }
     };
 });
 

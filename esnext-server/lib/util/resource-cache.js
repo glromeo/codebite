@@ -74,35 +74,30 @@ class ResourceCache extends Map {
             this.watcher.add(filename);
         }
     }
-    set(url, resource) {
-        if (this.deflate) {
-            super.set(url, this.deflate(resource.content).then(deflated => {
-                super.set(url, {
-                    ...resource,
-                    content: deflated,
-                    headers: {
+    set(url, pending) {
+        super.set(url, pending.then(async (resource) => {
+            const filename = path_1.default.relative(this.rootDir, resource.filename);
+            if (this.deflate)
+                try {
+                    let deflated = await this.deflate(resource.content);
+                    resource.content = deflated;
+                    resource.headers = {
                         ...resource.headers,
                         "content-length": Buffer.byteLength(deflated),
                         "content-encoding": "deflate"
-                    }
-                });
-                return super.get(url);
-            }, err => {
-                tiny_node_logger_1.default.error(`failed to deflate resource: ${filename}`, err);
-                super.set(url, resource);
-                return resource;
-            }));
-        }
-        else {
-            super.set(url, resource);
-        }
-        const filename = path_1.default.relative(this.rootDir, resource.filename);
-        this.watch(filename, url);
-        if (resource.watch)
-            for (const watched of resource.watch) {
-                const filename = path_1.default.relative(this.rootDir, watched);
-                this.watch(filename, url);
-            }
+                    };
+                }
+                catch (err) {
+                    tiny_node_logger_1.default.error(`failed to deflate resource: ${filename}`, err);
+                }
+            this.watch(filename, url);
+            if (resource.watch)
+                for (const watched of resource.watch) {
+                    const filename = path_1.default.relative(this.rootDir, watched);
+                    this.watch(filename, url);
+                }
+            return resource;
+        }));
         return this;
     }
     storeSourceMap(url, map) {
@@ -112,7 +107,7 @@ class ResourceCache extends Map {
             url = url.substring(0, questionMark);
         }
         // @ts-ignore
-        super.set(url + ".map", {
+        super.set(url + ".map", Promise.resolve({
             content: content,
             headers: {
                 "content-type": mime_types_1.JSON_CONTENT_TYPE,
@@ -120,7 +115,7 @@ class ResourceCache extends Map {
                 "last-modified": new Date().toUTCString(),
                 "cache-control": "no-cache"
             }
-        });
+        }));
     }
 }
 exports.ResourceCache = ResourceCache;

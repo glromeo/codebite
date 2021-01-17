@@ -5,7 +5,7 @@ export type TransformerOutput = {
     headers: {
         "content-type": typeof JAVASCRIPT_CONTENT_TYPE | typeof HTML_CONTENT_TYPE | typeof CSS_CONTENT_TYPE,
         "content-length": number,
-        "x-transformer": "babel-transformer" | "sass-transformer" | "html-transformer"
+        "x-transformer": "babel-transformer" | "sass-transformer" | "html-transformer" | "esbuild-transformer"
     },
     map?: {
         version: number;

@@ -1,13 +1,12 @@
 /// <reference types="node" />
+import { OutgoingHttpHeaders } from "http";
 export declare type Resource = {
     pathname: string;
     query: string;
     filename: string;
     content: string | Buffer;
-    headers: {
-        [name: string]: string | number;
-    };
-    links: string[];
+    headers: OutgoingHttpHeaders;
+    links: Set<string>;
     watch: string[];
 };
 /**
@@ -15,7 +14,7 @@ export declare type Resource = {
  *
  * @type {Map<string, string[]|string>}
  * */
-export declare class ResourceCache extends Map<string, Resource | Promise<Resource>> {
+export declare class ResourceCache extends Map<string, Promise<Resource>> {
     private rootDir;
     private watched;
     private watcher;
@@ -27,6 +26,6 @@ export declare class ResourceCache extends Map<string, Resource | Promise<Resour
     invalidate(path: any): void;
     unwatch(path: any): void;
     watch(filename: any, url: any): void;
-    set(url: string, resource: Resource): this;
+    set(url: string, pending: Promise<Resource>): this;
     storeSourceMap(url: any, map: any): void;
 }

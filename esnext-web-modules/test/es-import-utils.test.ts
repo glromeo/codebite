@@ -1,5 +1,5 @@
 import {expect} from "chai";
-import {bareNodeModule, isBare, parsePathname, toPosix} from "../src/es-import-utils";
+import {pathnameToModuleUrl, isBare, parseModuleUrl, toPosix} from "../src/es-import-utils";
 import * as path from "path";
 
 describe("ES Import Utils", function () {
@@ -17,58 +17,58 @@ describe("ES Import Utils", function () {
         expect(isBare("/root")).to.be.false;
     });
 
-    it("bareNodeModule", async function () {
+    it("pathnameToModuleUrl", async function () {
 
         const sep = path.sep;
 
-        expect(bareNodeModule("anode_modules/abc/def"))
+        expect(pathnameToModuleUrl("anode_modules/abc/def"))
             .to.equal("anode_modules/abc/def");
 
-        expect(bareNodeModule(`${sep}node_modulesque${sep}abc${sep}def`))
+        expect(pathnameToModuleUrl(`${sep}node_modulesque${sep}abc${sep}def`))
             .to.equal("/node_modulesque/abc/def");
 
-        expect(bareNodeModule("/esnext-server/node_modules/@babel/core/lib/parse.js"))
+        expect(pathnameToModuleUrl("/esnext-server/node_modules/@babel/core/lib/parse.js"))
             .to.equal("@babel/core/lib/parse.js");
 
-        expect(bareNodeModule("abc/def"))
+        expect(pathnameToModuleUrl("abc/def"))
             .to.equal("abc/def");
 
-        expect(bareNodeModule(`C:${sep}esnext-server${sep}node_modules${sep}@babel${sep}core${sep}lib${sep}parse.js`))
+        expect(pathnameToModuleUrl(`C:${sep}esnext-server${sep}node_modules${sep}@babel${sep}core${sep}lib${sep}parse.js`))
             .to.equal("@babel/core/lib/parse.js");
 
     });
 
     it("parsePathname", function () {
 
-        expect(parsePathname("@module/name/path/file.ext")).to.eql([
+        expect(parseModuleUrl("@module/name/path/file.ext")).to.eql([
             "@module/name",
             "path/file.ext"
         ]);
-        expect(parsePathname("module/base/path/file.ext")).to.eql([
+        expect(parseModuleUrl("module/base/path/file.ext")).to.eql([
             "module",
             "base/path/file.ext"
         ]);
-        expect(parsePathname("module.ext")).to.eql([
+        expect(parseModuleUrl("module.ext")).to.eql([
             "module.ext",
             null
         ]);
-        expect(parsePathname("/path/file.ext")).to.eql([
+        expect(parseModuleUrl("/path/file.ext")).to.eql([
             null,
             "/path/file.ext"
         ]);
-        expect(parsePathname("./file.ext")).to.eql([
+        expect(parseModuleUrl("./file.ext")).to.eql([
             null,
             "./file.ext"
         ]);
-        expect(parsePathname("../file.ext")).to.eql([
+        expect(parseModuleUrl("../file.ext")).to.eql([
             null,
             "../file.ext"
         ]);
-        expect(parsePathname(".module/file.ext")).to.eql([
+        expect(parseModuleUrl(".module/file.ext")).to.eql([
             ".module",
             "file.ext"
         ]);
-        expect(parsePathname("@/path/file.ext")).to.eql([
+        expect(parseModuleUrl("@/path/file.ext")).to.eql([
             "@/path",
             "file.ext"
         ]);

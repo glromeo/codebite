@@ -10,20 +10,26 @@ const nano_memoize_1 = __importDefault(require("nano-memoize"));
 const path_1 = __importDefault(require("path"));
 const tiny_node_logger_1 = __importDefault(require("tiny-node-logger"));
 const resource_provider_1 = require("../providers/resource-provider");
-const { HTTP2_HEADER_PATH, HTTP2_HEADER_METHOD, HTTP2_METHOD_CONNECT, NGHTTP2_REFUSED_STREAM } = http2_1.default.constants;
 exports.useHttp2Push = nano_memoize_1.default((options, watcher) => {
     const { provideResource } = resource_provider_1.useResourceProvider(options, watcher);
-    const serverPush = (stream, url, clientHeaders) => new Promise(async (resolve, reject) => {
-        try {
-            const { content, headers } = await provideResource(url, clientHeaders);
-            stream.pushStream({
-                [HTTP2_HEADER_PATH]: url
-            }, function (err, push) {
-                if (err) {
-                    reject(err);
+    const { HTTP2_HEADER_PATH, NGHTTP2_REFUSED_STREAM } = http2_1.default.constants;
+    function http2Push(stream, pathname, links, clientHeaders) {
+        const dirname = path_1.default.posix.dirname(pathname);
+        for (const link of links) {
+            const url = link.startsWith("/") ? link : path_1.default.posix.resolve(dirname, link);
+            provideResource(url, clientHeaders).then(resource => {
+                if (stream.destroyed) {
+                    return;
                 }
-                else {
-                    push.on("close", resolve);
+                if (!stream.pushAllowed) {
+                    tiny_node_logger_1.default.debug("not allowed pushing from:", pathname);
+                    return;
+                }
+                stream.pushStream({ [HTTP2_HEADER_PATH]: url }, function (err, push) {
+                    if (err) {
+                        tiny_node_logger_1.default.warn("cannot push stream for:", link, "from:", pathname, err);
+                        return;
+                    }
                     push.on("error", function (err) {
                         if (push.rstCode === NGHTTP2_REFUSED_STREAM) {
                             tiny_node_logger_1.default.debug("NGHTTP2_REFUSED_STREAM", url);
@@ -35,36 +41,17 @@ exports.useHttp2Push = nano_memoize_1.default((options, watcher) => {
                             tiny_node_logger_1.default.error(err.code, url, err.message);
                         }
                     });
-                    const response = {
-                        ":status": http_status_codes_1.default.OK
-                    };
-                    if (headers)
-                        for (const name of Object.keys(headers)) {
-                            response[name.toLowerCase()] = headers[name];
-                        }
-                    push.respond(response);
-                    push.end(content);
-                }
+                    if (!push.destroyed) {
+                        push.respond({
+                            ...resource.headers,
+                            ":status": http_status_codes_1.default.OK
+                        });
+                        push.end(resource.content);
+                    }
+                });
+            }).catch(err => {
+                tiny_node_logger_1.default.warn("error pushing:", link, "from:", pathname, err);
             });
-        }
-        catch (error) {
-            reject(error);
-        }
-    });
-    function http2Push(stream, pathname, links, clientHeaders) {
-        if (stream) {
-            const dirname = path_1.default.posix.dirname(pathname);
-            for (let link of links) {
-                const url = link.startsWith("/") ? link : path_1.default.posix.resolve(dirname, link);
-                if (stream.pushAllowed) {
-                    serverPush(stream, url, clientHeaders).catch(error => {
-                        tiny_node_logger_1.default.warn("internal error pushing:", link, "from:", pathname);
-                    });
-                }
-                else {
-                    tiny_node_logger_1.default.warn("not allowed to push:", link, "from:", pathname);
-                }
-            }
         }
     }
     return {
