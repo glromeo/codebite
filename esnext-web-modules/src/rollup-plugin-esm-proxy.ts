@@ -19,7 +19,7 @@ function scanEsm(
 
     let uniqueExports: string[] = exportsByFilename.get(filename) || [];
     for (const e of exported) {
-        if (e === "default") {
+        if (e === "default" && exportsByFilename.size > 0) {
             exportsByFilename.set(filename, null);
             return exportsByFilename;
         } else if (!exports.has(e)) {
@@ -52,6 +52,30 @@ export type PluginEsmProxyOptions = {
     entryModules: Set<string>
 }
 
+export function generateEsmProxy(entryId: string) {
+    const entryUrl = toPosix(entryId);
+    const exportsByFilename = scanEsm(entryId);
+    const excluded = new Set<string>();
+    let proxy = "";
+    for (const [filename, exports] of exportsByFilename.entries()) {
+        if (exports === null) {
+            excluded.add(filename);
+            continue;
+        }
+        if (exports.length > 0) {
+            let importUrl = toPosix(filename);
+            proxy += `export {\n${exports.join(",\n")}\n} from "${importUrl}";\n`;
+        }
+    }
+    if (entryUrl.endsWith("redux-toolkit.esm.js")) {
+        proxy += `export * from "redux";`;
+    }
+    return {
+        code: proxy || fs.readFileSync(entryId, "utf-8"),
+        meta: {"entry-proxy": {bundle: [...exportsByFilename.keys()].filter(f => !excluded.has(f)).map(bareNodeModule)}}
+    };
+}
+
 /**
  *              _ _             _____  _             _       ______               _____
  *             | | |           |  __ \| |           (_)     |  ____|             |  __ \
@@ -82,27 +106,7 @@ export function rollupPluginEsmProxy({entryModules}: PluginEsmProxyOptions): Plu
         load(id) {
             if (id.endsWith("?esm-proxy")) {
                 const entryId = id.slice(0, -10);
-                const entryUrl = toPosix(entryId);
-                const exportsByFilename = scanEsm(entryId);
-                const excluded = new Set<string>();
-                let proxy = "";
-                for (const [filename, exports] of exportsByFilename.entries()) {
-                    if (exports === null) {
-                        excluded.add(filename);
-                        continue;
-                    }
-                    if (exports.length > 0) {
-                        let importUrl = toPosix(filename);
-                        proxy += `export {\n${exports.join(",\n")}\n} from "${importUrl}";\n`;
-                    }
-                }
-                if (entryUrl.endsWith("redux-toolkit.esm.js")) {
-                    proxy += `export * from "redux";`;
-                }
-                return {
-                    code: proxy || fs.readFileSync(entryId, "utf-8"),
-                    meta: {"entry-proxy": {bundle: [...exportsByFilename.keys()].filter(f => !excluded.has(f)).map(bareNodeModule)}}
-                };
+                return generateEsmProxy(entryId);
             }
             return null;
         }

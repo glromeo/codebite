@@ -78,7 +78,7 @@ exports.useResourceProvider = nano_memoize_1.default(function (options, watcher)
             pathname = pathname.slice(0, -3);
             query.type = "module";
         }
-        let { filename, content, headers } = await readWorkspaceFile(pathname);
+        let { filename, content, headers, } = await readWorkspaceFile(pathname);
         let links, watch;
         let transform = headers["x-transformer"] !== "none" && headers["cache-control"] === "no-cache" || query.type;
         if (transform && include) {

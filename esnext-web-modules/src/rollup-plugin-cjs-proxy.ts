@@ -39,6 +39,31 @@ export type PluginCjsProxyOptions = {
     entryModules: Set<string>
 }
 
+export function generateCjsProxy(entryId: string) {
+    const entryUrl = toPosix(entryId);
+    const exports = scanCjs(entryId);
+    exports.delete("__esModule");
+    let proxy = "";
+    if (!exports.has("default")) {
+        proxy += `import __default__ from "${entryUrl}";\nexport default __default__;\n`;
+    }
+    if (exports.size > 0) {
+        proxy += `export {\n${Array.from(exports).join(",\n")}\n} from "${entryUrl}";\n`;
+    } else {
+        let moduleInstance = require(entryId);
+        if (!(!moduleInstance || moduleInstance.constructor !== Object)) {
+            let filteredExports = Object.keys(moduleInstance).filter(function (moduleExport) {
+                return moduleExport !== "default" && moduleExport !== "__esModule";
+            });
+            proxy += `export {\n${filteredExports.join(",\n")}\n} from "${entryUrl}";\n`;
+        }
+    }
+    return {
+        code: proxy || fs.readFileSync(entryId, "utf-8"),
+        meta: {"entry-proxy": {bundle: [bareNodeModule(entryId)]}}
+    };
+}
+
 /**
  *              _ _             _____  _             _        _____ _     _____
  *             | | |           |  __ \| |           (_)      / ____(_)   |  __ \
@@ -69,28 +94,7 @@ export function rollupPluginCjsProxy({entryModules}: PluginCjsProxyOptions): Plu
         load(id) {
             if (id.endsWith("?cjs-proxy")) {
                 const entryId = id.slice(0, -10);
-                const entryUrl = toPosix(entryId);
-                const exports = scanCjs(entryId);
-                exports.delete("__esModule");
-                let proxy = "";
-                if (!exports.has("default")) {
-                    proxy += `import __default__ from "${entryUrl}";\nexport default __default__;\n`;
-                }
-                if (exports.size > 0) {
-                    proxy += `export {\n${Array.from(exports).join(",\n")}\n} from "${entryUrl}";\n`;
-                } else {
-                    let moduleInstance = require(entryId);
-                    if (!(!moduleInstance || moduleInstance.constructor !== Object)) {
-                        let filteredExports = Object.keys(moduleInstance).filter(function (moduleExport) {
-                            return moduleExport !== "default" && moduleExport !== "__esModule";
-                        });
-                        proxy += `export {\n${filteredExports.join(",\n")}\n} from "${entryUrl}";\n`;
-                    }
-                }
-                return {
-                    code: proxy || fs.readFileSync(entryId, "utf-8"),
-                    meta: {"entry-proxy": {bundle: [bareNodeModule(entryId)]}}
-                };
+                return generateCjsProxy(entryId);
             }
             return null;
         }

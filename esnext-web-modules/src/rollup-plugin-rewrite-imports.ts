@@ -31,6 +31,7 @@ export function rollupPluginRewriteImports(options: PluginRewriteImportsOptions)
                     if (isExternal(source)) {
                         let external = bareNodeModule(resolve.sync(source, resolveOptions));
                         if (external.indexOf("@babel/runtime/helpers") >= 0 && external.indexOf("/esm") === -1) {
+                            // todo: is this even reached?
                             external = external.replace("/helpers", "/helpers/esm");
                         }
                         return {id: source, external: true, meta: {[REWRITE_IMPORT]: `/node_modules/${external}`}};
@@ -41,7 +42,7 @@ export function rollupPluginRewriteImports(options: PluginRewriteImportsOptions)
                     let resolved = importMap.imports[moduleBareUrl];
                     if (resolved) {
                         let moduleInfo = this.getModuleInfo(source);
-                        if (moduleInfo) {
+                        if (moduleInfo && !moduleInfo.isExternal) {
                             return moduleInfo.id;
                         }
                         return {id: source, external: true, meta: {[REWRITE_IMPORT]: resolved}};
