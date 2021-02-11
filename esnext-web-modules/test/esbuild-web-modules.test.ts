@@ -275,7 +275,9 @@ describe("web modules (esbuild)", function () {
 
         this.timeout(15000);
 
-        let {esbuildWebModule, resolveImport} = useFixture("/ant-design");
+        let {esbuildWebModule, resolveImport} = useFixture("/ant-design", {
+            squash: ["@babel/runtime"]
+        });
 
         await esbuildWebModule("antd");
 

@@ -77,7 +77,7 @@ function readJson(filename) {
     return JSON.parse(fs_1.readFileSync(filename, "utf-8"));
 }
 function stripExt(filename) {
-    const end = filename.lastIndexOf('.');
+    const end = filename.lastIndexOf(".");
     return end > 0 ? filename.substring(0, end) : filename;
 }
 exports.useWebModules = nano_memoize_1.default((options = defaultOptions()) => {
@@ -113,6 +113,7 @@ exports.useWebModules = nano_memoize_1.default((options = defaultOptions()) => {
         ...options.resolve
     };
     const appPkg = readManifest(".");
+    const squash = new Set(options.squash);
     const entryModules = collectEntryModules(appPkg);
     function collectDependencies(entryModule) {
         return new Set([
@@ -120,20 +121,21 @@ exports.useWebModules = nano_memoize_1.default((options = defaultOptions()) => {
             ...Object.keys(entryModule.peerDependencies || {})
         ]);
     }
-    function collectEntryModules(entryModule, entryModules = new Set(), visited = new Set()) {
-        for (const dependency of collectDependencies(entryModule)) {
-            if (visited.has(dependency)) {
-                entryModules.add(dependency);
+    function collectEntryModules(entryModule, entryModules = new Set(), visited = new Map(), ancestor) {
+        for (const dependency of collectDependencies(entryModule))
+            if (!squash.has(dependency)) {
+                if (visited.has(dependency) && visited.get(dependency) !== ancestor) {
+                    entryModules.add(dependency);
+                }
+                else
+                    try {
+                        visited.set(dependency, ancestor);
+                        collectEntryModules(readManifest(dependency), entryModules, visited, ancestor || dependency);
+                    }
+                    catch (ignored) {
+                        visited.delete(dependency);
+                    }
             }
-            else
-                try {
-                    visited.add(dependency);
-                    collectEntryModules(readManifest(dependency), entryModules, visited);
-                }
-                catch (ignored) {
-                    visited.delete(dependency);
-                }
-        }
         return entryModules;
     }
     function writeImportMap(outDir, importMap) {
@@ -298,7 +300,11 @@ exports.useWebModules = nano_memoize_1.default((options = defaultOptions()) => {
                                             }
                                             let [m] = es_import_utils_1.parseModuleUrl(url);
                                             if (entryModules.has(m)) {
-                                                return { path: await resolveImport(url), external: true, namespace: "web_modules" };
+                                                return {
+                                                    path: await resolveImport(url),
+                                                    external: true,
+                                                    namespace: "web_modules"
+                                                };
                                             }
                                             return null;
                                         }
@@ -308,7 +314,11 @@ exports.useWebModules = nano_memoize_1.default((options = defaultOptions()) => {
                                             if (webModuleUrl) {
                                                 return { path: webModuleUrl, external: true, namespace: "web_modules" };
                                             }
-                                            return { path: `/web_modules/${bareUrl}`, external: true, namespace: "web_modules" };
+                                            return {
+                                                path: `/web_modules/${bareUrl}`,
+                                                external: true,
+                                                namespace: "web_modules"
+                                            };
                                         }
                                     });
                                 }
@@ -347,13 +357,21 @@ exports.useWebModules = nano_memoize_1.default((options = defaultOptions()) => {
                                             }
                                             let [m] = es_import_utils_1.parseModuleUrl(url);
                                             if (entryModules.has(m)) {
-                                                return { path: await resolveImport(url), external: true, namespace: "web_modules" };
+                                                return {
+                                                    path: await resolveImport(url),
+                                                    external: true,
+                                                    namespace: "web_modules"
+                                                };
                                             }
                                             return null;
                                         }
                                         if (external.has(url) && false) {
                                             let bareUrl = resolveToBareUrl(importer, url);
-                                            return { path: `/web_modules/${bareUrl}`, external: true, namespace: "web_modules" };
+                                            return {
+                                                path: `/web_modules/${bareUrl}`,
+                                                external: true,
+                                                namespace: "web_modules"
+                                            };
                                         }
                                         return null;
                                     });

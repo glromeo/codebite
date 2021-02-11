@@ -95,7 +95,7 @@ function readJson(filename) {
 }
 
 function stripExt(filename: string) {
-    const end = filename.lastIndexOf('.');
+    const end = filename.lastIndexOf(".");
     return end > 0 ? filename.substring(0, end) : filename;
 }
 
@@ -142,6 +142,8 @@ export const useWebModules = memoized((options: WebModulesOptions = defaultOptio
 
     const appPkg: PackageMeta = readManifest(".");
 
+    const squash = new Set<string>(options.squash);
+
     // let debugDeps = "#dependencies\r\n", indent = "##";
 
     const entryModules = collectEntryModules(appPkg);
@@ -155,15 +157,15 @@ export const useWebModules = memoized((options: WebModulesOptions = defaultOptio
         ]);
     }
 
-    function collectEntryModules(entryModule: PackageMeta, entryModules = new Set<string>(), visited = new Set<string>()) {
-        for (const dependency of collectDependencies(entryModule)) {
+    function collectEntryModules(entryModule: PackageMeta, entryModules = new Set<string>(), visited = new Map<string, string>(), ancestor?: string) {
+        for (const dependency of collectDependencies(entryModule)) if (!squash.has(dependency)) {
             // debugDeps += `${indent}${dependency}\r\n`;
-            if (visited.has(dependency)) {
+            if (visited.has(dependency) && visited.get(dependency) !== ancestor) {
                 entryModules.add(dependency);
             } else try {
-                visited.add(dependency);
+                visited.set(dependency, ancestor!);
                 // indent += "#";
-                collectEntryModules(readManifest(dependency), entryModules, visited);
+                collectEntryModules(readManifest(dependency), entryModules, visited, ancestor || dependency);
                 // indent = indent.slice(0, -1);
             } catch (ignored) {
                 visited.delete(dependency);
@@ -377,7 +379,11 @@ export const useWebModules = memoized((options: WebModulesOptions = defaultOptio
                                         }
                                         let [m] = parseModuleUrl(url);
                                         if (entryModules.has(m!)) {
-                                            return {path: await resolveImport(url), external: true, namespace: "web_modules"};
+                                            return {
+                                                path: await resolveImport(url),
+                                                external: true,
+                                                namespace: "web_modules"
+                                            };
                                         }
                                         return null;
                                     } else {
@@ -386,7 +392,11 @@ export const useWebModules = memoized((options: WebModulesOptions = defaultOptio
                                         if (webModuleUrl) {
                                             return {path: webModuleUrl, external: true, namespace: "web_modules"};
                                         }
-                                        return {path: `/web_modules/${bareUrl}`, external: true, namespace: "web_modules"};
+                                        return {
+                                            path: `/web_modules/${bareUrl}`,
+                                            external: true,
+                                            namespace: "web_modules"
+                                        };
                                     }
                                 });
                             }
@@ -428,13 +438,21 @@ export const useWebModules = memoized((options: WebModulesOptions = defaultOptio
                                         }
                                         let [m] = parseModuleUrl(url);
                                         if (entryModules.has(m!)) {
-                                            return {path: await resolveImport(url), external: true, namespace: "web_modules"};
+                                            return {
+                                                path: await resolveImport(url),
+                                                external: true,
+                                                namespace: "web_modules"
+                                            };
                                         }
                                         return null;
                                     }
                                     if (external.has(url) && false) {
                                         let bareUrl = resolveToBareUrl(importer, url);
-                                        return {path: `/web_modules/${bareUrl}`, external: true, namespace: "web_modules"};
+                                        return {
+                                            path: `/web_modules/${bareUrl}`,
+                                            external: true,
+                                            namespace: "web_modules"
+                                        };
                                     }
                                     // if (/^@ant-design\/icons\/es\/icons\//.test(bareUrl) && !bareUrl.endsWith("/index.js")) {
                                     //     return {path: `/web_modules/${bareUrl}`, external: true, namespace: "web_modules"};
@@ -462,7 +480,7 @@ export const useWebModules = memoized((options: WebModulesOptions = defaultOptio
                     writeImportMap(outDir, importMap)
                 ]);
 
-            } catch(error) {
+            } catch (error) {
                 importMap.imports[source] = `/web_modules/${source}`;
                 log.warn("unable to bundle:", source, error.message);
                 await writeImportMap(outDir, importMap);
