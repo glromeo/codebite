@@ -141,8 +141,12 @@ export const useWebModules = memoized((options: WebModulesOptions = defaultOptio
     } as Opts;
 
     const appPkg: PackageMeta = readManifest(".");
+
+    // let debugDeps = "#dependencies\r\n", indent = "##";
+
     const entryModules = collectEntryModules(appPkg);
-    const squash = new Set<string>(options.squash);
+
+    // console.log(require('ascii-tree').generate(debugDeps));
 
     function collectDependencies(entryModule: PackageMeta) {
         return new Set([
@@ -153,11 +157,14 @@ export const useWebModules = memoized((options: WebModulesOptions = defaultOptio
 
     function collectEntryModules(entryModule: PackageMeta, entryModules = new Set<string>(), visited = new Set<string>()) {
         for (const dependency of collectDependencies(entryModule)) {
+            // debugDeps += `${indent}${dependency}\r\n`;
             if (visited.has(dependency)) {
                 entryModules.add(dependency);
             } else try {
                 visited.add(dependency);
+                // indent += "#";
                 collectEntryModules(readManifest(dependency), entryModules, visited);
+                // indent = indent.slice(0, -1);
             } catch (ignored) {
                 visited.delete(dependency);
             }
@@ -362,7 +369,7 @@ export const useWebModules = memoized((options: WebModulesOptions = defaultOptio
                                 build.onResolve({filter: /./}, async function ({path: url, importer}) {
                                     if (isBare(url)) {
                                         if (url === entryUrl) {
-                                            return null;
+                                            return {path: entryFile};
                                         }
                                         let webModuleUrl = importMap.imports[url];
                                         if (webModuleUrl) {

@@ -67,7 +67,10 @@ export function createRequestHandler<V extends Router.HTTPVersion = Router.HTTPV
             }
             if (links && options.http2 === "preload") {
                 headers.link = [...links].map(link => {
-                    return `<${link}>; crossorigin; rel=preload; as=${link.endsWith(".css") ? "style" : "script"}`;
+                    const dirname = posix.dirname(pathname);
+                    const url = link.startsWith("/") ? link : posix.resolve(dirname, link);
+                    provideResource(url, req.headers).catch(log.warn);
+                    return `<${url}>; crossorigin; rel=preload; as=${url.endsWith(".css") ? "style" : "script"}`;
                 });
             }
 

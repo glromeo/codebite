@@ -57,7 +57,10 @@ function createRequestHandler(options, watcher) {
             }
             if (links && options.http2 === "preload") {
                 headers.link = [...links].map(link => {
-                    return `<${link}>; crossorigin; rel=preload; as=${link.endsWith(".css") ? "style" : "script"}`;
+                    const dirname = path_1.posix.dirname(pathname);
+                    const url = link.startsWith("/") ? link : path_1.posix.resolve(dirname, link);
+                    provideResource(url, req.headers).catch(tiny_node_logger_1.default.warn);
+                    return `<${url}>; crossorigin; rel=preload; as=${url.endsWith(".css") ? "style" : "script"}`;
                 });
             }
             res.writeHead(200, headers);

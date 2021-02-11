@@ -114,7 +114,6 @@ exports.useWebModules = nano_memoize_1.default((options = defaultOptions()) => {
     };
     const appPkg = readManifest(".");
     const entryModules = collectEntryModules(appPkg);
-    const squash = new Set(options.squash);
     function collectDependencies(entryModule) {
         return new Set([
             ...Object.keys(entryModule.dependencies || {}),
@@ -291,7 +290,7 @@ exports.useWebModules = nano_memoize_1.default((options = defaultOptions()) => {
                                     build.onResolve({ filter: /./ }, async function ({ path: url, importer }) {
                                         if (es_import_utils_1.isBare(url)) {
                                             if (url === entryUrl) {
-                                                return null;
+                                                return { path: entryFile };
                                             }
                                             let webModuleUrl = importMap.imports[url];
                                             if (webModuleUrl) {
