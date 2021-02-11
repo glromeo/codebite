@@ -56,14 +56,10 @@ export function createRequestHandler<V extends Router.HTTPVersion = Router.HTTPV
                 links
             } = await provideResource(req.url!, req.headers);
 
-            req.on("error", log.error);
-            res.on("error", log.error);
+            res.writeHead(200, headers);
 
             if (links && options.http2 === "push" && res instanceof Http2ServerResponse) {
-                res.writeHead(200, headers);
                 http2Push(res.stream, pathname, links, req.headers);
-                res.end(content);
-                return;
             }
             if (links && options.http2 === "preload") {
                 headers.link = [...links].map(link => {
@@ -74,7 +70,6 @@ export function createRequestHandler<V extends Router.HTTPVersion = Router.HTTPV
                 });
             }
 
-            res.writeHead(200, headers);
             res.end(content);
 
         } catch (error) {
