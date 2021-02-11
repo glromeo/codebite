@@ -36,7 +36,10 @@ export const useEsBuildTransformer = memoized((options: ESNextOptions, sourceMap
         let links = new Set<string>();
         let [imports] = parse(code);
         let l = 0, rewritten: string = "";
-        for (const {s, e} of imports) {
+        for (const {s, e, se} of imports) {
+            if (se === 0) {
+                continue;
+            }
             let url = code.substring(s, e);
             let resolved = await resolveImport(url, basedir);
             if (resolved) {
