@@ -47,13 +47,9 @@ function createRequestHandler(options, watcher) {
     router.get("/*", async function workspaceMiddleware(req, res) {
         try {
             const { pathname, content, headers, links } = await provideResource(req.url, req.headers);
-            req.on("error", tiny_node_logger_1.default.error);
-            res.on("error", tiny_node_logger_1.default.error);
+            res.writeHead(200, headers);
             if (links && options.http2 === "push" && res instanceof http2_1.Http2ServerResponse) {
-                res.writeHead(200, headers);
                 http2Push(res.stream, pathname, links, req.headers);
-                res.end(content);
-                return;
             }
             if (links && options.http2 === "preload") {
                 headers.link = [...links].map(link => {
@@ -63,7 +59,6 @@ function createRequestHandler(options, watcher) {
                     return `<${url}>; crossorigin; rel=preload; as=${url.endsWith(".css") ? "style" : "script"}`;
                 });
             }
-            res.writeHead(200, headers);
             res.end(content);
         }
         catch (error) {

@@ -54,7 +54,7 @@ export const useResourceProvider = memoized(function (options: ESNextOptions, wa
                     break;
                 case JAVASCRIPT_CONTENT_TYPE:
                 case TYPESCRIPT_CONTENT_TYPE:
-                    task = esbuildTransformer(filename, content) || babelTransformer(filename, content);
+                    task = options.babel ? babelTransformer(filename, content) : esbuildTransformer(filename, content);
                     break;
             }
             if (task !== undefined) {
