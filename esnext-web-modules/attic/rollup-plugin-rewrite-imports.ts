@@ -3,7 +3,7 @@ import * as path from "path";
 import picomatch from "picomatch";
 import resolve, {Opts} from "resolve";
 import {OutputOptions, Plugin, RenderedChunk} from "rollup";
-import {pathnameToModuleUrl, isBare, parseModuleUrl} from "./es-import-utils";
+import {pathnameToModuleUrl, isBare, parseModuleUrl} from "../src/es-import-utils";
 import {ImportMap, ImportResolver} from "./web-modules";
 
 export type PluginRewriteImportsOptions = {

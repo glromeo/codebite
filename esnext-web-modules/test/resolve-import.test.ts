@@ -16,7 +16,7 @@ describe("resolve import", function () {
                 paths: [path.resolve(__dirname, "fixture/node_modules")]
             },
             external: [],
-            rollup: {}
+            esbuild: {}
         };
         return {
             rootDir,
@@ -162,7 +162,7 @@ describe("resolve import", function () {
 
     it("tippy.js", async function () {
         let {resolveImport} = setup("fixture");
-        expect(await resolveImport("tippy.js")).to.equal("/web_modules/tippy.js.js");
+        expect(await resolveImport("tippy.js")).to.equal("/web_modules/tippy.js");
     });
 
 });

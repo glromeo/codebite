@@ -401,7 +401,7 @@ exports.useWebModules = nano_memoize_1.default((options = defaultOptions()) => {
             }
             finally {
                 const elapsed = Date.now() - startTime;
-                tiny_node_logger_1.default.info `bundled: ${chalk_1.default.magenta(source)} in: ${chalk_1.default.magenta(elapsed)}ms`;
+                tiny_node_logger_1.default.info `bundled: ${chalk_1.default.magenta(source)} in: ${chalk_1.default.magenta(String(elapsed))}ms`;
             }
         }
     }

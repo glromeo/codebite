@@ -1,5 +1,5 @@
 import {expect} from "chai";
-import {pathnameToModuleUrl, isBare, parseModuleUrl, toPosix} from "../src/es-import-utils";
+import {pathnameToModuleUrl, isBare, parseModuleUrl, toPosix} from "../src";
 import * as path from "path";
 
 describe("ES Import Utils", function () {

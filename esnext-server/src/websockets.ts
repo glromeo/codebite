@@ -1,11 +1,10 @@
-import {magenta, underline} from "chalk";
+import chalk from "chalk";
 import {existsSync} from "fs";
 import {dirname, resolve} from "path";
 import log from "tiny-node-logger";
 import WebSocket from "ws";
 
 const WS_CONFIG_FILE = "websockets.config.js";
-
 export function createWebSockets(config, server, watcher) {
 
     // todo: maybe we can refactor this to use a pathname for each workspace
@@ -16,7 +15,7 @@ export function createWebSockets(config, server, watcher) {
 
     function on(name, listener) {
         listeners.set(name, listener);
-        log.debug("added message listener:", magenta(name));
+        log.debug("added message listener:", chalk.magenta(name));
     }
 
     watcher.on("all", async function (event, path) {
@@ -30,7 +29,7 @@ export function createWebSockets(config, server, watcher) {
 
             delete require.cache[require.resolve(module)];
 
-            log.info("websockets :", underline(module));
+            log.info("websockets :", chalk.underline(module));
             require(module).call(context, config, watcher, on);
         }
     });

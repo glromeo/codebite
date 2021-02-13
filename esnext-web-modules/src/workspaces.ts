@@ -2,7 +2,7 @@ import {glob} from "glob";
 import path from "path";
 import log from "tiny-node-logger";
 import {toPosix} from "./es-import-utils";
-import {ImportMap} from "./web-modules";
+import {ImportMap} from "../attic/web-modules";
 
 function readManifest(basedir: string, entries: [string, string][]) {
     try {

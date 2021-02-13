@@ -16,12 +16,12 @@ describe("workspaces", function () {
         expect(await resolveImport("module-b")).to.equal("/workspaces/group/module-b/index.js");
 
         expect(await resolveImport("module-c").catch(err => err.message))
-            .to.match(/Cannot find module 'module-c\/package.json'/);
+            .to.match(/Cannot find module 'module-c'/);
 
         expect(await resolveImport("@workspaces/module-c")).to.equal("/workspaces/group/module-c/index.js");
 
         expect(await resolveImport("whatever").catch(err => err.message))
-            .to.match(/Cannot find module 'whatever\/package.json'/);
+            .to.match(/Cannot find module 'whatever'/);
     });
 
     it("can scan workspace fixture", async function () {
@@ -36,7 +36,8 @@ describe("workspaces", function () {
             "@fixture/lit-html",
             "@fixture/react",
             "@fixture/redux",
-            "@fixture/iife"
+            "@fixture/iife",
+            "@fixture/ant-design"
         ]);
     })
 

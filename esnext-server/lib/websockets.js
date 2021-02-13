@@ -4,7 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createWebSockets = void 0;
-const chalk_1 = require("chalk");
+const chalk_1 = __importDefault(require("chalk"));
 const fs_1 = require("fs");
 const path_1 = require("path");
 const tiny_node_logger_1 = __importDefault(require("tiny-node-logger"));
@@ -16,7 +16,7 @@ function createWebSockets(config, server, watcher) {
     const listeners = new Map();
     function on(name, listener) {
         listeners.set(name, listener);
-        tiny_node_logger_1.default.debug("added message listener:", chalk_1.magenta(name));
+        tiny_node_logger_1.default.debug("added message listener:", chalk_1.default.magenta(name));
     }
     watcher.on("all", async function (event, path) {
         if (path.endsWith(WS_CONFIG_FILE)) {
@@ -26,7 +26,7 @@ function createWebSockets(config, server, watcher) {
                 filename: module
             };
             delete require.cache[require.resolve(module)];
-            tiny_node_logger_1.default.info("websockets :", chalk_1.underline(module));
+            tiny_node_logger_1.default.info("websockets :", chalk_1.default.underline(module));
             require(module).call(context, config, watcher, on);
         }
     });

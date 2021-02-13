@@ -23,58 +23,86 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.useWebModules = exports.defaultOptions = void 0;
-const plugin_commonjs_1 = __importDefault(require("@rollup/plugin-commonjs"));
-const plugin_json_1 = __importDefault(require("@rollup/plugin-json"));
-const plugin_node_resolve_1 = require("@rollup/plugin-node-resolve");
-const plugin_replace_1 = __importDefault(require("@rollup/plugin-replace"));
 const chalk_1 = __importDefault(require("chalk"));
+const esbuild_1 = require("esbuild");
 const fast_url_parser_1 = require("fast-url-parser");
 const fs_1 = require("fs");
 const nano_memoize_1 = __importDefault(require("nano-memoize"));
 const path_1 = __importStar(require("path"));
 const resolve_1 = __importDefault(require("resolve"));
-const rollup_1 = require("rollup");
-const rollup_plugin_sourcemaps_1 = __importDefault(require("rollup-plugin-sourcemaps"));
-const rollup_plugin_terser_1 = require("rollup-plugin-terser");
 const tiny_node_logger_1 = __importDefault(require("tiny-node-logger"));
 const es_import_utils_1 = require("./es-import-utils");
-const rollup_plugin_catch_unresolved_1 = require("./rollup-plugin-catch-unresolved");
 const rollup_plugin_cjs_proxy_1 = require("./rollup-plugin-cjs-proxy");
 const rollup_plugin_esm_proxy_1 = require("./rollup-plugin-esm-proxy");
-const rollup_plugin_rewrite_imports_1 = require("./rollup-plugin-rewrite-imports");
 const workspaces_1 = require("./workspaces");
 function defaultOptions() {
     return require(require.resolve(`${process.cwd()}/web-modules.config.js`));
 }
 exports.defaultOptions = defaultOptions;
-function initFileSystem(rootDir, clean) {
+function readImportMap(rootDir, outDir) {
+    try {
+        let importMap = JSON.parse(fs_1.readFileSync(`${outDir}/import-map.json`, "utf-8"));
+        for (const [key, pathname] of Object.entries(importMap.imports)) {
+            try {
+                tiny_node_logger_1.default.debug("web_module:", chalk_1.default.green(key), "->", chalk_1.default.gray(pathname));
+            }
+            catch (e) {
+                delete importMap[key];
+            }
+        }
+        return importMap;
+    }
+    catch (e) {
+        return { imports: {} };
+    }
+}
+function init({ rootDir, clean, init }) {
     const outDir = path_1.default.join(rootDir, "web_modules");
     if (clean && fs_1.existsSync(outDir)) {
         fs_1.rmdirSync(outDir, { recursive: true });
         tiny_node_logger_1.default.info("cleaned web_modules directory");
     }
     fs_1.mkdirSync(outDir, { recursive: true });
-    return { outDir };
+    const importMap = {
+        imports: {
+            ...readImportMap(rootDir, outDir).imports,
+            ...workspaces_1.readWorkspaces(rootDir).imports
+        }
+    };
+    if (init) {
+    }
+    return { outDir, importMap };
 }
 function readJson(filename) {
     return JSON.parse(fs_1.readFileSync(filename, "utf-8"));
 }
+function stripExt(filename) {
+    const end = filename.lastIndexOf(".");
+    return end > 0 ? filename.substring(0, end) : filename;
+}
 exports.useWebModules = nano_memoize_1.default((options = defaultOptions()) => {
-    const { outDir } = initFileSystem(options.rootDir, options.clean);
+    const { outDir, importMap } = init(options);
     if (!options.environment)
         options.environment = "development";
     if (!options.resolve)
         options.resolve = {};
-    if (!options.resolve.paths)
-        options.resolve.paths = [path_1.default.join(options.rootDir, "node_modules")];
     if (!options.resolve.extensions)
         options.resolve.extensions = [".ts", ".tsx", ".js", ".jsx"];
     if (!options.external)
         options.external = ["@babel/runtime/**"];
-    if (!options.rollup)
-        options.rollup = {};
-    if (!options.rollup.plugins)
-        options.rollup.plugins = [];
+    if (!options.esbuild)
+        options.esbuild = {};
+    options.esbuild = {
+        define: {
+            "process.env.NODE_ENV": `"${options.environment}"`,
+            ...options.esbuild.define
+        },
+        sourcemap: true,
+        target: ["chrome80"],
+        ...options.esbuild,
+        format: "esm",
+        bundle: true
+    };
     const ALREADY_RESOLVED = Promise.resolve();
     const resolveOptions = {
         basedir: options.rootDir,
@@ -84,13 +112,8 @@ exports.useWebModules = nano_memoize_1.default((options = defaultOptions()) => {
         },
         ...options.resolve
     };
-    const importMap = {
-        imports: {
-            ...readImportMap(outDir).imports,
-            ...workspaces_1.readWorkspaces(options.rootDir).imports
-        }
-    };
-    const appPkg = readJson(require.resolve("./package.json", { paths: [options.rootDir] }));
+    const appPkg = readManifest(".");
+    const squash = new Set(options.squash);
     const entryModules = collectEntryModules(appPkg);
     function collectDependencies(entryModule) {
         return new Set([
@@ -98,39 +121,22 @@ exports.useWebModules = nano_memoize_1.default((options = defaultOptions()) => {
             ...Object.keys(entryModule.peerDependencies || {})
         ]);
     }
-    function collectEntryModules(entryModule, entryModules = new Set(), visited = new Set()) {
-        for (const dependency of collectDependencies(entryModule)) {
-            if (visited.has(dependency)) {
-                entryModules.add(dependency);
+    function collectEntryModules(entryModule, entryModules = new Set(), visited = new Map(), ancestor) {
+        for (const dependency of collectDependencies(entryModule))
+            if (!squash.has(dependency)) {
+                if (visited.has(dependency) && visited.get(dependency) !== ancestor) {
+                    entryModules.add(dependency);
+                }
+                else
+                    try {
+                        visited.set(dependency, ancestor);
+                        collectEntryModules(readManifest(dependency), entryModules, visited, ancestor || dependency);
+                    }
+                    catch (ignored) {
+                        visited.delete(dependency);
+                    }
             }
-            else
-                try {
-                    visited.add(dependency);
-                    collectEntryModules(readManifest(dependency), entryModules, visited);
-                }
-                catch (ignored) {
-                    visited.delete(dependency);
-                }
-        }
         return entryModules;
-    }
-    function readImportMap(outDir) {
-        try {
-            let importMap = JSON.parse(fs_1.readFileSync(`${outDir}/import-map.json`, "utf-8"));
-            for (const [key, pathname] of Object.entries(importMap.imports)) {
-                try {
-                    let { mtime } = fs_1.statSync(path_1.default.join(options.rootDir, String(pathname)));
-                    tiny_node_logger_1.default.debug("web_module:", chalk_1.default.green(key), "->", chalk_1.default.gray(pathname));
-                }
-                catch (e) {
-                    delete importMap[key];
-                }
-            }
-            return importMap;
-        }
-        catch (e) {
-            return { imports: {} };
-        }
     }
     function writeImportMap(outDir, importMap) {
         return fs_1.promises.writeFile(`${outDir}/import-map.json`, JSON.stringify(importMap, null, "  "));
@@ -145,7 +151,7 @@ exports.useWebModules = nano_memoize_1.default((options = defaultOptions()) => {
         if (!resolved) {
             let [module, filename] = es_import_utils_1.parseModuleUrl(pathname);
             if (module !== null && !importMap.imports[module]) {
-                await rollupWebModule(module);
+                await esbuildWebModule(module);
                 resolved = importMap.imports[module];
             }
             if (filename) {
@@ -172,7 +178,7 @@ exports.useWebModules = nano_memoize_1.default((options = defaultOptions()) => {
                         }
                         else {
                             let target = `${module}/${filename}`;
-                            await rollupWebModule(target);
+                            await esbuildWebModule(target);
                             resolved = `/web_modules/${target}`;
                         }
                     }
@@ -245,52 +251,16 @@ exports.useWebModules = nano_memoize_1.default((options = defaultOptions()) => {
         const moduleDirectory = options.resolve.moduleDirectory;
         return Array.isArray(moduleDirectory) ? [...moduleDirectory] : moduleDirectory ? [moduleDirectory] : undefined;
     }
-    const pluginCjsProxy = rollup_plugin_cjs_proxy_1.rollupPluginCjsProxy({ entryModules });
-    const pluginEsmProxy = rollup_plugin_esm_proxy_1.rollupPluginEsmProxy({ entryModules });
-    const pluginReplace = plugin_replace_1.default({
-        "process.env.NODE_ENV": JSON.stringify(options.environment)
-    });
-    const pluginRewriteImports = rollup_plugin_rewrite_imports_1.rollupPluginRewriteImports({
-        importMap,
-        resolveImport,
-        entryModules,
-        resolveOptions,
-        external: options.external
-    });
-    const pluginEsmNodeResolve = plugin_node_resolve_1.nodeResolve({
-        rootDir: options.rootDir,
-        mainFields: ["browser:module", "module", "browser", "main"],
-        extensions: [".mjs", ".cjs", ".js", ".json"],
-        preferBuiltins: true,
-        moduleDirectories: getModuleDirectories(options)
-    });
-    const pluginCjsNodeResolve = plugin_node_resolve_1.nodeResolve({
-        rootDir: options.rootDir,
-        mainFields: ["main"],
-        extensions: [".cjs", ".js", ".json"],
-        preferBuiltins: true,
-        moduleDirectories: getModuleDirectories(options)
-    });
-    const pluginCommonJS = plugin_commonjs_1.default();
-    const pluginJson = plugin_json_1.default({
-        preferConst: true,
-        indent: "  ",
-        compact: false,
-        namedExports: true
-    });
-    const pluginSourcemaps = rollup_plugin_sourcemaps_1.default();
-    const pluginTerser = rollup_plugin_terser_1.terser(options.terser);
-    const pluginCatchUnresolved = rollup_plugin_catch_unresolved_1.rollupPluginCatchUnresolved();
     const pendingTasks = new Map();
-    function rollupWebModule(source) {
+    let esbuild;
+    function esbuildWebModule(source) {
         if (importMap.imports[source]) {
             return ALREADY_RESOLVED;
         }
         if (!pendingTasks.has(source)) {
-            let [module, filename] = es_import_utils_1.parseModuleUrl(source);
-            pendingTasks.set(source, rollupWebModuleTask(module, filename)
+            pendingTasks.set(source, esbuildWebModuleTask(source)
                 .catch(function (err) {
-                tiny_node_logger_1.default.error("failed to rollup:", source, err);
+                tiny_node_logger_1.default.error("failed to esbuild:", source, err);
                 throw err;
             })
                 .finally(function () {
@@ -298,109 +268,173 @@ exports.useWebModules = nano_memoize_1.default((options = defaultOptions()) => {
             }));
         }
         return pendingTasks.get(source);
-        async function rollupWebModuleTask(module, filename) {
-            var _a, _b, _c;
-            tiny_node_logger_1.default.info("rollup web module:", source);
-            if (filename && !importMap.imports[module]) {
-                await rollupWebModule(module);
-            }
-            const startTime = Date.now();
-            let inputFilename;
+        async function esbuildWebModuleTask(source) {
+            tiny_node_logger_1.default.info("bundling web module:", source);
+            let startTime = Date.now();
             try {
-                inputFilename = resolve_1.default.sync(source, resolveOptions);
-                let resolved = es_import_utils_1.pathnameToModuleUrl(inputFilename);
-                if (filename && resolved !== source) {
-                    await rollupWebModule(resolved);
-                    tiny_node_logger_1.default.info("aliasing:", source, "as:", resolved);
-                    importMap.imports[source] = `/web_modules/${resolved}`;
-                    return;
+                let entryFile = resolve_1.default.sync(source, resolveOptions);
+                let entryUrl = es_import_utils_1.pathnameToModuleUrl(entryFile);
+                let pkg = closestManifest(entryFile);
+                let [entryModule, pathname] = es_import_utils_1.parseModuleUrl(source);
+                if (entryModule && !importMap.imports[entryModule] && entryModule !== source) {
+                    await esbuildWebModule(entryModule);
                 }
-            }
-            catch (ignored) {
-                if (filename) {
-                    inputFilename = source;
+                let outFile = `${stripExt(source)}.js`;
+                let outUrl = `/web_modules/${outFile}`;
+                if (pathname) {
+                    await (esbuild || (esbuild = await esbuild_1.startService())).build({
+                        ...options.esbuild,
+                        entryPoints: [entryUrl],
+                        outfile: path_1.default.join(outDir, outFile),
+                        plugins: [{
+                                name: "web_modules",
+                                setup(build) {
+                                    build.onResolve({ filter: /./ }, async function ({ path: url, importer }) {
+                                        if (es_import_utils_1.isBare(url)) {
+                                            if (url === entryUrl) {
+                                                return { path: entryFile };
+                                            }
+                                            let webModuleUrl = importMap.imports[url];
+                                            if (webModuleUrl) {
+                                                return { path: webModuleUrl, external: true, namespace: "web_modules" };
+                                            }
+                                            let [m] = es_import_utils_1.parseModuleUrl(url);
+                                            if (entryModules.has(m)) {
+                                                return {
+                                                    path: await resolveImport(url),
+                                                    external: true,
+                                                    namespace: "web_modules"
+                                                };
+                                            }
+                                            return null;
+                                        }
+                                        else {
+                                            let bareUrl = resolveToBareUrl(importer, url);
+                                            let webModuleUrl = importMap.imports[bareUrl];
+                                            if (webModuleUrl) {
+                                                return { path: webModuleUrl, external: true, namespace: "web_modules" };
+                                            }
+                                            return {
+                                                path: `/web_modules/${bareUrl}`,
+                                                external: true,
+                                                namespace: "web_modules"
+                                            };
+                                        }
+                                    });
+                                }
+                            }]
+                    });
                 }
                 else {
-                    tiny_node_logger_1.default.info `nothing to roll up for: ${chalk_1.default.magenta(source)}`;
-                    importMap.imports[module] = `/node_modules/${source}`;
-                    await writeImportMap(outDir, importMap);
-                    return;
-                }
-            }
-            let pkg = closestManifest(inputFilename);
-            let isEsm = pkg.module || pkg["jsnext:main"] || inputFilename.endsWith(".mjs");
-            const bundle = await rollup_1.rollup({
-                ...options.rollup,
-                input: inputFilename,
-                plugins: [
-                    filename ? false : isEsm ? pluginEsmProxy : pluginCjsProxy,
-                    pluginReplace,
-                    pluginRewriteImports,
-                    isEsm ? pluginEsmNodeResolve : pluginCjsNodeResolve,
-                    pluginCommonJS,
-                    pluginJson,
-                    pluginSourcemaps,
-                    options.terser ? pluginTerser : false,
-                    pluginCatchUnresolved,
-                    ...(options.rollup.plugins)
-                ].filter(Boolean),
-                treeshake: (_b = (_a = options.rollup) === null || _a === void 0 ? void 0 : _a.treeshake) !== null && _b !== void 0 ? _b : { moduleSideEffects: "no-external" },
-                onwarn: warningHandler
-            });
-            try {
-                let outFile = filename ? source : module + ".js";
-                await bundle.write({
-                    file: `${outDir}/${outFile}`,
-                    sourcemap: !options.terser
-                });
-                let outputUrl = `/web_modules/${outFile}`;
-                importMap.imports[source] = outputUrl;
-                if (!filename) {
-                    importMap.imports[module] = outputUrl;
-                    for (const { meta } of bundle.cache.modules) {
-                        const imports = meta && ((_c = meta["entry-proxy"]) === null || _c === void 0 ? void 0 : _c.imports);
-                        if (imports) {
-                            for (const bare of imports) {
-                                if (!importMap.imports[bare]) {
-                                    importMap.imports[bare] = outputUrl;
+                    let isESM = pkg.module || pkg["jsnext:main"]
+                        || entryFile.endsWith(".mjs")
+                        || entryFile.indexOf("\\es\\") > 0
+                        || entryFile.indexOf("\\esm\\") > 0;
+                    let entryProxy = isESM ? rollup_plugin_esm_proxy_1.generateEsmProxy(entryFile) : rollup_plugin_cjs_proxy_1.generateCjsProxy(entryFile);
+                    let imported = new Set(entryProxy.imports);
+                    let external = new Set(entryProxy.external);
+                    await (esbuild || (esbuild = await esbuild_1.startService())).build({
+                        ...options.esbuild,
+                        stdin: {
+                            contents: entryProxy.code,
+                            resolveDir: options.rootDir,
+                            sourcefile: `entry-proxy`,
+                            loader: "js"
+                        },
+                        outfile: path_1.default.join(outDir, outFile),
+                        plugins: [{
+                                name: "web_modules",
+                                setup(build) {
+                                    build.onResolve({ filter: /./ }, async function ({ path: url, importer }) {
+                                        if (es_import_utils_1.isBare(url)) {
+                                            if (imported.has(url)) {
+                                                let webModuleUrl = importMap.imports[url];
+                                                if (webModuleUrl) {
+                                                    imported.delete(url);
+                                                    return { path: webModuleUrl, external: true, namespace: "web_modules" };
+                                                }
+                                                return null;
+                                            }
+                                            let [m] = es_import_utils_1.parseModuleUrl(url);
+                                            if (entryModules.has(m)) {
+                                                return {
+                                                    path: await resolveImport(url),
+                                                    external: true,
+                                                    namespace: "web_modules"
+                                                };
+                                            }
+                                            return null;
+                                        }
+                                        if (external.has(url) && false) {
+                                            let bareUrl = resolveToBareUrl(importer, url);
+                                            return {
+                                                path: `/web_modules/${bareUrl}`,
+                                                external: true,
+                                                namespace: "web_modules"
+                                            };
+                                        }
+                                        return null;
+                                    });
                                 }
-                                else {
-                                    tiny_node_logger_1.default.warn("an import mapping already exists for:", bare);
-                                }
-                            }
-                            break;
+                            }]
+                    });
+                    for (const i of imported) {
+                        if (!importMap.imports[i]) {
+                            importMap.imports[i] = outUrl;
+                        }
+                        else {
+                            tiny_node_logger_1.default.warn("an import mapping already exists for:", i, "and is:", importMap.imports[i]);
                         }
                     }
                 }
+                importMap.imports[source] = outUrl;
+                importMap.imports[entryUrl] = outUrl;
+                await Promise.all([
+                    replaceRequire(outFile),
+                    writeImportMap(outDir, importMap)
+                ]);
+            }
+            catch (error) {
+                importMap.imports[source] = `/web_modules/${source}`;
+                tiny_node_logger_1.default.warn("unable to bundle:", source, error.message);
                 await writeImportMap(outDir, importMap);
             }
             finally {
-                await bundle.close();
                 const elapsed = Date.now() - startTime;
-                tiny_node_logger_1.default.info `rolled up: ${chalk_1.default.magenta(source)} in: ${chalk_1.default.magenta(elapsed)}ms`;
+                tiny_node_logger_1.default.info `bundled: ${chalk_1.default.magenta(source)} in: ${chalk_1.default.magenta(String(elapsed))}ms`;
             }
         }
     }
-    function warningHandler({ code, message, loc, importer }) {
-        let level;
-        switch (code) {
-            case "THIS_IS_UNDEFINED":
-                return;
-            case "CIRCULAR_DEPENDENCY":
-            case "NAMESPACE_CONFLICT":
-            case "UNUSED_EXTERNAL_IMPORT":
-                level = "debug";
-                break;
-            default:
-                level = "warn";
+    function resolveToBareUrl(importer, url) {
+        let absolute = resolve_1.default.sync(path_1.default.join(path_1.default.dirname(importer), url), resolveOptions);
+        return es_import_utils_1.pathnameToModuleUrl(absolute);
+    }
+    async function replaceRequire(outFile) {
+        let out = fs_1.readFileSync(path_1.default.join(outDir, outFile), "utf-8");
+        let requires = new Set();
+        let re = /require\s*\(([^)]+)\)/g;
+        for (let match = re.exec(out); match; match = re.exec(out)) {
+            let required = match[1].trim().slice(1, -1);
+            requires.add(await resolveImport(required));
         }
-        tiny_node_logger_1.default[level](message, loc ? `in: ${loc.file} at line:${loc.line}, column:${loc.column}` : "");
+        if (requires.size) {
+            let r = 0;
+            let cjsImports = ``;
+            let cjsRequire = `function require(name) {\n  switch(name) {\n`;
+            for (const url of requires) {
+                cjsImports += `import require$${r} from "${url}";\n`;
+                cjsRequire += `    case "${url}": return require$${r++};\n`;
+            }
+            cjsRequire += `  }\n}\n`;
+            let code = cjsImports + cjsRequire + out;
+            fs_1.writeFileSync(path_1.default.join(outDir, outFile), code);
+        }
     }
     return {
         outDir,
         importMap,
         resolveImport,
-        rollupWebModule
+        esbuildWebModule
     };
 });
 //# sourceMappingURL=web-modules.js.map
