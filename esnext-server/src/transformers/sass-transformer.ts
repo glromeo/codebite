@@ -18,13 +18,13 @@ document.head
 ${cssText.replace(/([$`\\])/g, "\\$1")}\`));
 `;
 
-export const useSassTransformer = memoized((options:ESNextOptions) => {
+export const useSassTransformer = memoized((options: ESNextOptions) => {
 
     const {sassImporter} = useSassImporter(options);
 
     const makeModule = options.sass.moduleType === "style" ? styleModule : cssResultModule;
 
-    async function sassTransformer(filename, content, type, userAgent?): Promise<TransformerOutput> {
+    async function sassTransformer(filename: string, content: string, type): Promise<TransformerOutput> {
 
         const {css, stats} = sass.renderSync({
             ...options.sass,

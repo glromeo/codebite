@@ -38,7 +38,7 @@
   },
   "devDependencies": {
     "@types/node": "^14.14.10",
-    "lerna": "^3.22.1"
+    "lerna": "4"
   },
   "scripts": {
     "test": "echo nothing to do",

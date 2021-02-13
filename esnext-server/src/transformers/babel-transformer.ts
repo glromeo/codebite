@@ -10,7 +10,7 @@ export const useBabelTransformer = memoized((options: ESNextOptions, sourceMaps:
 
     const {resolveImports, rewriteImports} = useWebModulesPlugin(options);
 
-    async function babelTransformer(filename, content): Promise<TransformerOutput> {
+    async function babelTransformer(filename:string, content:string): Promise<TransformerOutput> {
 
         const babelOptions: TransformOptions = {
             ...options.babel,

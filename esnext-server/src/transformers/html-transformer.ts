@@ -149,7 +149,7 @@ export const useHtmlTransformer = memoized(config => {
         stream.end(content);
     });
 
-    async function htmlTransformer(filename, content): Promise<TransformerOutput> {
+    async function htmlTransformer(filename:string, content:string): Promise<TransformerOutput> {
         const {html, imports} = await transformHtmlAsync(filename, content);
         return {
             content: html,

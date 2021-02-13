@@ -7,8 +7,7 @@ exports.ResourceCache = void 0;
 const mime_types_1 = require("./mime-types");
 const path_1 = __importDefault(require("path"));
 const tiny_node_logger_1 = __importDefault(require("tiny-node-logger"));
-const util_1 = require("util");
-const zlib_1 = __importDefault(require("zlib"));
+const fast_url_parser_1 = require("fast-url-parser");
 /**
  * This Map is used to find out which urls needs to be invalidated in the cache when a file changes in the FS
  *
@@ -27,10 +26,6 @@ class ResourceCache extends Map {
             this.invalidate(path);
             this.unwatch(path);
         });
-        if (config.deflate) {
-            this.deflate = util_1.promisify(zlib_1.default.deflate);
-        }
-        this.deflate = null; // TODO: fix me!
     }
     invalidate(path) {
         const urls = this.watched.get(path);
@@ -74,40 +69,24 @@ class ResourceCache extends Map {
             this.watcher.add(filename);
         }
     }
-    set(url, pending) {
-        super.set(url, pending.then(async (resource) => {
-            const filename = path_1.default.relative(this.rootDir, resource.filename);
-            if (this.deflate)
-                try {
-                    let deflated = await this.deflate(resource.content);
-                    resource.content = deflated;
-                    resource.headers = {
-                        ...resource.headers,
-                        "content-length": Buffer.byteLength(deflated),
-                        "content-encoding": "deflate"
-                    };
-                }
-                catch (err) {
-                    tiny_node_logger_1.default.error(`failed to deflate resource: ${filename}`, err);
-                }
-            this.watch(filename, url);
-            if (resource.watch)
-                for (const watched of resource.watch) {
-                    const filename = path_1.default.relative(this.rootDir, watched);
-                    this.watch(filename, url);
-                }
-            return resource;
-        }));
-        return this;
+    set(url, resource) {
+        const filename = path_1.default.relative(this.rootDir, resource.filename);
+        this.watch(filename, url);
+        if (resource.watch)
+            for (const watched of resource.watch) {
+                const filename = path_1.default.relative(this.rootDir, watched);
+                this.watch(filename, url);
+            }
+        return super.set(url, resource);
     }
     storeSourceMap(url, map) {
         const content = JSON.stringify(map);
-        const questionMark = url.indexOf("?");
-        if (questionMark > 0) {
-            url = url.substring(0, questionMark);
-        }
-        // @ts-ignore
-        super.set(url + ".map", Promise.resolve({
+        const { pathname, query } = fast_url_parser_1.parse(url, true);
+        const filename = pathname + ".map";
+        return super.set(filename, {
+            filename,
+            pathname,
+            query,
             content: content,
             headers: {
                 "content-type": mime_types_1.JSON_CONTENT_TYPE,
@@ -115,7 +94,7 @@ class ResourceCache extends Map {
                 "last-modified": new Date().toUTCString(),
                 "cache-control": "no-cache"
             }
-        }));
+        });
     }
 }
 exports.ResourceCache = ResourceCache;

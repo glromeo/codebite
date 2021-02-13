@@ -13,6 +13,7 @@ import {useHtmlTransformer} from "../transformers/html-transformer";
 import {useSassTransformer} from "../transformers/sass-transformer";
 import {Resource, ResourceCache} from "../util/resource-cache";
 import {useWorkspaceFiles} from "./workspace-files";
+import zlib from "fast-zlib";
 
 const {
     HTML_CONTENT_TYPE,
@@ -33,41 +34,37 @@ export const useResourceProvider = memoized(function (options: ESNextOptions, wa
     const {babelTransformer} = useBabelTransformer(options);
     const {sassTransformer} = useSassTransformer(options);
 
+    function useComplession(encoding) {
+        switch (encoding) {
+            case "br":
+                return new zlib.BrotliCompress() as zlib.BrotliCompress;
+            case "gzip":
+                return new zlib.Gzip() as zlib.Gzip;
+            case "deflate":
+            default:
+                return new zlib.Deflate() as zlib.Deflate;
+        }
+    }
+
     function formatHrtime(hrtime) {
         return (hrtime[0] + (hrtime[1] / 1e9)).toFixed(3);
     }
 
-    const pendingTasks = new Map();
-
-    function transformResource(contentType, filename, content, query) {
-        const key = query.type !== undefined ? `${query.type}:${filename}` : filename;
-        let task = pendingTasks.get(key);
-        if (task === undefined) {
-            switch (contentType) {
-                case HTML_CONTENT_TYPE:
-                    task = htmlTransformer(filename, content);
-                    break;
-                case CSS_CONTENT_TYPE:
-                case SASS_CONTENT_TYPE:
-                case SCSS_CONTENT_TYPE:
-                    task = sassTransformer(filename, content, query.type);
-                    break;
-                case JAVASCRIPT_CONTENT_TYPE:
-                case TYPESCRIPT_CONTENT_TYPE:
-                    task = options.babel ? babelTransformer(filename, content) : esbuildTransformer(filename, content);
-                    break;
-            }
-            if (task !== undefined) {
-                task = task.catch(error => {
-                    error.message = `unable to transform: ${filename}\n${error.message}`;
-                    throw error;
-                }).finally(() => {
-                    pendingTasks.delete(key);
-                });
-                pendingTasks.set(key, task);
-            }
+    function transformResource(contentType, filename: string, content: string | Buffer, query: { type: string }) {
+        if (content instanceof Buffer) {
+            content = content.toString("utf-8");
         }
-        return task;
+        switch (contentType) {
+            case HTML_CONTENT_TYPE:
+                return htmlTransformer(filename, content);
+            case CSS_CONTENT_TYPE:
+            case SASS_CONTENT_TYPE:
+            case SCSS_CONTENT_TYPE:
+                return sassTransformer(filename, content, query.type);
+            case JAVASCRIPT_CONTENT_TYPE:
+            case TYPESCRIPT_CONTENT_TYPE:
+                return options.babel ? babelTransformer(filename, content) : esbuildTransformer(filename, content);
+        }
     }
 
     const include = options.transform && options.transform.include && picomatch(options.transform.include);
@@ -95,10 +92,10 @@ export const useResourceProvider = memoized(function (options: ESNextOptions, wa
         let {
             filename,
             content,
-            headers
+            headers,
+            links,
+            watch
         } = await readWorkspaceFile(pathname);
-
-        let links, watch;
 
         let transform = headers["x-transformer"] !== "none" && headers["cache-control"] === "no-cache" || query.type;
         if (transform && include) {
@@ -108,7 +105,7 @@ export const useResourceProvider = memoized(function (options: ESNextOptions, wa
             transform = !exclude(pathname);
         }
 
-        if (transform) {
+        if (transform) try {
             const hrtime = process.hrtime();
             const transformed = await transformResource(headers["content-type"], filename, content, query);
             if (transformed) {
@@ -123,11 +120,27 @@ export const useResourceProvider = memoized(function (options: ESNextOptions, wa
                 links = transformed.links;
                 watch = transformed.watch;
             }
+        } catch (error) {
+            error.message = `unable to transform: ${filename}\n${error.message}`;
+            throw error;
         }
 
         headers["etag"] = etag(`${pathname} ${headers["content-length"]} ${headers["last-modified"]}`, options.etag);
 
-        const resource = {
+        if (options.encoding) try {
+            const deflate = useComplession(options.encoding);
+            const deflated = deflate.process(content);
+            content = deflated;
+            headers = {
+                ...headers,
+                "content-length": deflated.length,
+                "content-encoding": options.encoding
+            }
+        } catch (err) {
+            log.error(`failed to deflate resource: ${filename}`, err);
+        }
+
+        return {
             pathname,
             query,
             filename,
@@ -135,26 +148,28 @@ export const useResourceProvider = memoized(function (options: ESNextOptions, wa
             headers,
             links,
             watch
-        };
-
-        return resource;
+        } as Resource;
     }
 
+    const pending = new Map<string, Promise<Resource>>();
+
     return {
-        provideResource(url: string, headers: IncomingHttpHeaders): Promise<Resource> {
-            let resource;
-            if (cache) {
-                resource = cache.get(url);
-                if (resource !== undefined) {
-                    log.debug("retrieved from cache:", chalk.magenta(url));
-                    return resource;
+        async provideResource(url: string, headers: IncomingHttpHeaders): Promise<Resource> {
+            if (cache && cache.has(url)) {
+                log.debug("retrieved from cache:", chalk.magenta(url));
+                return cache.get(url)!;
+            }
+            if (pending.has(url)) {
+                return pending.get(url)!;
+            } else try {
+                const resource = await provideResource(url, headers);
+                if (cache) {
+                    cache.set(url, resource);
                 }
+                return resource;
+            } finally {
+                pending.delete(url);
             }
-            resource = provideResource(url, headers);
-            if (cache) {
-                cache.set(url, resource);
-            }
-            return resource;
         }
     };
 });

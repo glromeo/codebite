@@ -65,7 +65,7 @@ function useWorkspaceFiles(config) {
         else {
             return {
                 filename,
-                content: await fs_1.promises.readFile(filename, "utf-8"),
+                content: await fs_1.promises.readFile(filename),
                 headers: {
                     "content-type": mime_types_1.contentType(filename),
                     "content-length": stats.size,

@@ -6,19 +6,18 @@ export declare type Resource = {
     filename: string;
     content: string | Buffer;
     headers: OutgoingHttpHeaders;
-    links: Set<string>;
-    watch: string[];
+    links?: Iterable<string>;
+    watch?: Iterable<string>;
 };
 /**
  * This Map is used to find out which urls needs to be invalidated in the cache when a file changes in the FS
  *
  * @type {Map<string, string[]|string>}
  * */
-export declare class ResourceCache extends Map<string, Promise<Resource>> {
+export declare class ResourceCache extends Map<string, Resource> {
     private rootDir;
     private watched;
     private watcher;
-    private deflate;
     constructor(config: {
         rootDir?: string;
         deflate?: boolean;
@@ -26,6 +25,6 @@ export declare class ResourceCache extends Map<string, Promise<Resource>> {
     invalidate(path: any): void;
     unwatch(path: any): void;
     watch(filename: any, url: any): void;
-    set(url: string, pending: Promise<Resource>): this;
-    storeSourceMap(url: any, map: any): void;
+    set(url: string, resource: Resource): this;
+    storeSourceMap(url: any, map: any): this;
 }

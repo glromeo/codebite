@@ -1,9 +1,4 @@
-/// <reference types="node" />
-import { OutgoingHttpHeaders } from "http";
+import { Resource } from "../util/resource-cache";
 export declare function useWorkspaceFiles(config: any): {
-    readWorkspaceFile: (pathname: any) => Promise<{
-        filename: string;
-        content: string;
-        headers: OutgoingHttpHeaders;
-    }>;
+    readWorkspaceFile: (pathname: any) => Promise<Resource>;
 };

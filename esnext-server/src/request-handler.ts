@@ -56,18 +56,19 @@ export function createRequestHandler<V extends Router.HTTPVersion = Router.HTTPV
                 links
             } = await provideResource(req.url!, req.headers);
 
-            res.writeHead(200, headers);
-
-            if (links && options.http2 === "push" && res instanceof Http2ServerResponse) {
-                http2Push(res.stream, pathname, links, req.headers);
-            }
             if (links && options.http2 === "preload") {
                 headers.link = [...links].map(link => {
                     const dirname = posix.dirname(pathname);
                     const url = link.startsWith("/") ? link : posix.resolve(dirname, link);
-                    provideResource(url, req.headers).catch(log.warn);
+                    provideResource(url, req.headers).catch(() => log.warn("unable to provide resource:", url));
                     return `<${url}>; crossorigin; rel=preload; as=${url.endsWith(".css") ? "style" : "script"}`;
                 });
+            }
+
+            res.writeHead(200, headers);
+
+            if (links && options.http2 === "push" && res instanceof Http2ServerResponse) {
+                http2Push(res.stream, pathname, links, req.headers);
             }
 
             res.end(content);

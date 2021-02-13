@@ -47,17 +47,17 @@ function createRequestHandler(options, watcher) {
     router.get("/*", async function workspaceMiddleware(req, res) {
         try {
             const { pathname, content, headers, links } = await provideResource(req.url, req.headers);
-            res.writeHead(200, headers);
-            if (links && options.http2 === "push" && res instanceof http2_1.Http2ServerResponse) {
-                http2Push(res.stream, pathname, links, req.headers);
-            }
             if (links && options.http2 === "preload") {
                 headers.link = [...links].map(link => {
                     const dirname = path_1.posix.dirname(pathname);
                     const url = link.startsWith("/") ? link : path_1.posix.resolve(dirname, link);
-                    provideResource(url, req.headers).catch(tiny_node_logger_1.default.warn);
+                    provideResource(url, req.headers).catch(() => tiny_node_logger_1.default.warn("unable to provide resource:", url));
                     return `<${url}>; crossorigin; rel=preload; as=${url.endsWith(".css") ? "style" : "script"}`;
                 });
+            }
+            res.writeHead(200, headers);
+            if (links && options.http2 === "push" && res instanceof http2_1.Http2ServerResponse) {
+                http2Push(res.stream, pathname, links, req.headers);
             }
             res.end(content);
         }

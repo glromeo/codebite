@@ -4,6 +4,7 @@ import {OutgoingHttpHeaders} from "http";
 import HttpStatus from "http-status-codes";
 import path from "path";
 import {contentType} from "../util/mime-types";
+import {Resource} from "../util/resource-cache";
 
 export function useWorkspaceFiles(config) {
 
@@ -31,7 +32,7 @@ export function useWorkspaceFiles(config) {
         return {route: "/", filename: path.join(rootDir, pathname)};
     }
 
-    async function readWorkspaceFile(pathname) {
+    async function readWorkspaceFile(pathname):Promise<Resource> {
 
         const {route, filename} = await resolve(pathname);
 
@@ -66,14 +67,14 @@ export function useWorkspaceFiles(config) {
         } else {
             return {
                 filename,
-                content: await fs.readFile(filename, "utf-8"),
+                content: await fs.readFile(filename),
                 headers: {
                     "content-type": contentType(filename),
                     "content-length": stats.size,
                     "last-modified": stats.mtime.toUTCString(),
                     "cache-control": route === "/web_modules" ? "public, max-age=86400, immutable" : "no-cache"
                 } as OutgoingHttpHeaders
-            };
+            } as Resource;
         }
     }
 

@@ -16,6 +16,6 @@ export type TransformerOutput = {
         mappings: string;
         file: string;
     } | null;
-    links?: Set<string>
-    watch?: string[]
+    links?: Iterable<string>
+    watch?: Iterable<string>
 }

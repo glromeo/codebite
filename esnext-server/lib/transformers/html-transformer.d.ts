@@ -4,5 +4,5 @@ export declare type TransformResult = {
     imports: Set<string>;
 };
 export declare const useHtmlTransformer: (config: any) => {
-    htmlTransformer: (filename: any, content: any) => Promise<TransformerOutput>;
+    htmlTransformer: (filename: string, content: string) => Promise<TransformerOutput>;
 };

@@ -17,7 +17,7 @@ export const useEsBuildTransformer = memoized((options: ESNextOptions, sourceMap
         return esbuild = await startService();
     };
 
-    async function esbuildTransformer(filename, content): Promise<TransformerOutput> {
+    async function esbuildTransformer(filename:string, content:string): Promise<TransformerOutput> {
 
         let {code, map} = await (esbuild || await setup()).transform(content, {
             sourcefile: filename,

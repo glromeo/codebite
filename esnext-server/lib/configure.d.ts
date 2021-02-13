@@ -27,7 +27,7 @@ export declare type ESNextOptions = WebModulesOptions & {
     cors: CorsOptions;
     etag: Options;
     cache?: boolean;
-    deflate?: boolean;
+    encoding: "gzip" | "brotli" | "br" | "deflate" | "deflate-raw" | undefined;
     transform: {
         include: string | string[];
         exclude: string | string[];

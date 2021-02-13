@@ -22,7 +22,7 @@ ${cssText.replace(/([$`\\])/g, "\\$1")}\`));
 exports.useSassTransformer = nano_memoize_1.default((options) => {
     const { sassImporter } = sass_importer_1.useSassImporter(options);
     const makeModule = options.sass.moduleType === "style" ? styleModule : cssResultModule;
-    async function sassTransformer(filename, content, type, userAgent) {
+    async function sassTransformer(filename, content, type) {
         const { css, stats } = node_sass_1.default.renderSync({
             ...options.sass,
             data: content,

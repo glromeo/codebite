@@ -3,8 +3,7 @@ import {OutgoingHttpHeaders} from "http";
 import {JSON_CONTENT_TYPE} from "./mime-types";
 import path from "path";
 import log from "tiny-node-logger";
-import {promisify} from "util";
-import zlib from "zlib";
+import {parse as parseURL} from "fast-url-parser";
 
 export type Resource = {
     pathname: string
@@ -12,23 +11,20 @@ export type Resource = {
     filename: string
     content: string | Buffer
     headers: OutgoingHttpHeaders
-    links: Set<string>
-    watch: string[]
+    links?: Iterable<string>
+    watch?: Iterable<string>
 }
-
-type Deflate = (content: (string | Buffer)) => Promise<Buffer>;
 
 /**
  * This Map is used to find out which urls needs to be invalidated in the cache when a file changes in the FS
  *
  * @type {Map<string, string[]|string>}
  * */
-export class ResourceCache extends Map<string, Promise<Resource>> {
+export class ResourceCache extends Map<string, Resource> {
 
     private rootDir: string;
     private watched: Map<string, string | string[]>;
     private watcher: FSWatcher;
-    private deflate: Deflate | null;
 
     constructor(config: { rootDir?: string, deflate?: boolean }, watcher) {
 
@@ -46,12 +42,6 @@ export class ResourceCache extends Map<string, Promise<Resource>> {
             this.invalidate(path);
             this.unwatch(path);
         });
-
-        if (config.deflate) {
-            this.deflate = promisify(zlib.deflate);
-        }
-
-        this.deflate = null; // TODO: fix me!
     }
 
     invalidate(path) {
@@ -90,44 +80,31 @@ export class ResourceCache extends Map<string, Promise<Resource>> {
         }
     }
 
-    set(url: string, pending: Promise<Resource>): this {
+    set(url: string, resource: Resource): this {
 
-        super.set(url, pending.then(async resource => {
+        const filename = path.relative(this.rootDir, resource.filename);
 
-            const filename = path.relative(this.rootDir, resource.filename);
+        this.watch(filename, url);
 
-            if (this.deflate) try {
-                let deflated = await this.deflate(resource.content);
-                resource.content = deflated;
-                resource.headers = {
-                    ...resource.headers,
-                    "content-length": Buffer.byteLength(deflated),
-                    "content-encoding": "deflate"
-                }
-            } catch(err) {
-                log.error(`failed to deflate resource: ${filename}`, err);
-            }
-
+        if (resource.watch) for (const watched of resource.watch) {
+            const filename = path.relative(this.rootDir, watched);
             this.watch(filename, url);
+        }
 
-            if (resource.watch) for (const watched of resource.watch) {
-                const filename = path.relative(this.rootDir, watched);
-                this.watch(filename, url);
-            }
-
-            return resource;
-        }));
-        return this;
+        return super.set(url, resource);
     }
 
-    storeSourceMap(url, map:any) {
+    storeSourceMap(url, map: any) {
         const content = JSON.stringify(map);
-        const questionMark = url.indexOf("?");
-        if (questionMark > 0) {
-            url = url.substring(0, questionMark);
-        }
-        // @ts-ignore
-        super.set(url + ".map", Promise.resolve({
+        const {
+            pathname,
+            query
+        } = parseURL(url, true);
+        const filename = pathname + ".map";
+        return super.set(filename, {
+            filename,
+            pathname,
+            query,
             content: content,
             headers: {
                 "content-type": JSON_CONTENT_TYPE,
@@ -135,7 +112,7 @@ export class ResourceCache extends Map<string, Promise<Resource>> {
                 "last-modified": new Date().toUTCString(),
                 "cache-control": "no-cache"
             }
-        }));
+        });
     }
 
 }
