@@ -1,6 +1,8 @@
 {
   "include": ["src"],
   "compilerOptions": {
+    "rootDir": "./src",
+    "rootDirs": ["./src", "./client"],
     "outDir": "lib",
     "module": "commonjs",
     "target": "es2018",
