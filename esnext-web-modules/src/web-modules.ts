@@ -71,7 +71,7 @@ export const useWebModules = memoized<WebModulesFactory>((options) => {
     const outDir = path.join(options.rootDir, "web_modules");
     if (options.clean && existsSync(outDir)) {
         rmdirSync(outDir, {recursive: true});
-        log.info("cleaned web_modules directory");
+        log.warn("cleaned web_modules directory");
     }
     mkdirSync(outDir, {recursive: true});
 
@@ -228,7 +228,7 @@ export const useWebModules = memoized<WebModulesFactory>((options) => {
     async function esbuildWebModuleTask(source: string): Promise<void> {
 
         let startTime = Date.now();
-        log.info("bundling web module:", source);
+        log.debug("bundling web module:", source);
 
         try {
             let entryFile = resolve.sync(source, resolveOptions);
@@ -357,7 +357,7 @@ export const useWebModules = memoized<WebModulesFactory>((options) => {
             importMap.imports[entryUrl] = outUrl;
 
             await Promise.all([
-                isESM || replaceRequire(outFile, resolveImport),
+                replaceRequire(outFile, resolveImport, options.esbuild!.sourcemap),
                 writeImportMap(outDir, importMap)
             ]);
 

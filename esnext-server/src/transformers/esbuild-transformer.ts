@@ -1,6 +1,6 @@
 import {init, parse} from "es-module-lexer";
 import {startService} from "esbuild";
-import {useWebModules} from "esnext-web-modules/lib/esbuild-web-modules";
+import {useWebModules} from "esnext-web-modules";
 import memoized from "nano-memoize";
 import path from "path";
 import {ESNextOptions} from "../configure";

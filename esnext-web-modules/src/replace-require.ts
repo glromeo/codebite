@@ -1,15 +1,41 @@
-import {readFileSync, writeFileSync} from "fs";
+import fs from "fs";
 import {dirname} from "path";
+import {SourceMapConsumer, SourceMapGenerator} from "source-map";
 import {ImportResolver} from "./index";
 
-export async function replaceRequire(filename:string, resolveImport:ImportResolver) {
+const {readFile, writeFile} = fs.promises;
 
-    let out = readFileSync(filename, "utf-8");
+async function shiftSourceMap(filename: string, offset: number, sourcemap) {
+    if (sourcemap === true) {
+        let sourcemapfile = filename + ".map";
+        let original = JSON.parse(await readFile(sourcemapfile, "utf-8"));
+        let generator = new SourceMapGenerator({
+            file: original.file,
+            sourceRoot: original.sourceRoot
+        });
+        await SourceMapConsumer.with(original, null, consumer => {
+            consumer.eachMapping(({name, source, originalLine, originalColumn, generatedLine, generatedColumn}) => {
+                const mapping = {
+                    name: name,
+                    source: source,
+                    original: {line: originalLine, column: originalColumn},
+                    generated: {line: generatedLine + offset, column: generatedColumn}
+                };
+                generator.addMapping(mapping);
+            });
+        });
+        return writeFile(sourcemapfile, generator.toString());
+    }
+}
+
+export async function replaceRequire(filename: string, resolveImport: ImportResolver, sourcemap) {
+
+    let code: string = await readFile(filename, "utf-8");
     let basedir = dirname(filename);
 
     let requires = new Set<string>();
     let re = /require\s*\(([^)]+)\)/g;
-    for (let match = re.exec(out); match; match = re.exec(out)) {
+    for (let match = re.exec(code); match; match = re.exec(code)) {
         let required = match[1].trim().slice(1, -1);
         requires.add(await resolveImport(required, basedir));
     }
@@ -23,7 +49,8 @@ export async function replaceRequire(filename:string, resolveImport:ImportResolv
             cjsRequire += `    case "${url}": return require$${r++};\n`;
         }
         cjsRequire += `  }\n}\n`;
-        let code = cjsImports + cjsRequire + out;
-        writeFileSync(filename, code);
+        let extended = cjsImports + cjsRequire + code;
+
+        return Promise.all([writeFile(filename, extended), shiftSourceMap(filename, 2 * (2 + requires.size), sourcemap)]);
     }
 }

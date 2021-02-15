@@ -46,6 +46,7 @@
     "rollup": "^2.35.1",
     "rollup-plugin-sourcemaps": "^0.6.3",
     "rollup-plugin-terser": "^7.0.2",
+    "source-map": "^0.7.3",
     "tiny-node-logger": "^3.0.1"
   },
   "devDependencies": {
@@ -63,7 +64,6 @@
     "chai": "^4.2.0",
     "mocha": "^8.2.1",
     "nyc": "^15.1.0",
-    "source-map": "^0.7.3",
     "ts-node": "^9.1.1",
     "typescript": "^4.1.3"
   },

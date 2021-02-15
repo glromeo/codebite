@@ -1,7 +1,6 @@
 import chalk from "chalk";
 import {promises as fsp, readFileSync} from "fs";
 import path from "path";
-import resolve from "resolve";
 import log from "tiny-node-logger";
 import {WebModulesOptions} from "./index";
 

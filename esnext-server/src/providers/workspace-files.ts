@@ -1,4 +1,4 @@
-import {useWebModules} from "esnext-web-modules/lib/esbuild-web-modules";
+import {useWebModules} from "esnext-web-modules";
 import {promises as fs} from "fs";
 import {OutgoingHttpHeaders} from "http";
 import HttpStatus from "http-status-codes";
@@ -72,7 +72,7 @@ export function useWorkspaceFiles(config) {
                     "content-type": contentType(filename),
                     "content-length": stats.size,
                     "last-modified": stats.mtime.toUTCString(),
-                    "cache-control": route === "/web_modules" ? "public, max-age=86400, immutable" : "no-cache"
+                    "cache-control": route === "/web_modules" || route === "/node_modules" ? "public, max-age=86400, immutable" : "no-cache"
                 } as OutgoingHttpHeaders
             } as Resource;
         }

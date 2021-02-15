@@ -25,7 +25,7 @@ function readImportMap(path: string) {
 }
 
 function readSourceMap(path: string) {
-    let out = fs.readFileSync(join(__dirname, path + ".map"), "utf-8");
+    let out = fs.readFileSync(join(__dirname, path), "utf-8");
     return JSON.parse(out);
 }
 
@@ -121,6 +121,26 @@ describe("web modules (esbuild)", function () {
             "object-assign",
             "object-assign/index.js"
         ]);
+
+        await SourceMapConsumer.with(readSourceMap(`fixture/react/web_modules/react.js.map`), null, consumer => {
+            expect(
+                consumer.originalPositionFor({line: 49, column: 7})
+            ).to.eql({
+                source: "../../node_modules/react/cjs/react.development.js",
+                line: 16,
+                column: 0,
+                name: null
+            });
+            expect(
+                consumer.generatedPositionFor({
+                    source: "../../node_modules/react/cjs/react.development.js",
+                    line: 35,
+                    column: 5
+                })
+            ).to.eql({
+                line: 60, column: 10, lastColumn: 36
+            });
+        });
     });
 
     it("can bundle react-dom (production)", async function (this: Mocha.Context) {
@@ -388,8 +408,7 @@ describe("web modules (esbuild)", function () {
             "lit-html/lib/template-factory.js"
         ]);
 
-        let rawSourceMap = readSourceMap(`fixture/lit-html/web_modules/lit-html.js`);
-        await SourceMapConsumer.with(rawSourceMap, null, consumer => {
+        await SourceMapConsumer.with(readSourceMap(`fixture/lit-html/web_modules/lit-html.js.map`), null, consumer => {
             expect(consumer.sources).to.include.members([
                 "../../node_modules/lit-html/src/lib/directive.ts",
                 "../../node_modules/lit-html/src/lib/dom.ts",

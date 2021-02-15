@@ -4,13 +4,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.useWorkspaceFiles = void 0;
-const esbuild_web_modules_1 = require("esnext-web-modules/lib/esbuild-web-modules");
+const esnext_web_modules_1 = require("esnext-web-modules");
 const fs_1 = require("fs");
 const http_status_codes_1 = __importDefault(require("http-status-codes"));
 const path_1 = __importDefault(require("path"));
 const mime_types_1 = require("../util/mime-types");
 function useWorkspaceFiles(config) {
-    const { esbuildWebModule } = esbuild_web_modules_1.useWebModules(config);
+    const { esbuildWebModule } = esnext_web_modules_1.useWebModules(config);
     const { rootDir = process.cwd(), mount = {} } = config;
     const regExp = /\/[^/?]+/;
     async function resolve(pathname) {
@@ -70,7 +70,7 @@ function useWorkspaceFiles(config) {
                     "content-type": mime_types_1.contentType(filename),
                     "content-length": stats.size,
                     "last-modified": stats.mtime.toUTCString(),
-                    "cache-control": route === "/web_modules" ? "public, max-age=86400, immutable" : "no-cache"
+                    "cache-control": route === "/web_modules" || route === "/node_modules" ? "public, max-age=86400, immutable" : "no-cache"
                 }
             };
         }

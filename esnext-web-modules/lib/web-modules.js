@@ -80,7 +80,7 @@ exports.useWebModules = nano_memoize_1.default((options) => {
     const outDir = path_1.default.join(options.rootDir, "web_modules");
     if (options.clean && fs_1.existsSync(outDir)) {
         fs_1.rmdirSync(outDir, { recursive: true });
-        tiny_node_logger_1.default.info("cleaned web_modules directory");
+        tiny_node_logger_1.default.warn("cleaned web_modules directory");
     }
     fs_1.mkdirSync(outDir, { recursive: true });
     const importMap = {
@@ -203,7 +203,7 @@ exports.useWebModules = nano_memoize_1.default((options) => {
     ]).then(([service]) => esbuild = service);
     async function esbuildWebModuleTask(source) {
         let startTime = Date.now();
-        tiny_node_logger_1.default.info("bundling web module:", source);
+        tiny_node_logger_1.default.debug("bundling web module:", source);
         try {
             let entryFile = resolve_1.default.sync(source, resolveOptions);
             let entryUrl = es_import_utils_1.pathnameToModuleUrl(entryFile);
@@ -324,7 +324,7 @@ exports.useWebModules = nano_memoize_1.default((options) => {
             importMap.imports[source] = outUrl;
             importMap.imports[entryUrl] = outUrl;
             await Promise.all([
-                isESM || replace_require_1.replaceRequire(outFile, resolveImport),
+                replace_require_1.replaceRequire(outFile, resolveImport, options.esbuild.sourcemap),
                 utility_1.writeImportMap(outDir, importMap)
             ]);
             const elapsed = Date.now() - startTime;
