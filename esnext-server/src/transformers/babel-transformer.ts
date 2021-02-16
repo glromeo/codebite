@@ -1,12 +1,12 @@
 import {parseSync, transformFromAstSync, TransformOptions} from "@babel/core";
 import {useWebModulesPlugin} from "esnext-web-modules";
-import memoized from "nano-memoize";
+import memoize from "pico-memoize";
 import path from "path";
 import {ESNextOptions} from "../configure";
 import {JAVASCRIPT_CONTENT_TYPE} from "../util/mime-types";
 import {TransformerOutput} from "./index";
 
-export const useBabelTransformer = memoized((options: ESNextOptions, sourceMaps: "inline" | "auto" = "auto") => {
+export const useBabelTransformer = memoize((options: ESNextOptions, sourceMaps: "inline" | "auto" = "auto") => {
 
     const {resolveImports, rewriteImports} = useWebModulesPlugin(options);
 

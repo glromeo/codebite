@@ -1,4 +1,4 @@
-import memoized from "nano-memoize";
+import memoize from "pico-memoize";
 import sass from "node-sass";
 import {ESNextOptions} from "../configure";
 import {CSS_CONTENT_TYPE, JAVASCRIPT_CONTENT_TYPE} from "../util/mime-types";
@@ -18,7 +18,7 @@ document.head
 ${cssText.replace(/([$`\\])/g, "\\$1")}\`));
 `;
 
-export const useSassTransformer = memoized((options: ESNextOptions) => {
+export const useSassTransformer = memoize((options: ESNextOptions) => {
 
     const {sassImporter} = useSassImporter(options);
 

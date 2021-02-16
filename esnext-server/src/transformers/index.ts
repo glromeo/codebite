@@ -1,5 +1,15 @@
 import {CSS_CONTENT_TYPE, HTML_CONTENT_TYPE, JAVASCRIPT_CONTENT_TYPE} from "../util/mime-types";
 
+export type SourceMap = {
+    version: number;
+    sources: string[];
+    names: string[];
+    sourceRoot?: string;
+    sourcesContent?: string[];
+    mappings: string;
+    file: string;
+}
+
 export type TransformerOutput = {
     content: string
     headers: {
@@ -7,15 +17,7 @@ export type TransformerOutput = {
         "content-length": number,
         "x-transformer": "babel-transformer" | "sass-transformer" | "html-transformer" | "esbuild-transformer"
     },
-    map?: {
-        version: number;
-        sources: string[];
-        names: string[];
-        sourceRoot?: string;
-        sourcesContent?: string[];
-        mappings: string;
-        file: string;
-    } | null;
+    map?: SourceMap | null;
     links?: Iterable<string>
     watch?: Iterable<string>
 }

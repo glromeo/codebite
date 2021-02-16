@@ -1,11 +1,7 @@
 {
-  "include": ["src"],
   "compilerOptions": {
-    "rootDir": "./src",
-    "outDir": "lib",
-    "module": "commonjs",
-    "target": "es2018",
-    "moduleResolution": "node",
+    "module": "esnext",
+    "target": "esnext",
     "declaration": true,
     "esModuleInterop": true,
     "strict": true,
@@ -14,8 +10,5 @@
     "noImplicitAny": false,
     "skipLibCheck": true,
     "allowJs": true
-  },
-  "ts-node": {
-    "transpileOnly": true
   }
 }

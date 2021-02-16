@@ -5,12 +5,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.useWebModulesPlugin = void 0;
 const core_1 = require("@babel/core");
-const nano_memoize_1 = __importDefault(require("nano-memoize"));
+const pico_memoize_1 = __importDefault(require("pico-memoize"));
 const path_1 = __importDefault(require("path"));
 const tiny_node_logger_1 = __importDefault(require("tiny-node-logger"));
 const es_import_utils_1 = require("./es-import-utils");
 const index_1 = require("./index");
-exports.useWebModulesPlugin = nano_memoize_1.default(config => {
+exports.useWebModulesPlugin = pico_memoize_1.default(config => {
     const { resolveImport } = index_1.useWebModules(config);
     function resolveBabelRuntime(importUrl) {
         if (importUrl.startsWith("@babel/"))

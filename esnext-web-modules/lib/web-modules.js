@@ -28,7 +28,7 @@ const esbuild_1 = require("esbuild");
 const esbuild_sass_plugin_1 = require("esbuild-sass-plugin");
 const fast_url_parser_1 = require("fast-url-parser");
 const fs_1 = require("fs");
-const nano_memoize_1 = __importDefault(require("nano-memoize"));
+const pico_memoize_1 = __importDefault(require("pico-memoize"));
 const path_1 = __importStar(require("path"));
 const resolve_1 = __importDefault(require("resolve"));
 const tiny_node_logger_1 = __importDefault(require("tiny-node-logger"));
@@ -43,7 +43,7 @@ function defaultOptions() {
     return require(require.resolve(`${process.cwd()}/web-modules.config.js`));
 }
 exports.defaultOptions = defaultOptions;
-exports.useWebModules = nano_memoize_1.default((options) => {
+exports.useWebModules = pico_memoize_1.default((options) => {
     if (!options) {
         options = defaultOptions();
     }
@@ -333,7 +333,7 @@ exports.useWebModules = nano_memoize_1.default((options) => {
         catch (error) {
             if (resolve_1.default.sync(`${source}/package.json`, resolveOptions)) {
                 importMap.imports[source] = `/web_modules/${source}`;
-                tiny_node_logger_1.default.warn("nothing to bundle for:", source, error.message);
+                tiny_node_logger_1.default.warn("nothing to bundle for:", chalk_1.default.magenta(source), `(${chalk_1.default.gray(error.message)})`);
                 await utility_1.writeImportMap(outDir, importMap);
             }
             else {

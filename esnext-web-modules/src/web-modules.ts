@@ -3,7 +3,7 @@ import {Service, startService} from "esbuild";
 import {sassPlugin} from "esbuild-sass-plugin";
 import {parse} from "fast-url-parser";
 import {existsSync, mkdirSync, rmdirSync, statSync} from "fs";
-import memoized from "nano-memoize";
+import memoize from "pico-memoize";
 import path, {posix} from "path";
 import resolve, {Opts} from "resolve";
 import log from "tiny-node-logger";
@@ -35,7 +35,7 @@ export function defaultOptions() {
  *
  * @param config
  */
-export const useWebModules = memoized<WebModulesFactory>((options) => {
+export const useWebModules = memoize<WebModulesFactory>((options) => {
 
     if (!options) {
         options = defaultOptions();
@@ -367,7 +367,7 @@ export const useWebModules = memoized<WebModulesFactory>((options) => {
         } catch (error) {
             if (resolve.sync(`${source}/package.json`, resolveOptions)) {
                 importMap.imports[source] = `/web_modules/${source}`;
-                log.warn("nothing to bundle for:", source, error.message);
+                log.warn("nothing to bundle for:", chalk.magenta(source), `(${chalk.gray(error.message)})`);
                 await writeImportMap(outDir, importMap);
             } else {
                 log.warn("unable to bundle:", source, error);

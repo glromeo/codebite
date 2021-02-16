@@ -21,7 +21,7 @@ export function createWatcher(options: { rootDir: string, watcher?: WatchOptions
         ]
     });
 
-    log.debug("created chokidar watcher for cwd:", watcher.options.cwd);
+    log.debug("created chokidar watcher for:", watcher.options.cwd);
 
     watcher.on("all", (event, file) => log.debug("watcher", event, file));
     watcher.on("ready", () => log.info("workspace watcher is", chalk.bold("ready")));

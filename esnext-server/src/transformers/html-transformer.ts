@@ -1,7 +1,7 @@
 import {useWebModules} from "esnext-web-modules";
 import {escape} from "he";
 import {Parser} from "htmlparser2";
-import memoized from "nano-memoize";
+import memoize from "pico-memoize";
 import path from "path";
 import log from "tiny-node-logger";
 import {esnextConnectScript} from "../script/connect";
@@ -11,7 +11,7 @@ import {TransformerOutput} from "./index";
 
 export type TransformResult = { html: string, imports: Set<string> };
 
-export const useHtmlTransformer = memoized(config => {
+export const useHtmlTransformer = memoize(config => {
 
     const {babelTransformer} = useBabelTransformer(config, "inline");
     const {resolveImport} = useWebModules(config);

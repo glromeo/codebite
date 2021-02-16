@@ -1,4 +1,4 @@
-declare module "nano-memoize" {
+declare module "pico-memoize" {
     export default function memoized<T extends Function>(
         func: T,
         options?: {

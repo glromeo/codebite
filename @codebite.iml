@@ -2,7 +2,19 @@
 <module type="WEB_MODULE" version="4">
   <component name="NewModuleRootManager" inherit-compiler-output="true">
     <exclude-output />
-    <content url="file://$MODULE_DIR$" />
+    <content url="file://$MODULE_DIR$">
+      <excludeFolder url="file://$MODULE_DIR$/.idea" />
+      <excludeFolder url="file://$MODULE_DIR$/.nyc_output" />
+      <excludeFolder url="file://$MODULE_DIR$/.vscode" />
+      <excludeFolder url="file://$MODULE_DIR$/attic" />
+      <excludeFolder url="file://$MODULE_DIR$/coverage" />
+      <excludeFolder url="file://$MODULE_DIR$/ui" />
+      <excludeFolder url="file://$MODULE_DIR$/web_modules" />
+      <excludeFolder url="file://$MODULE_DIR$/workbench/.nyc_output" />
+      <excludeFolder url="file://$MODULE_DIR$/workbench/coverage" />
+      <excludeFolder url="file://$MODULE_DIR$/components/.nyc_output" />
+      <excludeFolder url="file://$MODULE_DIR$/esnext-web-modules/attic" />
+    </content>
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
 </module>

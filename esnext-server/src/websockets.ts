@@ -7,9 +7,15 @@ import WebSocket from "ws";
 const WS_CONFIG_FILE = "websockets.config.js";
 export function createWebSockets(config, server, watcher) {
 
-    // todo: maybe we can refactor this to use a pathname for each workspace
+    const wss = new WebSocket.Server({noServer: true});
 
-    const wss = new WebSocket.Server({server});
+    server.on("upgrade", (req, socket, head) => {
+        if (req.headers["sec-websocket-protocol"] !== "esm-hmr") {
+            wss.handleUpgrade(req, socket, head, (client) => {
+                wss.emit("connection", client, req);
+            });
+        }
+    });
 
     const listeners = new Map();
 

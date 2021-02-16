@@ -1,6 +1,8 @@
-import WebSocket from "ws";
 import type http from "http";
 import {Http2Server} from "http2";
+import memoize from "pico-memoize";
+import WebSocket from "ws";
+import {ESNextOptions} from "./configure";
 
 interface Dependency {
     dependents: Set<string>;
@@ -14,21 +16,15 @@ export class EsmHmrEngine {
     clients: Set<WebSocket> = new Set();
     dependencyTree = new Map<string, Dependency>();
 
-    constructor(options: { server?: http.Server | Http2Server } = {}) {
-        const wss = options.server
-            ? new WebSocket.Server({noServer: true})
-            : new WebSocket.Server({port: 12321});
-        if (options.server) {
-            options.server.on("upgrade", (req, socket, head) => {
-                // Only handle upgrades to ESM-HMR requests, ignore others.
-                if (req.headers["sec-websocket-protocol"] !== "esm-hmr") {
-                    return;
-                }
+    constructor(server: http.Server | Http2Server) {
+        const wss = new WebSocket.Server({noServer: true});
+        server.on("upgrade", (req, socket, head) => {
+            if (req.headers["sec-websocket-protocol"] === "esm-hmr") {
                 wss.handleUpgrade(req, socket, head, (client) => {
                     wss.emit("connection", client, req);
                 });
-            });
-        }
+            }
+        });
         wss.on("connection", (client) => {
             this.connectClient(client);
             this.registerListener(client);
@@ -51,7 +47,7 @@ export class EsmHmrEngine {
             dependents: new Set(),
             needsReplacement: false,
             isHmrEnabled: false,
-            isHmrAccepted: false,
+            isHmrAccepted: false
         };
         this.dependencyTree.set(sourceUrl, newEntry);
         return newEntry;
@@ -126,3 +122,15 @@ export class EsmHmrEngine {
         }
     }
 }
+
+export const useHotModuleReplacement = memoize(function (options: ESNextOptions) {
+    let engine:EsmHmrEngine;
+    return {
+        get engine() {
+            return engine;
+        },
+        connect(server:http.Server | Http2Server) {
+            engine = new EsmHmrEngine(server);
+        }
+    }
+});

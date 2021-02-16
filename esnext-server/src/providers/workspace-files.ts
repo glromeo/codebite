@@ -1,10 +1,12 @@
+import chalk from "chalk";
 import {useWebModules} from "esnext-web-modules";
 import {promises as fs} from "fs";
 import {OutgoingHttpHeaders} from "http";
 import HttpStatus from "http-status-codes";
 import path from "path";
+import log from "tiny-node-logger";
 import {contentType} from "../util/mime-types";
-import {Resource} from "../util/resource-cache";
+import {Resource} from "./resource-provider";
 
 export function useWorkspaceFiles(config) {
 
@@ -38,7 +40,8 @@ export function useWorkspaceFiles(config) {
 
         const stats = await fs.stat(filename).catch(error => {
             if (error.code === "ENOENT") {
-                if (route === "/web_modules") {
+                if (route === "/web_modules" && !filename.endsWith(".map")) {
+                    log.warn("lazy loading:", chalk.magenta(filename));
                     return esbuildWebModule(pathname.substring(13)).then(() => fs.stat(filename));
                 }
             }

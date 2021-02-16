@@ -2,11 +2,11 @@ import {FSWatcher} from "chokidar";
 import corsMiddleware from "cors";
 import {parse as parseURL} from "fast-url-parser";
 import Router, {Req, Res} from "find-my-way";
-import {createReadStream} from "fs";
+import {readFile} from "fs";
+import {ServerResponse} from "http";
 import HttpStatus from "http-status-codes";
 import {Http2ServerResponse} from "http2";
 import {join, posix} from "path";
-import {Writable} from "stream";
 import log from "tiny-node-logger";
 import {ESNextOptions} from "./configure";
 import {useResourceProvider} from "./providers/resource-provider";
@@ -32,12 +32,29 @@ export function createRequestHandler<V extends Router.HTTPVersion = Router.HTTPV
     router.get("/resources/*", function resourcesMiddleware(req: Req<V>, res: Res<V>) {
         const {pathname} = parseURL(req.url);
         const filename = join(options.resources, pathname.substring(10));
-        res.writeHead(HttpStatus.OK, {
-            "content-type": contentType(filename),
-            "cache-control": "public, max-age=86400, immutable"
-        });
-        createReadStream(filename).pipe(res as Writable);
+        sendFile(filename, res);
     });
+
+    router.get("/esnext-server/*", function resourcesMiddleware(req: Req<V>, res: Res<V>) {
+        const {pathname} = parseURL(req.url);
+        const filename = require.resolve(posix.join("esnext-server-client", pathname.substring(14)));
+        sendFile(filename, res);
+    });
+
+    function sendFile<V>(filename: string, res: V extends Router.HTTPVersion.V1 ? ServerResponse : Http2ServerResponse) {
+        readFile(filename, (err, data) => {
+            if (err) {
+                res.writeHead(HttpStatus.NOT_FOUND);
+                res.end();
+            } else {
+                res.writeHead(HttpStatus.OK, {
+                    "content-type": contentType(filename),
+                    "cache-control": "public, max-age=86400, immutable"
+                });
+                res.end(data);
+            }
+        });
+    }
 
     /**
      *  __        __         _                               ____
@@ -57,10 +74,10 @@ export function createRequestHandler<V extends Router.HTTPVersion = Router.HTTPV
             } = await provideResource(req.url!, req.headers);
 
             if (links && options.http2 === "preload") {
+                const base = posix.dirname(pathname);
                 headers.link = [...links].map(link => {
-                    const dirname = posix.dirname(pathname);
-                    const url = link.startsWith("/") ? link : posix.resolve(dirname, link);
-                    provideResource(url, req.headers).catch(() => log.warn("unable to provide resource:", url));
+                    const url = posix.resolve(base, link);
+                    provideResource(url, req.headers).catch(() => log.warn("failed to pre-warm cache with:", url));
                     return `<${url}>; crossorigin; rel=preload; as=${url.endsWith(".css") ? "style" : "script"}`;
                 });
             }

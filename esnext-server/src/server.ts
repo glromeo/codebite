@@ -9,7 +9,7 @@ import {ESNextOptions} from "./configure";
 import {createRequestHandler} from "./request-handler";
 import {createWatcher} from "./watcher";
 import {createWebSockets} from "./websockets";
-import {EsmHmrEngine} from "./hmr-server";
+import {EsmHmrEngine, useHotModuleReplacement} from "./hmr-server";
 
 export type ServerOptions = {
     protocol?: "http" | "https"
@@ -72,9 +72,9 @@ export async function startServer(options: ESNextOptions, services: Services = {
     const address = `${protocol}://${host}:${port}`;
     log.info(`server started on ${address}`);
 
-    createWebSockets(options, server, watcher);
+    useHotModuleReplacement(options).connect(server);
 
-    new EsmHmrEngine({server})
+    createWebSockets(options, server, watcher);
 
     const sockets = new Set<Socket>();
 
