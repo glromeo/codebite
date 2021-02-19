@@ -1,6 +1,7 @@
 import chalk from "chalk";
 import {Service, startService} from "esbuild";
 import {sassPlugin} from "esbuild-sass-plugin";
+import EventEmitter from "events";
 import {parse} from "fast-url-parser";
 import {existsSync, mkdirSync, rmdirSync, statSync} from "fs";
 import memoize from "pico-memoize";
@@ -46,6 +47,8 @@ export const useWebModules = memoize<WebModulesFactory>((options) => {
     if (!options.external) options.external = ["@babel/runtime/**"];
     if (!options.esbuild) options.esbuild = {};
 
+    const notifications = new EventEmitter();
+    
     options.esbuild = {
         define: {
             "process.env.NODE_ENV": `"${options.environment}"`,
@@ -388,6 +391,7 @@ export const useWebModules = memoize<WebModulesFactory>((options) => {
         outDir,
         importMap,
         resolveImport,
-        esbuildWebModule
+        esbuildWebModule,
+        notifications
     };
 });

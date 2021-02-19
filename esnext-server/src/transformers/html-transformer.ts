@@ -158,7 +158,7 @@ export const useHtmlTransformer = memoize(config => {
                 "content-length": Buffer.byteLength(html),
                 "x-transformer": "html-transformer"
             },
-            links: imports
+            links: [...imports]
         };
     }
 

@@ -20,6 +20,8 @@ import {startServer} from "./server";
  *──────────────────────────────────────────*
  ********************************************/
 
+log.info("starting server...");
+
 const args = yargs
     .scriptName("esnext-server")
     .usage("$0 <cmd> [args]")

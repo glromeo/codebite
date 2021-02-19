@@ -1,40 +1,34 @@
 import chalk from "chalk";
 import {FSWatcher} from "chokidar";
 import etag from "etag";
-import {parse as parseURL} from "fast-url-parser";
-import zlib from "fast-zlib";
-import {IncomingHttpHeaders, OutgoingHttpHeaders} from "http";
+import {promises as fs} from "fs";
+import {OutgoingHttpHeaders} from "http";
 import path from "path";
 import memoize from "pico-memoize";
-import picomatch from "picomatch";
 import log from "tiny-node-logger";
 import {ESNextOptions} from "../configure";
 import {useHotModuleReplacement} from "../hmr-server";
-import {useBabelTransformer} from "../transformers/babel-transformer";
-import {useEsBuildTransformer} from "../transformers/esbuild-transformer";
-import {useHtmlTransformer} from "../transformers/html-transformer";
-import {useSassTransformer} from "../transformers/sass-transformer";
-import {JSON_CONTENT_TYPE} from "../util/mime-types";
-import {useWorkspaceFiles} from "./workspace-files";
+import {SourceMap, useTransformers} from "../transformers";
+import {contentType, JSON_CONTENT_TYPE} from "../util/mime-types";
+import {useZlib} from "../util/zlib";
+import {useRouter} from "./router";
 
-const {
-    HTML_CONTENT_TYPE,
-    SASS_CONTENT_TYPE,
-    SCSS_CONTENT_TYPE,
-    CSS_CONTENT_TYPE,
-    JAVASCRIPT_CONTENT_TYPE,
-    TYPESCRIPT_CONTENT_TYPE
-} = require("../util/mime-types");
+
+export type Query = { [name: string]: string };
 
 export type Resource = {
     pathname: string
-    query: string
+    query: Query
     filename: string
     content: string | Buffer
     headers: OutgoingHttpHeaders
-    links?: Iterable<string>
+    links: readonly string[]
     watch?: Iterable<string>
+    onchange?: () => void
 }
+
+export const NO_LINKS = Object.freeze([]);
+export const NO_QUERY = Object.freeze({});
 
 /*
  * NOTE: cache & hmr have two very distinct roles, cache won't invalidate an entry because the dependents
@@ -42,40 +36,49 @@ export type Resource = {
 
 export const useResourceProvider = memoize(function (options: ESNextOptions, watcher: FSWatcher) {
 
-    const cache = new Map<string, Resource>();
-    const watched = new Map<string, string | string[]>();
-    const pending = new Map<string, Promise<Resource>>();
+    const cache = new Map<string, Resource | Promise<Resource>>();
+    const watched = new Map<string, Set<string>>();
     const hmr = useHotModuleReplacement(options);
 
-    function watch(path, url) {
-        const urls = watched.get(path);
-        if (urls) {
-            if (typeof urls === "string") {
-                if (urls === url) return;
-                else watched.set(path, [urls, url]);
-            } else {
-                if (urls.includes(url)) return;
-                else urls.push(url);
+    function store(url: string, resource: Resource) {
+
+        if (options.cache) {
+            cache.set(url, resource);
+            watch(resource.filename, url);
+            if (resource.watch) {
+                for (const watched of resource.watch) watch(watched, url);
             }
-        } else {
-            watched.set(path, url);
-            watcher.add(path);
+        }
+
+        if (hmr.engine && resource.links) {
+            for (const link of resource.links) {
+                hmr.engine.addRelationship(url, link);
+            }
         }
     }
 
-    function invalidate(path) {
-        const urls = watched.get(path);
-        if (urls) {
-            if (typeof urls === "string") {
-                cache.delete(urls);
-                log.debug("invalidate", path, "flush", urls);
-            } else for (const url of urls) {
-                cache.delete(url);
-                log.debug("invalidate", path, "flush", url);
-            }
-        } else {
-            log.info("invalidate", path, "had no side effects");
+    function discard(url: string, resource: Resource) {
+        if (cache) {
+            cache.delete(url);
         }
+        if (hmr.engine && resource.links) {
+            for (const link of resource.links) {
+                hmr.engine.removeRelationship(url, link);
+            }
+        }
+    }
+
+    function watch(filename, url): Set<string> {
+        const pathname = path.relative(options.rootDir, filename);
+        let urls = watched.get(pathname);
+        if (urls) {
+            urls.add(url);
+        } else {
+            urls = new Set<string>().add(url);
+            watched.set(pathname, urls);
+            watcher.add(pathname);
+        }
+        return urls;
     }
 
     function unwatch(path) {
@@ -83,183 +86,123 @@ export const useResourceProvider = memoize(function (options: ESNextOptions, wat
         watcher.unwatch(path);
     }
 
-    watcher.on("change", (path) => {
-        invalidate(path);
+    watcher.on("change", function (path) {
+        const urls = watched.get(path);
+        if (urls) for (const url of urls) {
+            reload(url, path);
+        }
     });
 
-    watcher.on("unlink", (event, path) => {
+    watcher.on("unlink", function (event, path) {
+        const urls = watched.get(path);
+        if (urls) for (const url of urls) {
+            log.debug("invalidate", path, "flush", url);
+            cache.delete(url);
+        }
         unwatch(path);
-        invalidate(path);
     });
 
-    const {readWorkspaceFile} = useWorkspaceFiles(options);
-    const {htmlTransformer} = useHtmlTransformer(options);
-    const {esbuildTransformer} = useEsBuildTransformer(options);
-    const {babelTransformer} = useBabelTransformer(options);
-    const {sassTransformer} = useSassTransformer(options);
-
-    function formatHrtime(hrtime) {
-        return (hrtime[0] + (hrtime[1] / 1e9)).toFixed(3);
-    }
-
-    function transformResource(contentType, filename: string, content: string | Buffer, query: { type: string }) {
-        if (content instanceof Buffer) {
-            content = content.toString("utf-8");
-        }
-        switch (contentType) {
-            case HTML_CONTENT_TYPE:
-                return htmlTransformer(filename, content);
-            case CSS_CONTENT_TYPE:
-            case SASS_CONTENT_TYPE:
-            case SCSS_CONTENT_TYPE:
-                return sassTransformer(filename, content, query.type);
-            case JAVASCRIPT_CONTENT_TYPE:
-            case TYPESCRIPT_CONTENT_TYPE:
-                return options.babel ? babelTransformer(filename, content) : esbuildTransformer(filename, content);
+    async function reload(url:string, path:string) {
+        const resource = await cache.get(url);
+        if (resource) {
+            const stats = await fs.stat(resource.filename);
+            resource.content = await fs.readFile(resource.filename);
+            resource.headers["content-type"] = contentType(resource.filename);
+            resource.headers["content-length"] = stats.size;
+            resource.headers["last-modified"] = stats.mtime.toUTCString();
+        } else {
+            log.warn("no cache entry for:", url);
+            unwatch(path);
         }
     }
 
-    const include = options.transform && options.transform.include && picomatch(options.transform.include);
-    const exclude = options.transform && options.transform.exclude && picomatch(options.transform.exclude);
-
-    function compress(content: string | Buffer, encoding = options.encoding) {
-        let compress = useCompression(encoding);
-        try {
-            return compress.process(content);
-        } finally {
-            compress.close();
-        }
-    }
-
-    function useCompression(encoding?:string) {
-        switch (encoding) {
-            case "br":
-                return new zlib.BrotliCompress();
-            case "gzip":
-                return new zlib.Gzip();
-            case "deflate":
-            default:
-                return new zlib.Deflate();
-        }
-    }
-
+    const {route} = useRouter(options);
+    const {shouldTransform, transformContent} = useTransformers(options);
+    const {applyCompression} = useZlib(options);
 
     /**
+     *          _            _ _
+     *         (_)          | (_)
+     *    _ __  _ _ __   ___| |_ _ __   ___
+     *   | '_ \| | '_ \ / _ \ | | '_ \ / _ \
+     *   | |_) | | |_) |  __/ | | | | |  __/
+     *   | .__/|_| .__/ \___|_|_|_| |_|\___|
+     *   | |     | |
+     *   |_|     |_|
      *
      * @param url
-     * @param accept
-     * @param userAgent
-     * @returns {Promise<{headers: *, filename: *, watch: *, query: ({type}|*), links: *, content: *, pathname: any}|V>}
      */
-    async function provideResource(url: string, {"accept": accept, "user-agent": userAgent}: IncomingHttpHeaders) {
-
-        let {
-            pathname,
-            query
-        } = parseURL(url, true);
-
-        if (pathname.endsWith(".scss.js") || pathname.endsWith(".sass.js") || pathname.endsWith(".css.js")) {
-            pathname = pathname.slice(0, -3);
-            query.type = "module";
-        }
-
-        let {
-            filename,
-            content,
-            headers,
-            links,
-            watch
-        } = await readWorkspaceFile(pathname);
-
-        let transform = headers["x-transformer"] !== "none" && headers["cache-control"] === "no-cache" || query.type;
-        if (transform && include) {
-            transform = include(pathname);
-        }
-        if (transform && exclude) {
-            transform = !exclude(pathname);
-        }
-
-        if (transform) try {
-            const hrtime = process.hrtime();
-            const transformed = await transformResource(headers["content-type"], filename, content, query);
-            if (transformed) {
-                if (transformed.map) {
-                    const content = compress(JSON.stringify(transformed.map), "deflate");
-                    const sourceMapUrl = pathname + ".map";
-                    cache.set(sourceMapUrl, {
-                        filename: sourceMapUrl,
-                        pathname,
-                        query: "",
-                        content: content,
-                        headers: {
-                            "content-type": JSON_CONTENT_TYPE,
-                            "content-length": content.length, // Buffer.byteLength(content),
-                            "content-encoding": "deflate",
-                            "last-modified": new Date().toUTCString(),
-                            "cache-control": "no-cache"
-                        }
-                    });
-                }
-                content = transformed.content;
-                headers["content-type"] = transformed.headers["content-type"];
-                headers["content-length"] = transformed.headers["content-length"];
-                headers["x-transformer"] = transformed.headers["x-transformer"];
-                headers["x-transform-duration"] = `${formatHrtime(process.hrtime(hrtime))}sec`;
-                links = transformed.links;
-                watch = transformed.watch;
+    async function provideResource(url: string): Promise<Resource> {
+        const resource = await route(url);
+        if (shouldTransform(resource)) {
+            const sourceMap = await transformContent(resource);
+            if (sourceMap) {
+                storeSourceMap(resource.filename, resource.pathname, resource.query, sourceMap);
             }
-        } catch (error) {
-            error.message = `unable to transform: ${filename}\n${error.message}`;
-            throw error;
         }
+        await etagHeader(resource);
+        if (options.encoding) {
+            await compressContent(resource);
+        }
+        return resource;
+    }
 
+    function storeSourceMap(filename: string, pathname: string, query: Query, map?: SourceMap | null) {
+
+        const content = applyCompression(JSON.stringify(map), "deflate");
+        const sourceMapUrl = pathname + ".map";
+        const sourceMapFilename = filename + ".map";
+
+        cache.set(sourceMapUrl, {
+            filename: sourceMapFilename,
+            pathname: sourceMapUrl,
+            query: query,
+            content: content,
+            headers: {
+                "content-type": JSON_CONTENT_TYPE,
+                "content-length": content.length, // Buffer.byteLength(content),
+                "content-encoding": "deflate",
+                "last-modified": new Date().toUTCString(),
+                "cache-control": "no-cache"
+            },
+            links: NO_LINKS
+        });
+    }
+
+    async function etagHeader({headers, pathname}: Resource) {
         headers["etag"] = etag(`${pathname} ${headers["content-length"]} ${headers["last-modified"]}`, options.etag);
+    }
 
-        if (options.encoding) try {
-            content = compress(content);
-            headers = {
-                ...headers,
-                "content-length": content.length,
+    async function compressContent(resource: Resource) {
+        try {
+            resource.content = applyCompression(resource.content);
+            resource.headers = {
+                ...(resource.headers),
+                "content-length": resource.content.length,
                 "content-encoding": options.encoding
             };
         } catch (err) {
-            log.error(`failed to deflate resource: ${filename}`, err);
+            log.error(`failed to deflate resource: ${resource.filename}`, err);
         }
-
-        return {
-            pathname,
-            query,
-            filename,
-            content,
-            headers,
-            links,
-            watch
-        } as Resource;
     }
 
     return {
-        async provideResource(url: string, headers: IncomingHttpHeaders): Promise<Resource> {
-            if (options.cache && cache.has(url)) {
+        async provideResource(url: string): Promise<Resource> {
+            let resource = cache.get(url);
+            if (resource) {
                 log.debug("retrieved from cache:", chalk.magenta(url));
-                return cache.get(url)!;
-            }
-            if (pending.has(url)) {
-                return pending.get(url)!;
-            } else try {
-                const resource = await provideResource(url, headers);
-                if (cache) {
-                    cache.set(url, resource);
-                    watch(path.relative(options.rootDir, resource.filename), url);
-                    if (resource.watch) {
-                        for (const watched of resource.watch) {
-                            watch(path.relative(options.rootDir, watched), url);
-                        }
+            } else {
+                resource = provideResource(url).then(resource => {
+                    store(url, resource);
+                    return resource;
+                }).finally(function () {
+                    if (!options.cache) {
+                        cache.delete(url);
                     }
-                }
-                return resource;
-            } finally {
-                pending.delete(url);
+                });
+                cache.set(url, resource);
             }
+            return resource;
         }
     };
 });

@@ -1,15 +1,5 @@
 {
   "version": "0.0.0",
   "npmClient": "yarn",
-  "packages": [
-    "components",
-    "esnext-server",
-    "esnext-server-router",
-    "esnext-web-modules",
-    "examples/example-react-app",
-    "snapshot",
-    "testing",
-    "tiny-node-logger",
-    "workbench"
-  ]
+  "useWorkspaces": true
 }

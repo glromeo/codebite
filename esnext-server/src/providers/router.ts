@@ -1,21 +1,22 @@
 import chalk from "chalk";
 import {useWebModules} from "esnext-web-modules";
+import {parse as parseURL} from "fast-url-parser";
 import {promises as fs} from "fs";
-import {OutgoingHttpHeaders} from "http";
 import HttpStatus from "http-status-codes";
 import path from "path";
 import log from "tiny-node-logger";
+import {ESNextOptions} from "../configure";
 import {contentType} from "../util/mime-types";
-import {Resource} from "./resource-provider";
+import {NO_LINKS, Resource} from "./resource-provider";
 
-export function useWorkspaceFiles(config) {
+export function useRouter(options: ESNextOptions) {
 
-    const {esbuildWebModule} = useWebModules(config);
+    const {esbuildWebModule} = useWebModules(options);
 
     const {
         rootDir = process.cwd(),
         mount = {}
-    } = config;
+    } = options;
 
     const regExp = /\/[^/?]+/;
 
@@ -34,7 +35,16 @@ export function useWorkspaceFiles(config) {
         return {route: "/", filename: path.join(rootDir, pathname)};
     }
 
-    async function readWorkspaceFile(pathname):Promise<Resource> {
+    async function route(url: string): Promise<Resource> {
+
+        let {pathname, query} = parseURL(url, true);
+
+        if (pathname.endsWith("ss.js") /* try and support openwc style for module names */) {
+            if (pathname.endsWith(".scss.js") || pathname.endsWith(".sass.js") || pathname.endsWith(".css.js")) {
+                pathname = pathname.slice(0, -3);
+                query.type = "module";
+            }
+        }
 
         const {route, filename} = await resolve(pathname);
 
@@ -69,6 +79,8 @@ export function useWorkspaceFiles(config) {
             throw {code: HttpStatus.PERMANENT_REDIRECT, headers: {"location": location}};
         } else {
             return {
+                pathname,
+                query,
                 filename,
                 content: await fs.readFile(filename),
                 headers: {
@@ -76,12 +88,13 @@ export function useWorkspaceFiles(config) {
                     "content-length": stats.size,
                     "last-modified": stats.mtime.toUTCString(),
                     "cache-control": route === "/web_modules" || route === "/node_modules" ? "public, max-age=86400, immutable" : "no-cache"
-                } as OutgoingHttpHeaders
-            } as Resource;
+                },
+                links: NO_LINKS
+            };
         }
     }
 
     return {
-        readWorkspaceFile
+        route
     };
 }

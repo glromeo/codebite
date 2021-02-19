@@ -123,14 +123,16 @@ export class EsmHmrEngine {
     }
 }
 
-export const useHotModuleReplacement = memoize(function (options: ESNextOptions) {
-    let engine:EsmHmrEngine;
+export type HotModuleReplacement = {
+    engine: EsmHmrEngine|null
+    connect(server:http.Server | Http2Server):void
+}
+
+export const useHotModuleReplacement = memoize(function (options: ESNextOptions):HotModuleReplacement {
     return {
-        get engine() {
-            return engine;
-        },
-        connect(server:http.Server | Http2Server) {
-            engine = new EsmHmrEngine(server);
+        engine: null,
+        connect(server) {
+            this.engine = new EsmHmrEngine(server);
         }
     }
 });

@@ -65,30 +65,26 @@ export function createRequestHandler<V extends Router.HTTPVersion = Router.HTTPV
      *                               |_|
      */
     router.get("/*", async function workspaceMiddleware(req: Req<V>, res: Res<V>) {
-        try {
-            const {
-                pathname,
-                content,
-                headers,
-                links
-            } = await provideResource(req.url!, req.headers);
 
-            if (links && options.http2 === "preload") {
-                const base = posix.dirname(pathname);
-                headers.link = [...links].map(link => {
-                    const url = posix.resolve(base, link);
-                    provideResource(url, req.headers).catch(() => log.warn("failed to pre-warm cache with:", url));
-                    return `<${url}>; crossorigin; rel=preload; as=${url.endsWith(".css") ? "style" : "script"}`;
+        if (req.url) try {
+            const resource = await provideResource(req.url);
+
+            if (resource.links && options.http2 === "preload") {
+                resource.headers.link = resource.links.map(link => {
+                    provideResource(link).catch(function () {
+                        log.warn("failed to pre-warm cache with:", link);
+                    });
+                    return `<${link}>; crossorigin; rel=preload; as=${link.endsWith(".css") ? "style" : "script"}`;
                 });
             }
 
-            res.writeHead(200, headers);
+            res.writeHead(200, resource.headers);
 
-            if (links && options.http2 === "push" && res instanceof Http2ServerResponse) {
-                http2Push(res.stream, pathname, links, req.headers);
+            if (resource.links && options.http2 === "push" && res instanceof Http2ServerResponse) {
+                http2Push(res.stream, resource.pathname, resource.links);
             }
 
-            res.end(content);
+            res.end(resource.content);
 
         } catch (error) {
             const {code, headers = {}, message, stack} = error;

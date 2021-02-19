@@ -1,4 +1,6 @@
+/// <reference types="node" />
 import { BuildOptions } from "esbuild";
+import EventEmitter from "events";
 import { Opts } from "resolve";
 import { ImportMap } from "./utility";
 export declare type WebModulesOptions = {
@@ -10,6 +12,7 @@ export declare type WebModulesOptions = {
     external: string | string[];
     squash?: string[];
     esbuild?: BuildOptions;
+    notify?: (type: "info" | "success" | "warning" | "danger" | "primary" | "secondary", message: string) => void;
 };
 export declare type ImportResolver = (url: string, basedir?: string) => Promise<string>;
 export declare type WebModulesAPI = {
@@ -18,6 +21,7 @@ export declare type WebModulesAPI = {
     importMap: ImportMap;
     resolveImport: ImportResolver;
     esbuildWebModule: (source: string) => Promise<void>;
+    notifications: EventEmitter;
 };
 export declare type WebModulesFactory = (options: WebModulesOptions) => WebModulesAPI;
 export { isBare, pathnameToModuleUrl, toPosix, parseModuleUrl } from "./es-import-utils";

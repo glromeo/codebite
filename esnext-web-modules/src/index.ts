@@ -1,4 +1,5 @@
 import {BuildOptions} from "esbuild";
+import EventEmitter from "events";
 import {Opts} from "resolve";
 import {ImportMap} from "./utility";
 
@@ -19,8 +20,9 @@ export type WebModulesOptions = {
     environment: string
     resolve: Opts
     external: string | string[]
-    squash?: string[];
+    squash?: string[]
     esbuild?: BuildOptions
+    notify?: (type: "info" | "success" | "warning" | "danger" | "primary" | "secondary", message: string) => void
 };
 
 export type ImportResolver = (url: string, basedir?: string) => Promise<string>;
@@ -31,6 +33,7 @@ export type WebModulesAPI = {
     importMap: ImportMap
     resolveImport: ImportResolver
     esbuildWebModule: (source: string) => Promise<void>
+    notifications: EventEmitter
 }
 
 export type WebModulesFactory = (options: WebModulesOptions) => WebModulesAPI;

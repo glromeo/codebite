@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="./icons/notifications.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#000000" />
+    <title>React App</title>
+    <script type="module" src="/esnext-server/hmr-client.js" async></script>
+    <script type="text/javascript">
+        window.process = {
+            env: {
+                NODE_ENV: "development"
+            }
+        }
+    </script>
+</head>
+<body>
+<img src="https://www.36exp.co.uk/wp-content/uploads/2019/08/London-Landscape-1-2-880x360.jpg">
+<noscript>You need to enable JavaScript to run this app.</noscript>
+<div id="root"></div>
+<button id="show" onclick="document.querySelector('esnext-notifications').show()">show</button>
+<button id="hide" onclick="document.querySelector('esnext-notifications').hide()">hide</button>
+<button id="auto" onclick="document.querySelector('esnext-notifications').show(true)">auto</button>
+<button id="add" onclick="document.querySelector('esnext-notifications').add()">add</button>
+<button id="add (sticky)" onclick="document.querySelector('esnext-notifications').add(undefined, true)">add (sticky)</button>
+<script type="module" src="./notifications.js"></script>
+</body>
+</html>

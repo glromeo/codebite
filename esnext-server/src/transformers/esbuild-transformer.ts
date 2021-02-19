@@ -62,7 +62,7 @@ export const useEsBuildTransformer = memoize((options: ESNextOptions, sourceMaps
                 "x-transformer": "esbuild-transformer"
             },
             map,
-            links: links
+            links: [...links]
         };
     }
 

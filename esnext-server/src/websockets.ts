@@ -35,7 +35,7 @@ export function createWebSockets(config, server, watcher) {
 
             delete require.cache[require.resolve(module)];
 
-            log.info("websockets :", chalk.underline(module));
+            log.info("websockets:", chalk.underline(module));
             require(module).call(context, config, watcher, on);
         }
     });

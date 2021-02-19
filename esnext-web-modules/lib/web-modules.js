@@ -26,6 +26,7 @@ exports.useWebModules = exports.defaultOptions = void 0;
 const chalk_1 = __importDefault(require("chalk"));
 const esbuild_1 = require("esbuild");
 const esbuild_sass_plugin_1 = require("esbuild-sass-plugin");
+const events_1 = __importDefault(require("events"));
 const fast_url_parser_1 = require("fast-url-parser");
 const fs_1 = require("fs");
 const pico_memoize_1 = __importDefault(require("pico-memoize"));
@@ -57,6 +58,7 @@ exports.useWebModules = pico_memoize_1.default((options) => {
         options.external = ["@babel/runtime/**"];
     if (!options.esbuild)
         options.esbuild = {};
+    const notifications = new events_1.default();
     options.esbuild = {
         define: {
             "process.env.NODE_ENV": `"${options.environment}"`,
@@ -354,7 +356,8 @@ exports.useWebModules = pico_memoize_1.default((options) => {
         outDir,
         importMap,
         resolveImport,
-        esbuildWebModule
+        esbuildWebModule,
+        notifications
     };
 });
 //# sourceMappingURL=web-modules.js.map

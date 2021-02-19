@@ -47,7 +47,7 @@ export const useSassTransformer = memoize((options: ESNextOptions) => {
                 "content-length": Buffer.byteLength(content),
                 "x-transformer": "sass-transformer"
             },
-            watch: stats.includedFiles
+            includedFiles: stats.includedFiles
         };
     }
 

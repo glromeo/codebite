@@ -49,7 +49,7 @@ export const useBabelTransformer = memoize((options: ESNextOptions, sourceMaps: 
                 "x-transformer": "babel-transformer"
             },
             map,
-            links: metadata!["imports"]
+            links: [...metadata!["imports"]]
         };
     }
 
