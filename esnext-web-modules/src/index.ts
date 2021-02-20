@@ -17,12 +17,11 @@ export type WebModulesOptions = {
     rootDir: string
     clean?: boolean                 // cleans the contents of web_modules before init
     init?: boolean                  // bundle all the dependencies at startup
-    environment: string
+    environment?: string
     resolve: Opts
-    external: string | string[]
+    external?: string | string[]
     squash?: string[]
     esbuild?: BuildOptions
-    notify?: (type: "info" | "success" | "warning" | "danger" | "primary" | "secondary", message: string) => void
 };
 
 export type ImportResolver = (url: string, basedir?: string) => Promise<string>;
@@ -33,11 +32,19 @@ export type WebModulesAPI = {
     importMap: ImportMap
     resolveImport: ImportResolver
     esbuildWebModule: (source: string) => Promise<void>
-    notifications: EventEmitter
 }
 
-export type WebModulesFactory = (options: WebModulesOptions) => WebModulesAPI;
+export type WebModulesFactory = (options?: WebModulesOptions) => WebModulesAPI;
 
+export type WebModulesNotificationType = "primary" | "secondary" | "info" | "success" | "warning" | "danger";
+
+export interface WebModulesNotification {
+    id: number;
+    timeMs: number;
+    sticky: boolean;
+    type: WebModulesNotificationType;
+    message: string;
+}
 
 //   __  __           _       _        ______                       _
 //  |  \/  |         | |     | |      |  ____|                     | |
@@ -60,5 +67,6 @@ export {
 } from "./babel-plugin-web-modules";
 
 export {
-    useWebModules
+    useWebModules,
+    notifications
 } from "./web-modules";

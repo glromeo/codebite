@@ -4,10 +4,8 @@
   "module": "dist/index.js",
   "license": "MIT",
   "scripts": {
-    "build": "tsc",
-    "build:watch": "tsc --watch",
-    "bundle": "esbuild src/index.ts --outdir=dist --bundle --format=esm",
-    "bundle:watch": "esbuild src/index.ts --outdir=dist --bundle --format=esm --watch"
+    "build": "esbuild src/index.ts --outdir=dist --bundle --format=esm",
+    "build:watch": "esbuild src/index.ts --outdir=dist --bundle --format=esm --watch"
   },
   "devDependencies": {
     "esbuild": "^0.8.47"

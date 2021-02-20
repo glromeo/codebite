@@ -35,10 +35,8 @@ export function createRequestHandler<V extends Router.HTTPVersion = Router.HTTPV
         sendFile(filename, res);
     });
 
-    router.get("/esnext-server/*", function resourcesMiddleware(req: Req<V>, res: Res<V>) {
-        const {pathname} = parseURL(req.url);
-        const filename = require.resolve(posix.join("esnext-server-client", pathname.substring(14)));
-        sendFile(filename, res);
+    router.get("/esnext-server/client.js", function resourcesMiddleware(req: Req<V>, res: Res<V>) {
+        sendFile(require.resolve(posix.join("esnext-server-client/dist/index.js")), res);
     });
 
     function sendFile<V>(filename: string, res: V extends Router.HTTPVersion.V1 ? ServerResponse : Http2ServerResponse) {

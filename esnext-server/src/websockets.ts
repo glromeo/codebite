@@ -3,8 +3,10 @@ import {existsSync} from "fs";
 import {dirname, resolve} from "path";
 import log from "tiny-node-logger";
 import WebSocket from "ws";
+import {useWebModules, notifications, WebModulesNotification} from "esnext-web-modules";
 
 const WS_CONFIG_FILE = "websockets.config.js";
+
 export function createWebSockets(config, server, watcher) {
 
     const wss = new WebSocket.Server({noServer: true});
@@ -47,7 +49,7 @@ export function createWebSockets(config, server, watcher) {
         }
     }
 
-    function marshall(header, payload) {
+    function marshall(header:string, payload:any) {
         return payload ? `${header}:${JSON.stringify(payload)}` : header;
     }
 
@@ -64,6 +66,8 @@ export function createWebSockets(config, server, watcher) {
         return {header, payload};
     }
 
+    const clients = new Set<WebSocket>();
+
     wss.on("connection", ws => {
 
         ws.on("message", message => {
@@ -75,5 +79,26 @@ export function createWebSockets(config, server, watcher) {
         });
 
         ws.send("connected:" + JSON.stringify({since: new Date().toUTCString()}));
+
+        clients.add(ws);
+
+        ws.on("close", function () {
+            clients.delete(ws);
+        });
+    });
+
+    function broadcast(header:string, payload:any) {
+        let message = marshall(header, payload);
+        for (const client of clients) {
+            client.send(message);
+        }
+    }
+
+    notifications.on("new", (notification:WebModulesNotification) => {
+        broadcast("notification:new", notification);
+    });
+
+    notifications.on("update", (notification:WebModulesNotification) => {
+        broadcast("notification:update", notification);
     });
 }

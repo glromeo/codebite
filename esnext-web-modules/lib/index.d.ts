@@ -1,18 +1,15 @@
-/// <reference types="node" />
 import { BuildOptions } from "esbuild";
-import EventEmitter from "events";
 import { Opts } from "resolve";
 import { ImportMap } from "./utility";
 export declare type WebModulesOptions = {
     rootDir: string;
     clean?: boolean;
     init?: boolean;
-    environment: string;
+    environment?: string;
     resolve: Opts;
-    external: string | string[];
+    external?: string | string[];
     squash?: string[];
     esbuild?: BuildOptions;
-    notify?: (type: "info" | "success" | "warning" | "danger" | "primary" | "secondary", message: string) => void;
 };
 export declare type ImportResolver = (url: string, basedir?: string) => Promise<string>;
 export declare type WebModulesAPI = {
@@ -21,9 +18,16 @@ export declare type WebModulesAPI = {
     importMap: ImportMap;
     resolveImport: ImportResolver;
     esbuildWebModule: (source: string) => Promise<void>;
-    notifications: EventEmitter;
 };
-export declare type WebModulesFactory = (options: WebModulesOptions) => WebModulesAPI;
+export declare type WebModulesFactory = (options?: WebModulesOptions) => WebModulesAPI;
+export declare type WebModulesNotificationType = "primary" | "secondary" | "info" | "success" | "warning" | "danger";
+export interface WebModulesNotification {
+    id: number;
+    timeMs: number;
+    sticky: boolean;
+    type: WebModulesNotificationType;
+    message: string;
+}
 export { isBare, pathnameToModuleUrl, toPosix, parseModuleUrl } from "./es-import-utils";
 export { useWebModulesPlugin } from "./babel-plugin-web-modules";
-export { useWebModules } from "./web-modules";
+export { useWebModules, notifications } from "./web-modules";

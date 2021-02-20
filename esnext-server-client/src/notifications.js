@@ -44,8 +44,11 @@ sheet.replaceSync(`
 }
 
 .notification {
-    display: inline-block;
     font-family: sans-serif;
+    font-size: 13px !important;
+
+    display: inline-block;
+    white-space: nowrap;
     border-radius: 8px;
     margin: 4px;
     padding: 8px 16px;
@@ -145,13 +148,14 @@ customElements.define("esnext-notifications", class ESNextNotifications extends 
         }, timeoutMs);
     }
 
-    add({type = "default", content = ""} = randomItem(), sticky = false) {
+    add({id, type = "default", message = ""}, sticky = false) {
         this.ready = (async (ready) => {
             await ready;
             let slot = document.createElement("div");
             slot.classList.add("slot");
+            slot.setAttribute("id", id);
             const notification = document.createElement("div");
-            notification.classList.add("notification", type);
+            notification.setAttribute("class", `notification ${type}`);
             const dismiss = () => {
                 slot.style.maxHeight = null;
                 slot.classList.remove("connected");
@@ -166,9 +170,9 @@ customElements.define("esnext-notifications", class ESNextNotifications extends 
                 notification.classList.add("sticky");
                 notification.addEventListener("click", dismiss);
             } else {
-                setTimeout(dismiss, 3000);
+                setTimeout(dismiss, 2500);
             }
-            notification.innerHTML = content;
+            notification.innerHTML = message;
             slot.appendChild(notification);
             this.containerElement.appendChild(slot);
             this.show(true);
@@ -179,22 +183,54 @@ customElements.define("esnext-notifications", class ESNextNotifications extends 
             }));
         })(this.ready);
     }
+
+    // TODO: handle change in sticky/dismiss
+    update({id, type = "default", message = ""}) {
+        this.ready = (async (ready) => {
+            await ready;
+            const slot = this.renderRoot.getElementById(id);
+            if (!slot) {
+                return;
+            }
+            const notification = slot.firstElementChild;
+            notification.setAttribute("class", `notification ${type}`);
+            notification.innerHTML = message;
+            this.show(true);
+        })(this.ready);
+    }
 });
 
-const ALL_ITEMS = [
-    {type: "primary", content: "Primary"},
-    {type: "secondary", content: "Secondary"},
-    {type: "info", content: "Info"},
-    {type: "success", content: "Success"},
-    {type: "warning", content: "Warning"},
-    {type: "danger", content: "Danger"}
-];
+const notifications = document.body.appendChild(document.createElement("esnext-notifications"));
 
-function randomItem() {
-    return ALL_ITEMS[Math.round(Math.random() * ALL_ITEMS.length)];
-}
+console.log("notifications ready");
 
-window.addEventListener("DOMContentLoaded", (event) => {
-    const notifications = document.body.appendChild(document.createElement("esnext-notifications"));
-    notifications.items = [...ALL_ITEMS];
-});
+const ws = new WebSocket(`${location.protocol === "http:" ? "ws:" : "wss:"}//${location.host}/`, "esnext-alert");
+
+ws.onopen = event => {
+    console.log("websocket open");
+};
+
+ws.onmessage = event => {
+    let message = event.data;
+    if (message.startsWith("notification:")) {
+        message = message.substring(13);
+        if (message.startsWith("new:")) {
+            message = message.substring(4);
+            notifications.add(JSON.parse(message));
+        } else if (message.startsWith("update:")) {
+            message = message.substring(7);
+            notifications.update(JSON.parse(message));
+        } else {
+            console.error("unable to handle web socket message", event.data);
+        }
+    }
+};
+
+ws.onerror = event => {
+    console.log("websocket error", event);
+};
+
+ws.onclose = event => {
+    document.removeChild(notifications);
+    console.warn("websocket closed");
+};

@@ -12,7 +12,13 @@ import {generateCjsProxy, parseCjsReady} from "./cjs-entry-proxy";
 import {collectEntryModules} from "./entry-modules";
 import {isBare, parseModuleUrl, pathnameToModuleUrl} from "./es-import-utils";
 import {generateEsmProxy, parseEsmReady} from "./esm-entry-proxy";
-import {ImportResolver, WebModulesFactory} from "./index";
+import {
+    ImportResolver,
+    WebModulesFactory,
+    WebModulesNotification,
+    WebModulesNotificationType,
+    WebModulesOptions
+} from "./index";
 import {replaceRequire} from "./replace-require";
 import {closestManifest, readImportMap, stripExt, writeImportMap} from "./utility";
 import {readWorkspaces} from "./workspaces";
@@ -23,8 +29,55 @@ export type EntryProxyResult = {
     external: string[]   // Imports that have to be treated as external during the bundling of this module
 }
 
-export function defaultOptions() {
+export function defaultOptions(): WebModulesOptions {
     return require(require.resolve(`${process.cwd()}/web-modules.config.js`));
+}
+
+export const notifications = new EventEmitter();
+
+export class Notification implements WebModulesNotification {
+
+    private static counter: number = 0;
+
+    id: number;
+    timeMs: number;
+    sticky: boolean;
+    type: WebModulesNotificationType;
+    message: string;
+    error?: Error;
+
+    constructor(
+        message: string,
+        type: WebModulesNotificationType = "info",
+        sticky: boolean = false,
+        error?: Error
+    ) {
+        this.id = ++Notification.counter;
+        this.type = type;
+        this.message = message;
+        this.sticky = sticky;
+        if (error) {
+            this.error = error;
+        }
+        this.timeMs = Date.now();
+    }
+
+    update(message: string, type?: WebModulesNotificationType, sticky?: boolean) {
+        this.message = message;
+        if (type !== undefined) {
+            this.type = type;
+        }
+        if (sticky !== undefined) {
+            this.sticky = sticky;
+        }
+        notifications.emit("update", this);
+    }
+}
+
+function notify(message: string, type: WebModulesNotificationType = "info", sticky: boolean = false, error?) {
+    const notification = new Notification(message, type, sticky, error);
+    notifications.emit("new", notification);
+    return notification;
 }
 
 /**
@@ -36,19 +89,14 @@ export function defaultOptions() {
  *
  * @param config
  */
-export const useWebModules = memoize<WebModulesFactory>((options) => {
+export const useWebModules = memoize<WebModulesFactory>((options: WebModulesOptions = defaultOptions()) => {
 
-    if (!options) {
-        options = defaultOptions();
-    }
     if (!options.environment) options.environment = "development";
     if (!options.resolve) options.resolve = {};
     if (!options.resolve.extensions) options.resolve.extensions = [".ts", ".tsx", ".js", ".jsx"];
     if (!options.external) options.external = ["@babel/runtime/**"];
     if (!options.esbuild) options.esbuild = {};
 
-    const notifications = new EventEmitter();
-    
     options.esbuild = {
         define: {
             "process.env.NODE_ENV": `"${options.environment}"`,
@@ -74,7 +122,9 @@ export const useWebModules = memoize<WebModulesFactory>((options) => {
     const outDir = path.join(options.rootDir, "web_modules");
     if (options.clean && existsSync(outDir)) {
         rmdirSync(outDir, {recursive: true});
-        log.warn("cleaned web_modules directory");
+        let message = "cleaned web_modules directory";
+        log.warn(message);
+        notify(message, "warning");
     }
     mkdirSync(outDir, {recursive: true});
 
@@ -233,6 +283,7 @@ export const useWebModules = memoize<WebModulesFactory>((options) => {
         let startTime = Date.now();
         log.debug("bundling web module:", source);
 
+        const bundleNotification = notify(`bundling web module: ${source}`, "info");
         try {
             let entryFile = resolve.sync(source, resolveOptions);
             let entryUrl = pathnameToModuleUrl(entryFile);
@@ -367,7 +418,12 @@ export const useWebModules = memoize<WebModulesFactory>((options) => {
             const elapsed = Date.now() - startTime;
             log.info`bundled: ${chalk.magenta(source)} in: ${chalk.magenta(String(elapsed))}ms`;
 
+            bundleNotification.update(`bundled: ${source} in: ${elapsed}ms`, "success");
+
         } catch (error) {
+
+            notify(`unable to bundle: ${source}`, "danger", true, error);
+
             if (resolve.sync(`${source}/package.json`, resolveOptions)) {
                 importMap.imports[source] = `/web_modules/${source}`;
                 log.warn("nothing to bundle for:", chalk.magenta(source), `(${chalk.gray(error.message)})`);
@@ -376,6 +432,7 @@ export const useWebModules = memoize<WebModulesFactory>((options) => {
                 log.warn("unable to bundle:", source, error);
                 throw error;
             }
+
         } finally {
             pendingTasks.delete(source);
         }
@@ -391,7 +448,6 @@ export const useWebModules = memoize<WebModulesFactory>((options) => {
         outDir,
         importMap,
         resolveImport,
-        esbuildWebModule,
-        notifications
+        esbuildWebModule
     };
 });

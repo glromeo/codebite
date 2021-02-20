@@ -1641,6 +1641,13 @@
   dependencies:
     "@types/jest" "*"
 
+"@types/ws@^7.4.0":
+  version "7.4.0"
+  resolved "https://registry.yarnpkg.com/@types/ws/-/ws-7.4.0.tgz#499690ea08736e05a8186113dac37769ab251a0e"
+  integrity sha512-Y29uQ3Uy+58bZrFLhX36hcI3Np37nqWE7ky5tjiDoy1GDZnIwVxS0CgF+s+1bXMzjKBFy+fqaRfb708iNzdinw==
+  dependencies:
+    "@types/node" "*"
+
 "@types/yargs-parser@*":
   version "20.2.0"
   resolved "https://registry.yarnpkg.com/@types/yargs-parser/-/yargs-parser-20.2.0.tgz#dd3e6699ba3237f0348cd085e4698780204842f9"
@@ -2894,20 +2901,15 @@ esbuild-sass-plugin@^1.0.7:
     picomatch "^2.2.2"
     sass "^1.32.5"
 
-esbuild@^0.8.33:
-  version "0.8.46"
-  resolved "https://registry.yarnpkg.com/esbuild/-/esbuild-0.8.46.tgz#8fc7230ce3019b12e2553399f0c03875a729c26b"
-  integrity sha512-xck9sXNCNmjDHCCfxTCyhKTiFuEBweh+IDAhMLOJI990v1Fzii6MyIkT1LbkvjgoVgPX2SK1kpi5eZVGNrl8yg==
+esbuild@^0.8.33, esbuild@^0.8.47:
+  version "0.8.49"
+  resolved "https://registry.yarnpkg.com/esbuild/-/esbuild-0.8.49.tgz#3d33f71b3966611f822cf4c838115f3fbd16def2"
+  integrity sha512-itiFVYv5UZz4NooO7/Y0bRGVDGz/M/cxKbl6zyNI5pnKaz1mZjvZXAFhhDVz6rGCmcdTKj5oag6rh8DaaSSmfQ==
 
 esbuild@^0.8.39:
   version "0.8.44"
   resolved "https://registry.yarnpkg.com/esbuild/-/esbuild-0.8.44.tgz#2a74f48fe20579081c9d8fe99be6fb8d2848c887"
   integrity sha512-m9yyBZMgWuAB7e7tA2g9L4PovoLa5Xb73+Yg9uBBR2w3Fe4P9/nxqj/HLrw1k/rjdjF1eX1kNJRytboqOtRCCQ==
-
-esbuild@^0.8.47:
-  version "0.8.47"
-  resolved "https://registry.yarnpkg.com/esbuild/-/esbuild-0.8.47.tgz#5d5c59b7dcb8a20dfadf65a985e5e5ca7b24eff2"
-  integrity sha512-4C9pInguP36c9CRDMSb6W1KrMfXrLIQVtI02Vglc43RBV0Dw49ODEnP6985mrz5iqCdQ2Cxmb9i670J/s3DBPA==
 
 escalade@^3.1.1:
   version "3.1.1"

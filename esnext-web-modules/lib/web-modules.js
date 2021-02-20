@@ -22,7 +22,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.useWebModules = exports.defaultOptions = void 0;
+exports.useWebModules = exports.Notification = exports.notifications = exports.defaultOptions = void 0;
 const chalk_1 = __importDefault(require("chalk"));
 const esbuild_1 = require("esbuild");
 const esbuild_sass_plugin_1 = require("esbuild-sass-plugin");
@@ -44,10 +44,37 @@ function defaultOptions() {
     return require(require.resolve(`${process.cwd()}/web-modules.config.js`));
 }
 exports.defaultOptions = defaultOptions;
-exports.useWebModules = pico_memoize_1.default((options) => {
-    if (!options) {
-        options = defaultOptions();
+exports.notifications = new events_1.default();
+class Notification {
+    constructor(message, type = "info", sticky = false, error) {
+        this.id = ++Notification.counter;
+        this.type = type;
+        this.message = message;
+        this.sticky = sticky;
+        if (error) {
+            this.error = error;
+        }
+        this.timeMs = Date.now();
     }
+    update(message, type, sticky) {
+        this.message = message;
+        if (type !== undefined) {
+            this.type = type;
+        }
+        if (sticky !== undefined) {
+            this.sticky = sticky;
+        }
+        exports.notifications.emit("update", this);
+    }
+}
+exports.Notification = Notification;
+Notification.counter = 0;
+function notify(message, type = "info", sticky = false, error) {
+    const notification = new Notification(message, type, sticky, error);
+    exports.notifications.emit("new", notification);
+    return notification;
+}
+exports.useWebModules = pico_memoize_1.default((options = defaultOptions()) => {
     if (!options.environment)
         options.environment = "development";
     if (!options.resolve)
@@ -58,7 +85,6 @@ exports.useWebModules = pico_memoize_1.default((options) => {
         options.external = ["@babel/runtime/**"];
     if (!options.esbuild)
         options.esbuild = {};
-    const notifications = new events_1.default();
     options.esbuild = {
         define: {
             "process.env.NODE_ENV": `"${options.environment}"`,
@@ -82,7 +108,9 @@ exports.useWebModules = pico_memoize_1.default((options) => {
     const outDir = path_1.default.join(options.rootDir, "web_modules");
     if (options.clean && fs_1.existsSync(outDir)) {
         fs_1.rmdirSync(outDir, { recursive: true });
-        tiny_node_logger_1.default.warn("cleaned web_modules directory");
+        let message = "cleaned web_modules directory";
+        tiny_node_logger_1.default.warn(message);
+        notify(message, "warning");
     }
     fs_1.mkdirSync(outDir, { recursive: true });
     const importMap = {
@@ -206,6 +234,7 @@ exports.useWebModules = pico_memoize_1.default((options) => {
     async function esbuildWebModuleTask(source) {
         let startTime = Date.now();
         tiny_node_logger_1.default.debug("bundling web module:", source);
+        const bundleNotification = notify(`bundling web module: ${source}`, "info");
         try {
             let entryFile = resolve_1.default.sync(source, resolveOptions);
             let entryUrl = es_import_utils_1.pathnameToModuleUrl(entryFile);
@@ -331,8 +360,10 @@ exports.useWebModules = pico_memoize_1.default((options) => {
             ]);
             const elapsed = Date.now() - startTime;
             tiny_node_logger_1.default.info `bundled: ${chalk_1.default.magenta(source)} in: ${chalk_1.default.magenta(String(elapsed))}ms`;
+            bundleNotification.update(`bundled: ${source} in: ${elapsed}ms`, "success");
         }
         catch (error) {
+            notify(`unable to bundle: ${source}`, "danger", true, error);
             if (resolve_1.default.sync(`${source}/package.json`, resolveOptions)) {
                 importMap.imports[source] = `/web_modules/${source}`;
                 tiny_node_logger_1.default.warn("nothing to bundle for:", chalk_1.default.magenta(source), `(${chalk_1.default.gray(error.message)})`);
@@ -356,8 +387,7 @@ exports.useWebModules = pico_memoize_1.default((options) => {
         outDir,
         importMap,
         resolveImport,
-        esbuildWebModule,
-        notifications
+        esbuildWebModule
     };
 });
 //# sourceMappingURL=web-modules.js.map
