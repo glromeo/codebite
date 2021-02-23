@@ -10,6 +10,8 @@ export const useBabelTransformer = memoize((options: ESNextOptions, sourceMaps: 
 
     const {resolveImports, rewriteImports} = useWebModulesPlugin(options);
 
+    const preProcess = options.transform && options.transform.preProcess;
+
     async function babelTransformer(filename:string, content:string): Promise<TransformerOutput> {
 
         const babelOptions: TransformOptions = {
@@ -19,7 +21,7 @@ export const useBabelTransformer = memoize((options: ESNextOptions, sourceMaps: 
             filename: filename
         };
 
-        const source = content;
+        const source = preProcess ? preProcess(filename, content) : content;
         const parsedAst = parseSync(source, babelOptions)!;
         const importMap = await resolveImports(filename, parsedAst);
 

@@ -7,7 +7,8 @@ describe("workspaces", function () {
 
     let {resolveImport} = useWebModules({
         rootDir: path.join(__dirname, "fixture/workspaces"),
-        resolve: {paths: [path.join(__dirname, "fixture/workspaces/node_modules")]}
+        resolve: {paths: [path.join(__dirname, "fixture/workspaces/node_modules")]},
+        clean: true
     })
 
     it("can resolve workspaces modules", async function () {

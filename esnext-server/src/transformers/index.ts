@@ -28,12 +28,12 @@ export type SourceMap = {
 
 export type TransformerOutput = {
     content: string
+    map?: SourceMap | null;
     headers: {
         "content-type": typeof JAVASCRIPT_CONTENT_TYPE | typeof HTML_CONTENT_TYPE | typeof CSS_CONTENT_TYPE,
         "content-length": number,
         "x-transformer": "babel-transformer" | "sass-transformer" | "html-transformer" | "esbuild-transformer"
     },
-    map?: SourceMap | null;
     links?: string[]
     includedFiles?: string[]
 }

@@ -144,18 +144,17 @@ socket.addEventListener("message", ({ data: _data }) => {
         return;
     }
     const data = JSON.parse(_data);
-    debug("message", data);
     if (data.type === "reload") {
-        debug("message: reload");
+        //debug("message: reload");
         reload();
         return;
     }
     if (data.type !== "update") {
-        debug("message: unknown", data);
+        //debug("message: unknown", data);
         return;
     }
-    debug("message: update", data);
-    debug(data.url, Object.keys(REGISTERED_MODULES));
+    //debug("message: update", data);
+    //debug(data.url, Object.keys(REGISTERED_MODULES));
     applyUpdate(data.url)
         .then((ok) => {
             if (!ok) {

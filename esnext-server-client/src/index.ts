@@ -1,2 +1,2 @@
-import "./hmr-client";
 import "./notifications";
+export * from "./hmr-client";

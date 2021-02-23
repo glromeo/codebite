@@ -133,6 +133,9 @@ export const useHotModuleReplacement = memoize(function (options: ESNextOptions)
         engine: null,
         connect(server) {
             this.engine = new EsmHmrEngine(server);
+            server.on("close", () => {
+                this.engine!.disconnectAllClients();
+            });
         }
     }
 });

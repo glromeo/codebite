@@ -86,10 +86,38 @@ export const useResourceProvider = memoize(function (options: ESNextOptions, wat
         watcher.unwatch(path);
     }
 
+    function updateOrBubble(url: string, visited: Set<string>) {
+        if (visited.has(url)) {
+            return;
+        }
+        const node = hmr.engine!.getEntry(url);
+        const isBubbled = visited.size > 0;
+        if (node && node.isHmrEnabled) {
+            hmr.engine!.broadcastMessage({type: 'update', url, bubbled: isBubbled});
+        }
+        visited.add(url);
+        if (node && node.isHmrAccepted) {
+            // Found a boundary, no bubbling needed
+        } else if (node && node.dependents.size > 0) {
+            node.dependents.forEach((dep) => {
+                hmr.engine!.markEntryForReplacement(node, true);
+                updateOrBubble(dep, visited);
+            });
+        } else {
+            // We've reached the top, trigger a full page refresh
+            hmr.engine!.broadcastMessage({type: 'reload'});
+        }
+    }
+
     watcher.on("change", function (path) {
         const urls = watched.get(path);
         if (urls) for (const url of urls) {
             reload(url, path);
+            if (hmr.engine!.getEntry(url)) {
+                hmr.engine!.broadcastMessage({type: 'update', url, bubbled: false});
+                // updateOrBubble(url, new Set());
+                return;
+            }
         }
     });
 
@@ -103,13 +131,19 @@ export const useResourceProvider = memoize(function (options: ESNextOptions, wat
     });
 
     async function reload(url:string, path:string) {
-        const resource = await cache.get(url);
+        const resource = cache.get(url);
         if (resource) {
-            const stats = await fs.stat(resource.filename);
-            resource.content = await fs.readFile(resource.filename);
-            resource.headers["content-type"] = contentType(resource.filename);
-            resource.headers["content-length"] = stats.size;
-            resource.headers["last-modified"] = stats.mtime.toUTCString();
+            cache.set(url, Promise.resolve(resource).then(async resource => {
+                const stats = await fs.stat(resource.filename);
+                resource.content = await fs.readFile(resource.filename);
+                resource.headers["content-type"] = contentType(resource.filename);
+                resource.headers["content-length"] = stats.size;
+                resource.headers["last-modified"] = stats.mtime.toUTCString();
+                return pipeline(resource);
+            }).then(resource => {
+                cache.set(url, resource);
+                return resource;
+            }));
         } else {
             log.warn("no cache entry for:", url);
             unwatch(path);
@@ -134,6 +168,10 @@ export const useResourceProvider = memoize(function (options: ESNextOptions, wat
      */
     async function provideResource(url: string): Promise<Resource> {
         const resource = await route(url);
+        return pipeline(resource);
+    }
+
+    async function pipeline(resource: Resource) {
         if (shouldTransform(resource)) {
             const sourceMap = await transformContent(resource);
             if (sourceMap) {

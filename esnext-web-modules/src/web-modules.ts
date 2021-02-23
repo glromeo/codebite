@@ -4,8 +4,8 @@ import {sassPlugin} from "esbuild-sass-plugin";
 import EventEmitter from "events";
 import {parse} from "fast-url-parser";
 import {existsSync, mkdirSync, rmdirSync, statSync} from "fs";
-import memoize from "pico-memoize";
 import path, {posix} from "path";
+import memoize from "pico-memoize";
 import resolve, {Opts} from "resolve";
 import log from "tiny-node-logger";
 import {generateCjsProxy, parseCjsReady} from "./cjs-entry-proxy";
@@ -122,9 +122,7 @@ export const useWebModules = memoize<WebModulesFactory>((options: WebModulesOpti
     const outDir = path.join(options.rootDir, "web_modules");
     if (options.clean && existsSync(outDir)) {
         rmdirSync(outDir, {recursive: true});
-        let message = "cleaned web_modules directory";
-        log.warn(message);
-        notify(message, "warning");
+        log.warn("cleaned web_modules directory");
     }
     mkdirSync(outDir, {recursive: true});
 
@@ -253,7 +251,7 @@ export const useWebModules = memoize<WebModulesFactory>((options: WebModulesOpti
      *
      * @param source
      */
-    function esbuildWebModule(source: string): Promise<void> {
+    async function esbuildWebModule(source: string): Promise<void> {
         if (importMap.imports[source]) {
             return ALREADY_RESOLVED;
         }
@@ -311,7 +309,7 @@ export const useWebModules = memoize<WebModulesFactory>((options: WebModulesOpti
                     plugins: [stylePlugin, {
                         name: "web_modules",
                         setup(build) {
-                            build.onResolve({filter: /./}, async function ({path: url, importer}) {
+                            build.onResolve({filter: /./}, async ({path: url, importer}) => {
                                 if (isBare(url)) {
                                     if (url === entryUrl) {
                                         return {path: entryFile};
@@ -364,7 +362,7 @@ export const useWebModules = memoize<WebModulesFactory>((options: WebModulesOpti
                     plugins: [stylePlugin, {
                         name: "web_modules",
                         setup(build) {
-                            build.onResolve({filter: /./}, async function ({path: url, importer}) {
+                            build.onResolve({filter: /./}, async ({path: url, importer}) => {
                                 if (isBare(url)) {
                                     if (imported.has(url)) {
                                         let webModuleUrl = importMap.imports[url];
@@ -420,17 +418,16 @@ export const useWebModules = memoize<WebModulesFactory>((options: WebModulesOpti
 
             bundleNotification.update(`bundled: ${source} in: ${elapsed}ms`, "success");
 
-        } catch (error) {
+        } catch(error) {
 
-            notify(`unable to bundle: ${source}`, "danger", true, error);
-
-            if (resolve.sync(`${source}/package.json`, resolveOptions)) {
-                importMap.imports[source] = `/web_modules/${source}`;
-                log.warn("nothing to bundle for:", chalk.magenta(source), `(${chalk.gray(error.message)})`);
-                await writeImportMap(outDir, importMap);
-            } else {
+            const [entryModule] = parseModuleUrl(source);
+            if (source === entryModule) {
+                notify(`unable to bundle: ${source}`, "danger", true, error);
                 log.warn("unable to bundle:", source, error);
                 throw error;
+            } else {
+                importMap.imports[source] = `/web_modules/${source}`;
+                log.warn("nothing to bundle for:", chalk.magenta(source), `(${chalk.gray(error.message)})`);
             }
 
         } finally {

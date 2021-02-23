@@ -31,6 +31,7 @@ export declare type ESNextOptions = WebModulesOptions & {
     transform: {
         include: string | string[];
         exclude: string | string[];
+        preProcess?(filename: string, code: string): string;
     };
     mount: {
         [path: string]: string;

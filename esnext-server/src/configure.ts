@@ -38,6 +38,7 @@ export type ESNextOptions = WebModulesOptions & {
     transform: {
         include: string | string[]
         exclude: string | string[]
+        preProcess?(filename: string, code: string): string
     }
     mount: { [path: string]: string }
     babel: TransformOptions
@@ -78,15 +79,6 @@ function assignConfig<V>(target: V, source: any) {
                 }
             }
         }
-    }
-}
-
-function loadPlugin(module) {
-    try {
-        return require(`${module}/esnext-server.plugin`);
-    } catch (error) {
-        log.error("plugin", module, "load failed", error);
-        throw new Error(`Unable to load plugin '${module}' from '${process.cwd()}'`);
     }
 }
 
@@ -234,8 +226,12 @@ export function configure(args: Args = {}, override?): Readonly<ESNextOptions> {
 
     if (args.module) {
         const modules = Array.isArray(args.module) ? args.module : [args.module];
-        for (const module of modules) {
-            assignConfig(options, loadPlugin(module));
+        for (const module of modules) try {
+            const plugin = require.resolve(`${module}/esnext-server.plugin`, {paths: [options.rootDir]});
+            assignConfig(options, require(plugin));
+        } catch (error) {
+            log.error("plugin '" + module + "' load failed:", error);
+            process.exit(1);
         }
     }
 

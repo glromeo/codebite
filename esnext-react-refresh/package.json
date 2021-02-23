@@ -1,0 +1,16 @@
+{
+  "name": "esnext-react-refresh",
+  "version": "1.0.0",
+  "module": "index.js",
+  "license": "MIT",
+  "dependencies": {
+    "@babel/core": "^7.12.17",
+    "@babel/plugin-syntax-class-properties": "^7.12.13",
+    "@babel/types": "^7.12.17",
+    "react-refresh": "^0.9.0",
+    "esnext-server-client": "^1.0.0"
+  },
+  "scripts": {
+    "runtime": "esbuild react-refresh/runtime --define:process.env.NODE_ENV=\\\"development\\\" --outdir=lib --bundle --format=esm"
+  }
+}

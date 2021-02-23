@@ -170,7 +170,7 @@ customElements.define("esnext-notifications", class ESNextNotifications extends 
                 notification.classList.add("sticky");
                 notification.addEventListener("click", dismiss);
             } else {
-                setTimeout(dismiss, 2500);
+                setTimeout(dismiss, 3000);
             }
             notification.innerHTML = message;
             slot.appendChild(notification);

@@ -29,8 +29,8 @@ const esbuild_sass_plugin_1 = require("esbuild-sass-plugin");
 const events_1 = __importDefault(require("events"));
 const fast_url_parser_1 = require("fast-url-parser");
 const fs_1 = require("fs");
-const pico_memoize_1 = __importDefault(require("pico-memoize"));
 const path_1 = __importStar(require("path"));
+const pico_memoize_1 = __importDefault(require("pico-memoize"));
 const resolve_1 = __importDefault(require("resolve"));
 const tiny_node_logger_1 = __importDefault(require("tiny-node-logger"));
 const cjs_entry_proxy_1 = require("./cjs-entry-proxy");
@@ -108,9 +108,7 @@ exports.useWebModules = pico_memoize_1.default((options = defaultOptions()) => {
     const outDir = path_1.default.join(options.rootDir, "web_modules");
     if (options.clean && fs_1.existsSync(outDir)) {
         fs_1.rmdirSync(outDir, { recursive: true });
-        let message = "cleaned web_modules directory";
-        tiny_node_logger_1.default.warn(message);
-        notify(message, "warning");
+        tiny_node_logger_1.default.warn("cleaned web_modules directory");
     }
     fs_1.mkdirSync(outDir, { recursive: true });
     const importMap = {
