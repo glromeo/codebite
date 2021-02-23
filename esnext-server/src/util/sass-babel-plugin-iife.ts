@@ -1,7 +1,6 @@
 import {template, types as t} from "@babel/core";
 import {hasExports, isModule, rewriteModuleStatementsAndPrepareHeader} from "@babel/helper-module-transforms";
 import {declare} from "@babel/helper-plugin-utils";
-import {Identifier, MemberExpression, ThisExpression} from "@babel/types";
 import {parse, resolve} from "path";
 
 const wrapper = template(`
@@ -25,7 +24,7 @@ export default declare((api, options) => {
 
     function buildExportNamespace() {
         const members = exportNamespace ? exportNamespace.split(".") : [];
-        let id: MemberExpression | ThisExpression = t.thisExpression();
+        let id: t.MemberExpression | t.ThisExpression = t.thisExpression();
         return {
             expression: id,
             statements: members.map(seg => {
@@ -66,10 +65,10 @@ export default declare((api, options) => {
                     });
 
                     // The arguments of the outer, IIFE function
-                    const iifeArgs: (MemberExpression | ThisExpression)[] = [];
+                    const iifeArgs: (t.MemberExpression | t.ThisExpression)[] = [];
 
                     // The corresponding arguments to the inner function called by the IIFE
-                    const innerArgs: Identifier[] = [];
+                    const innerArgs: t.Identifier[] = [];
 
                     // If exports are detected, set up the export namespace info
                     let exportStatements = [];

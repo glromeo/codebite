@@ -137,6 +137,9 @@ export const useWebModules = memoize<WebModulesFactory>((options: WebModulesOpti
     const entryModules = collectEntryModules(resolveOptions, squash);
     const isModule = /\.m?[tj]sx?$/;
 
+    const ignore = function () {
+    };
+
     /**
      *                       _          _____                           _
      *                      | |        |_   _|                         | |
@@ -251,7 +254,7 @@ export const useWebModules = memoize<WebModulesFactory>((options: WebModulesOpti
      *
      * @param source
      */
-    async function esbuildWebModule(source: string): Promise<void> {
+    function esbuildWebModule(source: string): Promise<void> {
         if (importMap.imports[source]) {
             return ALREADY_RESOLVED;
         }
@@ -276,6 +279,15 @@ export const useWebModules = memoize<WebModulesFactory>((options: WebModulesOpti
         parseEsmReady
     ]).then(([service]) => esbuild = service);
 
+    let resolveEntryFile = function (source: string) {
+        try {
+            return resolve.sync(source, resolveOptions);
+        } catch (error) {
+            log.warn("nothing to bundle for:", chalk.magenta(source), `(${chalk.gray(error.message)})`);
+            return null;
+        }
+    };
+
     async function esbuildWebModuleTask(source: string): Promise<void> {
 
         let startTime = Date.now();
@@ -283,7 +295,12 @@ export const useWebModules = memoize<WebModulesFactory>((options: WebModulesOpti
 
         const bundleNotification = notify(`bundling web module: ${source}`, "info");
         try {
-            let entryFile = resolve.sync(source, resolveOptions);
+            const entryFile = resolveEntryFile(source);
+            if (!entryFile) {
+                importMap.imports[source] = `/web_modules/${source}`;
+                notify(`nothing to bundle for: ${source}`, "success", true);
+                return;
+            }
             let entryUrl = pathnameToModuleUrl(entryFile);
             let pkg = closestManifest(entryFile);
             let isESM = pkg.module || pkg["jsnext:main"]
@@ -291,7 +308,7 @@ export const useWebModules = memoize<WebModulesFactory>((options: WebModulesOpti
                 || entryFile.indexOf("\\es\\") > 0
                 || entryFile.indexOf("\\esm\\") > 0;
 
-            let [entryModule, pathname] = parseModuleUrl(source);
+            const [entryModule, pathname] = parseModuleUrl(source);
             if (entryModule && !importMap.imports[entryModule] && entryModule !== source) {
                 await esbuildWebModule(entryModule);
             }
@@ -349,6 +366,11 @@ export const useWebModules = memoize<WebModulesFactory>((options: WebModulesOpti
                 let entryProxy = isESM ? generateEsmProxy(entryFile) : generateCjsProxy(entryFile);
                 let imported = new Set<string>(entryProxy.imports);
                 let external = new Set<string>(entryProxy.external);
+
+                // NOTE: externals are disabled at the moment
+                if (external.size) {
+                    log.warn(`${source} has ${external.size} externals: ${external.size < 20 ? entryProxy.external : "..."}`)
+                }
 
                 await (esbuild || await ready).build({
                     ...options.esbuild,
@@ -417,18 +439,6 @@ export const useWebModules = memoize<WebModulesFactory>((options: WebModulesOpti
             log.info`bundled: ${chalk.magenta(source)} in: ${chalk.magenta(String(elapsed))}ms`;
 
             bundleNotification.update(`bundled: ${source} in: ${elapsed}ms`, "success");
-
-        } catch(error) {
-
-            const [entryModule] = parseModuleUrl(source);
-            if (source === entryModule) {
-                notify(`unable to bundle: ${source}`, "danger", true, error);
-                log.warn("unable to bundle:", source, error);
-                throw error;
-            } else {
-                importMap.imports[source] = `/web_modules/${source}`;
-                log.warn("nothing to bundle for:", chalk.magenta(source), `(${chalk.gray(error.message)})`);
-            }
 
         } finally {
             pendingTasks.delete(source);

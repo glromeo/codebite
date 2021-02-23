@@ -120,6 +120,8 @@ exports.useWebModules = pico_memoize_1.default((options = defaultOptions()) => {
     const squash = new Set(options.squash);
     const entryModules = entry_modules_1.collectEntryModules(resolveOptions, squash);
     const isModule = /\.m?[tj]sx?$/;
+    const ignore = function () {
+    };
     const resolveImport = async (url, basedir = options.rootDir) => {
         let { hostname, pathname, search } = fast_url_parser_1.parse(url);
         if (hostname !== null) {
@@ -229,19 +231,33 @@ exports.useWebModules = pico_memoize_1.default((options = defaultOptions()) => {
         cjs_entry_proxy_1.parseCjsReady,
         esm_entry_proxy_1.parseEsmReady
     ]).then(([service]) => esbuild = service);
+    let resolveEntryFile = function (source) {
+        try {
+            return resolve_1.default.sync(source, resolveOptions);
+        }
+        catch (error) {
+            tiny_node_logger_1.default.warn("nothing to bundle for:", chalk_1.default.magenta(source), `(${chalk_1.default.gray(error.message)})`);
+            return null;
+        }
+    };
     async function esbuildWebModuleTask(source) {
         let startTime = Date.now();
         tiny_node_logger_1.default.debug("bundling web module:", source);
         const bundleNotification = notify(`bundling web module: ${source}`, "info");
         try {
-            let entryFile = resolve_1.default.sync(source, resolveOptions);
+            const entryFile = resolveEntryFile(source);
+            if (!entryFile) {
+                importMap.imports[source] = `/web_modules/${source}`;
+                notify(`nothing to bundle for: ${source}`, "success", true);
+                return;
+            }
             let entryUrl = es_import_utils_1.pathnameToModuleUrl(entryFile);
             let pkg = utility_1.closestManifest(entryFile);
             let isESM = pkg.module || pkg["jsnext:main"]
                 || entryFile.endsWith(".mjs")
                 || entryFile.indexOf("\\es\\") > 0
                 || entryFile.indexOf("\\esm\\") > 0;
-            let [entryModule, pathname] = es_import_utils_1.parseModuleUrl(source);
+            const [entryModule, pathname] = es_import_utils_1.parseModuleUrl(source);
             if (entryModule && !importMap.imports[entryModule] && entryModule !== source) {
                 await esbuildWebModule(entryModule);
             }
@@ -256,7 +272,7 @@ exports.useWebModules = pico_memoize_1.default((options = defaultOptions()) => {
                     plugins: [stylePlugin, {
                             name: "web_modules",
                             setup(build) {
-                                build.onResolve({ filter: /./ }, async function ({ path: url, importer }) {
+                                build.onResolve({ filter: /./ }, async ({ path: url, importer }) => {
                                     if (es_import_utils_1.isBare(url)) {
                                         if (url === entryUrl) {
                                             return { path: entryFile };
@@ -296,6 +312,9 @@ exports.useWebModules = pico_memoize_1.default((options = defaultOptions()) => {
                 let entryProxy = isESM ? esm_entry_proxy_1.generateEsmProxy(entryFile) : cjs_entry_proxy_1.generateCjsProxy(entryFile);
                 let imported = new Set(entryProxy.imports);
                 let external = new Set(entryProxy.external);
+                if (external.size) {
+                    tiny_node_logger_1.default.warn(`${source} has ${external.size} externals: ${external.size < 20 ? entryProxy.external : "..."}`);
+                }
                 await (esbuild || await ready).build({
                     ...options.esbuild,
                     stdin: {
@@ -308,7 +327,7 @@ exports.useWebModules = pico_memoize_1.default((options = defaultOptions()) => {
                     plugins: [stylePlugin, {
                             name: "web_modules",
                             setup(build) {
-                                build.onResolve({ filter: /./ }, async function ({ path: url, importer }) {
+                                build.onResolve({ filter: /./ }, async ({ path: url, importer }) => {
                                     if (es_import_utils_1.isBare(url)) {
                                         if (imported.has(url)) {
                                             let webModuleUrl = importMap.imports[url];
@@ -359,18 +378,6 @@ exports.useWebModules = pico_memoize_1.default((options = defaultOptions()) => {
             const elapsed = Date.now() - startTime;
             tiny_node_logger_1.default.info `bundled: ${chalk_1.default.magenta(source)} in: ${chalk_1.default.magenta(String(elapsed))}ms`;
             bundleNotification.update(`bundled: ${source} in: ${elapsed}ms`, "success");
-        }
-        catch (error) {
-            notify(`unable to bundle: ${source}`, "danger", true, error);
-            if (resolve_1.default.sync(`${source}/package.json`, resolveOptions)) {
-                importMap.imports[source] = `/web_modules/${source}`;
-                tiny_node_logger_1.default.warn("nothing to bundle for:", chalk_1.default.magenta(source), `(${chalk_1.default.gray(error.message)})`);
-                await utility_1.writeImportMap(outDir, importMap);
-            }
-            else {
-                tiny_node_logger_1.default.warn("unable to bundle:", source, error);
-                throw error;
-            }
         }
         finally {
             pendingTasks.delete(source);

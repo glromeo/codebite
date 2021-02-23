@@ -62,7 +62,7 @@ describe("resolve import", function () {
 
         importMap.imports = {};
 
-        expect(await resolveImport("lit-html/src/lit-html")).to.equal("/web_modules/lit-html/src/lit-html.ts");
+        expect(await resolveImport("lit-html/src/lit-html")).to.equal("/node_modules/lit-html/src/lit-html.ts");
     });
 
     it("extensionless files are left extensionless, directories resolve to index", async function () {

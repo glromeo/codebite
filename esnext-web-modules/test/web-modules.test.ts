@@ -1,7 +1,6 @@
 import {expect} from "chai";
 import * as fs from "fs";
 import {existsSync, readFileSync, statSync} from "fs";
-import * as mocha from "mocha";
 import * as path from "path";
 import {join, relative, resolve} from "path";
 import {SourceMapConsumer} from "source-map";

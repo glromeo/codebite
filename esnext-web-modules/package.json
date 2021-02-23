@@ -72,6 +72,6 @@
     "build": "tsc",
     "build:watch": "tsc --watch",
     "serve:fixture": "http-server test/fixture",
-    "test": "nyc mocha test/**/*.test.ts"
+    "test": "nyc mocha test/**/*.test.ts --ignore **/node_modules/**"
   }
 }
