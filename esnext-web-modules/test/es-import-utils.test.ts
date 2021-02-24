@@ -1,6 +1,9 @@
 import {expect} from "chai";
 import {pathnameToModuleUrl, isBare, parseModuleUrl, toPosix} from "../src";
 import * as path from "path";
+import log from "tiny-node-logger";
+
+log.level = "error";
 
 describe("ES Import Utils", function () {
 

@@ -70,7 +70,6 @@ export const useWebModulesPlugin = memoize(config => {
 
     async function resolveImports(filename, parsedAst) {
 
-        const dirname = path.dirname(filename);
         const importMap = new Map();
 
         traverse(parsedAst, {
@@ -81,7 +80,7 @@ export const useWebModulesPlugin = memoize(config => {
                     const [source] = path.get("arguments");
                     if (source.type === "StringLiteral") {
                         const importUrl = source.node.value;
-                        const resolved = resolveImport(importUrl, dirname);
+                        const resolved = resolveImport(importUrl, filename);
                         importMap.set(importUrl, resolved.catch(error => throwCodeFrameError(path, importUrl, error)));
                     }
                 }
@@ -90,7 +89,7 @@ export const useWebModulesPlugin = memoize(config => {
                 const source = path.get("source");
                 if (source.node !== null) {
                     const importUrl = source.node.value;
-                    const resolved = resolveImport(importUrl, dirname);
+                    const resolved = resolveImport(importUrl, filename);
                     importMap.set(importUrl, resolved.catch(error => throwCodeFrameError(path, importUrl, error)));
                 }
             }

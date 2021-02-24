@@ -151,9 +151,9 @@ export const useWebModules = memoize<WebModulesFactory>((options: WebModulesOpti
      *                                                |_|
      *
      * @param url
-     * @param basedir
+     * @param importer
      */
-    const resolveImport: ImportResolver = async (url, basedir = options.rootDir) => {
+    const resolveImport: ImportResolver = async (url, importer?) => {
         let {
             hostname,
             pathname,
@@ -167,26 +167,23 @@ export const useWebModules = memoize<WebModulesFactory>((options: WebModulesOpti
         let resolved = importMap.imports[pathname];
         if (!resolved) {
             let [module, filename] = parseModuleUrl(pathname);
-            if (module !== null && !importMap.imports[module]) {
+            if (module && !importMap.imports[module]) {
                 await esbuildWebModule(module);
                 resolved = importMap.imports[module];
             }
             if (filename) {
                 let ext = posix.extname(filename);
                 if (!ext) {
+                    const basedir = importer ? path.dirname(importer) : options.rootDir;
                     filename = resolveFilename(module, filename, basedir);
                     ext = path.extname(filename);
                 }
-                if (!isModule.test(ext)) {
-                    let type = resolveModuleType(ext, basedir);
+                const type = importer ? resolveModuleType(ext, importer) : null;
+                if (type) {
                     search = search ? `?type=${type}&${search.slice(1)}` : `?type=${type}`;
-                    if (module) {
-                        resolved = `/node_modules/${module}/${filename}`;
-                    } else {
-                        resolved = filename;
-                    }
-                } else {
-                    if (module) {
+                }
+                if (module) {
+                    if (ext === ".js" || ext === ".mjs") {
                         let bundled = importMap.imports[posix.join(module, filename)];
                         if (bundled) {
                             resolved = bundled;
@@ -196,8 +193,10 @@ export const useWebModules = memoize<WebModulesFactory>((options: WebModulesOpti
                             resolved = `/web_modules/${target}`;
                         }
                     } else {
-                        resolved = filename;
+                        resolved = `/node_modules/${module}/${filename}`;
                     }
+                } else {
+                    resolved = filename;
                 }
             }
         }
@@ -239,8 +238,12 @@ export const useWebModules = memoize<WebModulesFactory>((options: WebModulesOpti
         }
     }
 
-    function resolveModuleType(ext: string, basedir: string | undefined) {
-        return "module";
+    function resolveModuleType(ext: string, importer: string): string | null {
+        if (!importer.endsWith(ext) && isModule.test(importer)) {
+            return "module";
+        } else {
+            return null;
+        }
     }
 
     const pendingTasks = new Map<string, Promise<void>>();
@@ -350,11 +353,13 @@ export const useWebModules = memoize<WebModulesFactory>((options: WebModulesOpti
                                     if (webModuleUrl) {
                                         return {path: webModuleUrl, external: true, namespace: "web_modules"};
                                     }
-                                    return {
-                                        path: `/web_modules/${bareUrl}`,
-                                        external: true,
-                                        namespace: "web_modules"
-                                    };
+                                    log.warn(">>>", importer, url);
+                                    // return {
+                                    //     path: `/web_modules/${bareUrl}`,
+                                    //     external: true,
+                                    //     namespace: "web_modules"
+                                    // };
+                                    return null;
                                 }
                             });
                         }

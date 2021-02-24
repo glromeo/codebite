@@ -50,9 +50,6 @@ export const useHtmlTransformer = memoize(config => {
         let scriptContext;
         let html: (string | Promise<string>)[] = [];
 
-        const dirname = path.dirname(filename);
-        const basename = path.basename(filename);
-
         const stream = new Parser({
 
             onprocessinginstruction(name, data) {
@@ -65,7 +62,7 @@ export const useHtmlTransformer = memoize(config => {
                     if (attribs.type === "module") {
                         if (attribs.src) {
                             html.push(
-                                resolveImport(attribs.src, dirname).then(relativeUrl => {
+                                resolveImport(attribs.src, filename).then(relativeUrl => {
                                     imports.add(relativeUrl);
                                     attribs.src = relativeUrl;
                                     return openTag(name, attribs);

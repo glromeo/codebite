@@ -1,6 +1,9 @@
 import {expect} from "chai";
 import * as path from "path";
 import {useWebModules, WebModulesOptions} from "../src";
+import log from "tiny-node-logger";
+
+log.level = "error";
 
 describe("resolve import", function () {
 
@@ -65,29 +68,38 @@ describe("resolve import", function () {
         expect(await resolveImport("lit-html/src/lit-html")).to.equal("/node_modules/lit-html/src/lit-html.ts");
     });
 
-    it("extensionless files are left extensionless, directories resolve to index", async function () {
+    it("extensionless files are left extensionless", async function () {
 
         let {rootDir, resolveImport, importMap} = setup("fixture");
 
         importMap.imports = {};
 
-        expect(await resolveImport("lit-html/LICENSE")).to.equal("/node_modules/lit-html/LICENSE?type=module");
+        expect(await resolveImport("lit-html/LICENSE")).to.equal("/node_modules/lit-html/LICENSE");
+    });
 
-        expect(await resolveImport("./home", rootDir)).to.equal("./home/index.ts");
+    it("directories resolve to index", async function () {
+
+        let {rootDir, resolveImport, importMap} = setup("fixture");
+
+        importMap.imports = {};
+
+        expect(await resolveImport("./home")).to.equal("./home/index.ts");
+        expect(await resolveImport("./home", path.join(rootDir, "importer.ts"))).to.equal("./home/index.ts");
+        expect(await resolveImport("./home", path.join(rootDir, "importer.js"))).to.equal("./home/index.ts?type=module");
     });
 
     it("relative imports", async function () {
 
         let {rootDir, resolveImport} = setup("fixture/workspaces");
 
-        expect(await resolveImport("./epsilon")).to.equal("./epsilon?type=module");
+        expect(await resolveImport("./epsilon.alpha", "/importer.js")).to.equal("./epsilon.alpha?type=module");
 
         // should resolve fixture/alpha/beta/delta.sigma adding query for type=module
-        expect(await resolveImport("./delta.sigma")).to.equal(
+        expect(await resolveImport("./delta.sigma", "/importer.js")).to.equal(
             "./delta.sigma?type=module"
         );
         // ...leaving any existing query alone
-        expect(await resolveImport("./delta.sigma?q=e")).to.equal("./delta.sigma?type=module&q=e");
+        expect(await resolveImport("./delta.sigma?q=e", "/importer.js")).to.equal("./delta.sigma?type=module&q=e");
 
     });
 
@@ -132,7 +144,9 @@ describe("resolve import", function () {
     it("bootstrap", async function () {
         let {resolveImport} = setup("fixture");
         expect(await resolveImport("bootstrap")).to.equal("/web_modules/bootstrap.js");
-        expect(await resolveImport("bootstrap/dist/css/bootstrap.css")).to.equal("/node_modules/bootstrap/dist/css/bootstrap.css?type=module");
+        expect(await resolveImport("bootstrap/dist/css/bootstrap.css", "/importer.js")).to.equal(
+            "/node_modules/bootstrap/dist/css/bootstrap.css?type=module"
+        );
     });
 
     it("lit-html", async function () {
@@ -145,9 +159,10 @@ describe("resolve import", function () {
 
     it("relative imports of asset files", async function () {
         let {resolveImport} = setup("fixture");
-        expect(await resolveImport("./styles")).to.equal("./styles?type=module");
-        expect(await resolveImport("./styles.css")).to.equal("./styles.css?type=module");
-        expect(await resolveImport("../styles.scss")).to.equal("../styles.scss?type=module");
+        expect(await resolveImport("./styles")).to.equal("./styles"); // This falls under ext-less case
+        expect(await resolveImport("./styles", "/importer.js")).to.equal("./styles"); // This falls under ext-less case
+        expect(await resolveImport("./styles.css", "/importer.js")).to.equal("./styles.css?type=module");
+        expect(await resolveImport("../styles.scss", "/importer.js")).to.equal("../styles.scss?type=module");
     });
 
     it("smooth-scrollbar has to be squashed!", async function () {

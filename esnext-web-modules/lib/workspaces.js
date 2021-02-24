@@ -9,6 +9,7 @@ const path_1 = __importDefault(require("path"));
 const tiny_node_logger_1 = __importDefault(require("tiny-node-logger"));
 const es_import_utils_1 = require("./es-import-utils");
 function readManifest(basedir, entries) {
+    tiny_node_logger_1.default.debug("reading manifest from:", basedir);
     try {
         let pkg = require(path_1.default.join(basedir, "package.json"));
         let main = pkg.module || pkg["jsnext:main"] || pkg.main;

@@ -5,6 +5,7 @@ import {toPosix} from "./es-import-utils";
 import {ImportMap} from "./utility";
 
 function readManifest(basedir: string, entries: [string, string][]) {
+    log.debug("reading manifest from:", basedir);
     try {
         let pkg = require(path.join(basedir, "package.json"));
 

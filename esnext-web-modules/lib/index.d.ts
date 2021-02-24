@@ -11,7 +11,7 @@ export declare type WebModulesOptions = {
     squash?: string[];
     esbuild?: BuildOptions;
 };
-export declare type ImportResolver = (url: string, basedir?: string) => Promise<string>;
+export declare type ImportResolver = (url: string, importer?: string) => Promise<string>;
 export declare type WebModulesAPI = {
     options: WebModulesOptions;
     outDir: string;

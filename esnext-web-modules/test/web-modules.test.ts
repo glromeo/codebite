@@ -6,6 +6,9 @@ import {join, relative, resolve} from "path";
 import {SourceMapConsumer} from "source-map";
 import {WebModulesOptions} from "../src";
 import {defaultOptions, useWebModules} from "../src/web-modules";
+import log from "tiny-node-logger";
+
+log.level = "error";
 
 function readExports(path: string) {
     let out = fs.readFileSync(join(__dirname, path), "utf-8");

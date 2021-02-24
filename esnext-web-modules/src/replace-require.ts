@@ -31,13 +31,12 @@ async function shiftSourceMap(filename: string, offset: number, sourcemap) {
 export async function replaceRequire(filename: string, resolveImport: ImportResolver, sourcemap) {
 
     let code: string = await readFile(filename, "utf-8");
-    let basedir = dirname(filename);
 
     let requires = new Set<string>();
     let re = /require\s*\(([^)]+)\)/g;
     for (let match = re.exec(code); match; match = re.exec(code)) {
         let required = match[1].trim().slice(1, -1);
-        requires.add(await resolveImport(required, basedir));
+        requires.add(await resolveImport(required, filename));
     }
 
     if (requires.size) {

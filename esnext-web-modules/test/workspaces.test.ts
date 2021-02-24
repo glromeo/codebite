@@ -2,6 +2,9 @@ import {expect} from "chai";
 import * as path from "path";
 import {useWebModules} from "../src";
 import {readWorkspaces} from "../src/workspaces";
+import log from "tiny-node-logger";
+
+log.level = "error";
 
 describe("workspaces", function () {
 

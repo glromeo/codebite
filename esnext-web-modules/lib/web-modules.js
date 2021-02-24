@@ -122,7 +122,7 @@ exports.useWebModules = pico_memoize_1.default((options = defaultOptions()) => {
     const isModule = /\.m?[tj]sx?$/;
     const ignore = function () {
     };
-    const resolveImport = async (url, basedir = options.rootDir) => {
+    const resolveImport = async (url, importer) => {
         let { hostname, pathname, search } = fast_url_parser_1.parse(url);
         if (hostname !== null) {
             return url;
@@ -130,28 +130,23 @@ exports.useWebModules = pico_memoize_1.default((options = defaultOptions()) => {
         let resolved = importMap.imports[pathname];
         if (!resolved) {
             let [module, filename] = es_import_utils_1.parseModuleUrl(pathname);
-            if (module !== null && !importMap.imports[module]) {
+            if (module && !importMap.imports[module]) {
                 await esbuildWebModule(module);
                 resolved = importMap.imports[module];
             }
             if (filename) {
                 let ext = path_1.posix.extname(filename);
                 if (!ext) {
+                    const basedir = importer ? path_1.default.dirname(importer) : options.rootDir;
                     filename = resolveFilename(module, filename, basedir);
                     ext = path_1.default.extname(filename);
                 }
-                if (!isModule.test(ext)) {
-                    let type = resolveModuleType(ext, basedir);
+                const type = importer ? resolveModuleType(ext, importer) : null;
+                if (type) {
                     search = search ? `?type=${type}&${search.slice(1)}` : `?type=${type}`;
-                    if (module) {
-                        resolved = `/node_modules/${module}/${filename}`;
-                    }
-                    else {
-                        resolved = filename;
-                    }
                 }
-                else {
-                    if (module) {
+                if (module) {
+                    if (ext === ".js" || ext === ".mjs") {
                         let bundled = importMap.imports[path_1.posix.join(module, filename)];
                         if (bundled) {
                             resolved = bundled;
@@ -163,8 +158,11 @@ exports.useWebModules = pico_memoize_1.default((options = defaultOptions()) => {
                         }
                     }
                     else {
-                        resolved = filename;
+                        resolved = `/node_modules/${module}/${filename}`;
                     }
+                }
+                else {
+                    resolved = filename;
                 }
             }
         }
@@ -206,8 +204,13 @@ exports.useWebModules = pico_memoize_1.default((options = defaultOptions()) => {
             return resolved;
         }
     }
-    function resolveModuleType(ext, basedir) {
-        return "module";
+    function resolveModuleType(ext, importer) {
+        if (!importer.endsWith(ext) && isModule.test(importer)) {
+            return "module";
+        }
+        else {
+            return null;
+        }
     }
     const pendingTasks = new Map();
     function esbuildWebModule(source) {
@@ -297,11 +300,8 @@ exports.useWebModules = pico_memoize_1.default((options = defaultOptions()) => {
                                         if (webModuleUrl) {
                                             return { path: webModuleUrl, external: true, namespace: "web_modules" };
                                         }
-                                        return {
-                                            path: `/web_modules/${bareUrl}`,
-                                            external: true,
-                                            namespace: "web_modules"
-                                        };
+                                        tiny_node_logger_1.default.warn(">>>", importer, url);
+                                        return null;
                                     }
                                 });
                             }

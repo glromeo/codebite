@@ -6,7 +6,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.useWebModulesPlugin = void 0;
 const core_1 = require("@babel/core");
 const pico_memoize_1 = __importDefault(require("pico-memoize"));
-const path_1 = __importDefault(require("path"));
 const tiny_node_logger_1 = __importDefault(require("tiny-node-logger"));
 const es_import_utils_1 = require("./es-import-utils");
 const index_1 = require("./index");
@@ -68,7 +67,6 @@ exports.useWebModulesPlugin = pico_memoize_1.default(config => {
         };
     }
     async function resolveImports(filename, parsedAst) {
-        const dirname = path_1.default.dirname(filename);
         const importMap = new Map();
         core_1.traverse(parsedAst, {
             "CallExpression"(path, state) {
@@ -78,7 +76,7 @@ exports.useWebModulesPlugin = pico_memoize_1.default(config => {
                     const [source] = path.get("arguments");
                     if (source.type === "StringLiteral") {
                         const importUrl = source.node.value;
-                        const resolved = resolveImport(importUrl, dirname);
+                        const resolved = resolveImport(importUrl, filename);
                         importMap.set(importUrl, resolved.catch(error => throwCodeFrameError(path, importUrl, error)));
                     }
                 }
@@ -87,7 +85,7 @@ exports.useWebModulesPlugin = pico_memoize_1.default(config => {
                 const source = path.get("source");
                 if (source.node !== null) {
                     const importUrl = source.node.value;
-                    const resolved = resolveImport(importUrl, dirname);
+                    const resolved = resolveImport(importUrl, filename);
                     importMap.set(importUrl, resolved.catch(error => throwCodeFrameError(path, importUrl, error)));
                 }
             }

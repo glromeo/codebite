@@ -32,7 +32,6 @@ export const useEsBuildTransformer = memoize((options: ESNextOptions, sourceMaps
             throw new Error(`esbuild transformer failed to transform: ${filename}`);
         }
 
-        let basedir = path.dirname(filename);
         let links = new Set<string>();
         let [imports] = parse(code);
         let l = 0, rewritten: string = "";
@@ -41,7 +40,7 @@ export const useEsBuildTransformer = memoize((options: ESNextOptions, sourceMaps
                 continue;
             }
             let url = code.substring(s, e);
-            let resolved = await resolveImport(url, basedir);
+            let resolved = await resolveImport(url, filename);
             if (resolved) {
                 rewritten += code.substring(l, s);
                 rewritten += resolved;

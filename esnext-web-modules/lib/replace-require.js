@@ -5,7 +5,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.replaceRequire = void 0;
 const fs_1 = __importDefault(require("fs"));
-const path_1 = require("path");
 const source_map_1 = require("source-map");
 const { readFile, writeFile } = fs_1.default.promises;
 async function shiftSourceMap(filename, offset, sourcemap) {
@@ -32,12 +31,11 @@ async function shiftSourceMap(filename, offset, sourcemap) {
 }
 async function replaceRequire(filename, resolveImport, sourcemap) {
     let code = await readFile(filename, "utf-8");
-    let basedir = path_1.dirname(filename);
     let requires = new Set();
     let re = /require\s*\(([^)]+)\)/g;
     for (let match = re.exec(code); match; match = re.exec(code)) {
         let required = match[1].trim().slice(1, -1);
-        requires.add(await resolveImport(required, basedir));
+        requires.add(await resolveImport(required, filename));
     }
     if (requires.size) {
         let r = 0;

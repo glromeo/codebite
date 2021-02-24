@@ -24,7 +24,7 @@ export type WebModulesOptions = {
     esbuild?: BuildOptions
 };
 
-export type ImportResolver = (url: string, basedir?: string) => Promise<string>;
+export type ImportResolver = (url: string, importer?: string) => Promise<string>;
 
 export type WebModulesAPI = {
     options: WebModulesOptions
