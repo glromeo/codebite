@@ -6,6 +6,7 @@
   "private": true,
   "workspaces": [
     "components",
+    "esnext-hot-element",
     "esnext-react-refresh",
     "esnext-server",
     "esnext-server-client",

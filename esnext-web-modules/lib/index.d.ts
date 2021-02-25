@@ -10,6 +10,7 @@ export declare type WebModulesOptions = {
     external?: string | string[];
     squash?: string[];
     esbuild?: BuildOptions;
+    notify?: boolean;
 };
 export declare type ImportResolver = (url: string, importer?: string) => Promise<string>;
 export declare type WebModulesAPI = {
@@ -28,6 +29,7 @@ export interface WebModulesNotification {
     type: WebModulesNotificationType;
     message: string;
 }
-export { isBare, pathnameToModuleUrl, toPosix, parseModuleUrl } from "./es-import-utils";
+export { isBare, parseModuleUrl, pathnameToModuleUrl, toPosix } from "./es-import-utils";
 export { useWebModulesPlugin } from "./babel-plugin-web-modules";
-export { useWebModules, notifications } from "./web-modules";
+export { notifications } from "./notifications";
+export { useWebModules } from "./web-modules";

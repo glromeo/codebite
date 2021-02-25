@@ -22,11 +22,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.useWebModules = exports.Notification = exports.notifications = exports.defaultOptions = void 0;
+exports.useWebModules = exports.defaultOptions = void 0;
 const chalk_1 = __importDefault(require("chalk"));
 const esbuild_1 = require("esbuild");
 const esbuild_sass_plugin_1 = require("esbuild-sass-plugin");
-const events_1 = __importDefault(require("events"));
 const fast_url_parser_1 = require("fast-url-parser");
 const fs_1 = require("fs");
 const path_1 = __importStar(require("path"));
@@ -37,6 +36,7 @@ const cjs_entry_proxy_1 = require("./cjs-entry-proxy");
 const entry_modules_1 = require("./entry-modules");
 const es_import_utils_1 = require("./es-import-utils");
 const esm_entry_proxy_1 = require("./esm-entry-proxy");
+const notifications_1 = require("./notifications");
 const replace_require_1 = require("./replace-require");
 const utility_1 = require("./utility");
 const workspaces_1 = require("./workspaces");
@@ -44,36 +44,6 @@ function defaultOptions() {
     return require(require.resolve(`${process.cwd()}/web-modules.config.js`));
 }
 exports.defaultOptions = defaultOptions;
-exports.notifications = new events_1.default();
-class Notification {
-    constructor(message, type = "info", sticky = false, error) {
-        this.id = ++Notification.counter;
-        this.type = type;
-        this.message = message;
-        this.sticky = sticky;
-        if (error) {
-            this.error = error;
-        }
-        this.timeMs = Date.now();
-    }
-    update(message, type, sticky) {
-        this.message = message;
-        if (type !== undefined) {
-            this.type = type;
-        }
-        if (sticky !== undefined) {
-            this.sticky = sticky;
-        }
-        exports.notifications.emit("update", this);
-    }
-}
-exports.Notification = Notification;
-Notification.counter = 0;
-function notify(message, type = "info", sticky = false, error) {
-    const notification = new Notification(message, type, sticky, error);
-    exports.notifications.emit("new", notification);
-    return notification;
-}
 exports.useWebModules = pico_memoize_1.default((options = defaultOptions()) => {
     if (!options.environment)
         options.environment = "development";
@@ -85,6 +55,7 @@ exports.useWebModules = pico_memoize_1.default((options = defaultOptions()) => {
         options.external = ["@babel/runtime/**"];
     if (!options.esbuild)
         options.esbuild = {};
+    const notify = notifications_1.useNotifications(options);
     options.esbuild = {
         define: {
             "process.env.NODE_ENV": `"${options.environment}"`,
@@ -300,7 +271,6 @@ exports.useWebModules = pico_memoize_1.default((options = defaultOptions()) => {
                                         if (webModuleUrl) {
                                             return { path: webModuleUrl, external: true, namespace: "web_modules" };
                                         }
-                                        tiny_node_logger_1.default.warn(">>>", importer, url);
                                         return null;
                                     }
                                 });
