@@ -1,4 +1,4 @@
-![logo](https://github.com/glromeo/codebite/blob/master/esnext-web-modules/logo.svg?raw=true)
+![logo](https://github.com/glromeo/codebite/blob/main/esnext-web-modules/logo.svg)
 
 This project aims at replacing the plugin-web-modules with a more reliable and faster way to create micro-bundles.
 
