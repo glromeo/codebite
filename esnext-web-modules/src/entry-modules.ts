@@ -1,10 +1,10 @@
 import resolve from "resolve";
-import {PackageMeta, readJson} from "./utility";
 import log from "tiny-node-logger";
+import {PackageMeta, readJson} from "./utility";
 
-export function collectEntryModules(resolveOptions: resolve.SyncOpts, squash: Set<string>) {
+export function collectEntryModules(resolveOptions: resolve.SyncOpts, squash: Set<string>, debug?: boolean) {
 
-    const readManifest = (module: string, ignoreErrors: boolean = false): PackageMeta | null => {
+    const readManifest = (module: string): PackageMeta | null => {
         try {
             return readJson(resolve.sync(`${module}/package.json`, resolveOptions));
         } catch (ignored) {
@@ -13,41 +13,55 @@ export function collectEntryModules(resolveOptions: resolve.SyncOpts, squash: Se
         }
     };
 
-    const appPkg = readManifest(".")!;
+    const collectDependencies = (entryModule: PackageMeta) => new Set([
+        ...Object.keys(entryModule.dependencies || {}),
+        ...Object.keys(entryModule.peerDependencies || {})
+    ]);
 
-    let debugDeps = "#dependencies\r\n", indent = "##";
+    const entryModules = new Set<string>();
+    const visited = new Map<string, string>();
 
-    let modules = collectEntryModules(appPkg);
+    const asciiTree = debug ? {
+        content: "#dependencies\r\n",
+        tab: "##",
+        enter() {
+            this.tab += "#";
+        },
+        exit() {
+            this.tab = this.tab.slice(0, -1);
+        },
+        add(text) {
+            this.content += `${this.tab}${text}\r\n`;
+        },
+        write() {
+            const asciiTree: { generate(string): string } = require("ascii-tree");
+            process.stdout.write(asciiTree.generate(this.content) + "\n");
+        }
+    } : null;
 
-    console.log(require('ascii-tree').generate(debugDeps));
-
-    return modules;
-
-    function collectDependencies(entryModule: PackageMeta) {
-        return new Set([
-            ...Object.keys(entryModule.dependencies || {}),
-            ...Object.keys(entryModule.peerDependencies || {})
-        ]);
-    }
-
-    function collectEntryModules(entryModule: PackageMeta, entryModules = new Set<string>(), visited = new Map<string, string>(), ancestor?: string) {
-        for (const dependency of collectDependencies(entryModule)) if (!squash.has(dependency)) {
-            debugDeps += `${indent}${dependency}\r\n`;
-            if (visited.has(dependency)) {
-                if (visited.get(dependency) !== ancestor) {
-                    entryModules.add(dependency);
+    const collectEntryModules = (entryModule: PackageMeta | null, ancestor?: string) => {
+        if (entryModule) {
+            for (const dependency of collectDependencies(entryModule)) {
+                if (!squash.has(dependency)) {
+                    asciiTree?.add(dependency);
+                    if (visited.has(dependency)) {
+                        if (visited.get(dependency) !== ancestor) {
+                            entryModules.add(dependency);
+                        }
+                    } else {
+                        visited.set(dependency, ancestor!);
+                        asciiTree?.enter();
+                        collectEntryModules(readManifest(dependency), ancestor || dependency);
+                        asciiTree?.exit();
+                    }
                 }
-            } else {
-                visited.set(dependency, ancestor!);
-                indent += "#";
-                const dependencyManifest = readManifest(dependency);
-                if (dependencyManifest) {
-                    collectEntryModules(dependencyManifest, entryModules, visited, ancestor || dependency);
-                }
-                indent = indent.slice(0, -1);
             }
         }
-        return entryModules;
-    }
+    };
 
+    collectEntryModules(readManifest("."));
+
+    asciiTree?.write();
+
+    return entryModules;
 }

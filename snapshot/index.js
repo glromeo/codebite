@@ -10,7 +10,7 @@ function parseHTML(html) {
 }
 
 const DEFAULTS = {
-    indent: "  ",
+    tab: "  ",
     comments: false
 };
 
@@ -58,10 +58,10 @@ export function snapshot(root, options = {}) {
             if (node.shadowRoot) {
                 currentIndent += "  ";
                 __snapshot__ += `\n${currentIndent}#shadow-root (${node.shadowRoot.mode})\n`;
-                currentIndent += "\u25B8" + options.indent.substring(1);
+                currentIndent += "\u25B8" + options.tab.substring(1);
                 node = node.shadowRoot.firstChild;
             } else if (node.firstElementChild) {
-                currentIndent += options.indent;
+                currentIndent += options.tab;
                 __snapshot__ += "\n";
                 node = node.firstChild;
                 continue;
@@ -72,7 +72,7 @@ export function snapshot(root, options = {}) {
             }
         } else if (Node.TEXT_NODE === node.nodeType) {
             node.nodeValue.split("\n").map(line => line.trim()).filter(line => line).forEach(line => {
-                __snapshot__ += currentIndent + options.indent + line + "\n";
+                __snapshot__ += currentIndent + options.tab + line + "\n";
             });
         } else if (Node.CDATA_SECTION_NODE === node.nodeType) {
         } else if (Node.PROCESSING_INSTRUCTION_NODE === node.nodeType) {

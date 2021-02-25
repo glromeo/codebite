@@ -1,4 +1,4 @@
-![logo](https://github.com/glromeo/codebite/blob/master/logger/logo.svg?raw=true)
+![logo](https://github.com/glromeo/codebite/blob/master/tiny-node-logger/logo.svg?raw=true)
 
 A small and fast **node.js** library to look at a log that doesn't hurt the eyes!
 ##### Main Features

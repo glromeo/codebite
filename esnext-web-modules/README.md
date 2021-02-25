@@ -1,3 +1,5 @@
+![logo](https://github.com/glromeo/codebite/blob/master/esnext-web-modules/logo.svg?raw=true)
+
 This project aims at replacing the plugin-web-modules with a more reliable and faster way to create micro-bundles.
 
 A big thank you to Rich Harris for the amazing [Rollup.js](https://rollupjs.org), Guy Bedford for [cjs-module-lexer](https://github.com/guybedford/cjs-module-lexer)
