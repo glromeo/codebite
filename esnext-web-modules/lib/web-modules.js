@@ -176,7 +176,7 @@ exports.useWebModules = pico_memoize_1.default((options = defaultOptions()) => {
         }
     }
     function resolveModuleType(ext, importer) {
-        if (!importer.endsWith(ext) && isModule.test(importer)) {
+        if (!isModule.test(ext) && isModule.test(importer)) {
             return "module";
         }
         else {

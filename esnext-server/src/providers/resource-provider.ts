@@ -3,7 +3,6 @@ import {FSWatcher} from "chokidar";
 import etag from "etag";
 import {promises as fs} from "fs";
 import {OutgoingHttpHeaders} from "http";
-import path from "path";
 import memoize from "pico-memoize";
 import log from "tiny-node-logger";
 import {ESNextOptions} from "../configure";
@@ -23,7 +22,7 @@ export type Resource = {
     content: string | Buffer
     headers: OutgoingHttpHeaders
     links: readonly string[]
-    watch?: Iterable<string>
+    watch?: readonly string[]
     onchange?: () => void
 }
 
@@ -34,121 +33,95 @@ export const NO_QUERY = Object.freeze({});
  * NOTE: cache & hmr have two very distinct roles, cache won't invalidate an entry because the dependents
  */
 
+class MultiMap<K, T> extends Map<K, Set<T>> {
+
+    add(key: K, value: T) {
+        let set = super.get(key);
+        if (set === undefined) {
+            set = new Set<T>();
+            super.set(key, set);
+        }
+        set.add(value);
+        return this;
+    }
+
+    remove(key: K, value: T) {
+        let set = super.get(key);
+        if (set === undefined) {
+            return;
+        }
+        set.delete(value);
+        return this;
+    }
+}
+
 export const useResourceProvider = memoize(function (options: ESNextOptions, watcher: FSWatcher) {
 
     const cache = new Map<string, Resource | Promise<Resource>>();
-    const watched = new Map<string, Set<string>>();
+    const watched = new MultiMap<string, string>();
+    const dependants = new MultiMap<string, string>();
+
     const hmr = useHotModuleReplacement(options);
 
-    function store(url: string, resource: Resource) {
-
-        if (options.cache) {
-            cache.set(url, resource);
-            watch(resource.filename, url);
-            if (resource.watch) {
-                for (const watched of resource.watch) watch(watched, url);
-            }
+    function watch(filename: string, url: string) {
+        if (!watched.has(filename)) {
+            watcher.add(filename);
         }
-
-        if (hmr.engine && resource.links) {
-            for (const link of resource.links) {
-                hmr.engine.addRelationship(url, link);
-            }
-        }
+        watched.add(filename, url);
     }
 
-    function discard(url: string, resource: Resource) {
-        if (cache) {
-            cache.delete(url);
-        }
-        if (hmr.engine && resource.links) {
-            for (const link of resource.links) {
-                hmr.engine.removeRelationship(url, link);
+    function unwatch(filename: string, url: string | null = null) {
+        if (url !== null) {
+            let urls = watched.get(filename);
+            if (urls) {
+                urls.delete(url);
+                if (!urls.size) {
+                    watcher.unwatch(filename);
+                }
             }
-        }
-    }
-
-    function watch(filename, url): Set<string> {
-        const pathname = path.relative(options.rootDir, filename);
-        let urls = watched.get(pathname);
-        if (urls) {
-            urls.add(url);
         } else {
-            urls = new Set<string>().add(url);
-            watched.set(pathname, urls);
-            watcher.add(pathname);
-        }
-        return urls;
-    }
-
-    function unwatch(path) {
-        watched.delete(path);
-        watcher.unwatch(path);
-    }
-
-    function updateOrBubble(url: string, visited: Set<string>) {
-        if (visited.has(url)) {
-            return;
-        }
-        const node = hmr.engine!.getEntry(url);
-        const isBubbled = visited.size > 0;
-        if (node && node.isHmrEnabled) {
-            hmr.engine!.broadcastMessage({type: 'update', url, bubbled: isBubbled});
-        }
-        visited.add(url);
-        if (node && node.isHmrAccepted) {
-            // Found a boundary, no bubbling needed
-        } else if (node && node.dependents.size > 0) {
-            node.dependents.forEach((dep) => {
-                hmr.engine!.markEntryForReplacement(node, true);
-                updateOrBubble(dep, visited);
-            });
-        } else {
-            // We've reached the top, trigger a full page refresh
-            hmr.engine!.broadcastMessage({type: 'reload'});
+            watched.delete(filename);
+            watcher.unwatch(filename);
         }
     }
 
-    watcher.on("change", function (path) {
-        const urls = watched.get(path);
+    watcher.on("change", function (filename: string) {
+        const urls = watched.get(filename);
         if (urls) for (const url of urls) {
-            reload(url, path);
+            const resource = cache.get(url);
+            if (resource) {
+                log.debug("change:", filename, "->", url);
+                cache.set(url, Promise.resolve(resource).then(reload).then(pipeline).then(resource => {
+                    cache.set(url, resource);
+                    return resource;
+                }));
+            } else {
+                log.warn("no cache entry for:", url);
+                unwatch(filename, url);
+            }
             if (hmr.engine!.getEntry(url)) {
-                hmr.engine!.broadcastMessage({type: 'update', url, bubbled: false});
+                hmr.engine!.broadcastMessage({type: "update", url, bubbled: false});
                 // updateOrBubble(url, new Set());
                 return;
             }
         }
     });
 
-    watcher.on("unlink", function (event, path) {
-        const urls = watched.get(path);
+    watcher.on("unlink", function (event, filename) {
+        const urls = watched.get(filename);
         if (urls) for (const url of urls) {
-            log.debug("invalidate", path, "flush", url);
-            cache.delete(url);
+            log.debug("unlink:", filename, "->", url);
+            let resource = cache.get(url);
+            if (resource && !(resource instanceof Promise)) {
+                unwatch(resource.filename);
+                if (resource.watch) {
+                    for (const filename of resource.watch) unwatch(filename, url);
+                }
+                cache.delete(url);
+            }
         }
-        unwatch(path);
+        unwatch(filename);
     });
-
-    async function reload(url:string, path:string) {
-        const resource = cache.get(url);
-        if (resource) {
-            cache.set(url, Promise.resolve(resource).then(async resource => {
-                const stats = await fs.stat(resource.filename);
-                resource.content = await fs.readFile(resource.filename);
-                resource.headers["content-type"] = contentType(resource.filename);
-                resource.headers["content-length"] = stats.size;
-                resource.headers["last-modified"] = stats.mtime.toUTCString();
-                return pipeline(resource);
-            }).then(resource => {
-                cache.set(url, resource);
-                return resource;
-            }));
-        } else {
-            log.warn("no cache entry for:", url);
-            unwatch(path);
-        }
-    }
 
     const {route} = useRouter(options);
     const {shouldTransform, transformContent} = useTransformers(options);
@@ -164,13 +137,8 @@ export const useResourceProvider = memoize(function (options: ESNextOptions, wat
      *   | |     | |
      *   |_|     |_|
      *
-     * @param url
+     * @param resource
      */
-    async function provideResource(url: string): Promise<Resource> {
-        const resource = await route(url);
-        return pipeline(resource);
-    }
-
     async function pipeline(resource: Resource) {
         if (shouldTransform(resource)) {
             const sourceMap = await transformContent(resource);
@@ -207,6 +175,15 @@ export const useResourceProvider = memoize(function (options: ESNextOptions, wat
         });
     }
 
+    async function reload(resource: Resource): Promise<Resource> {
+        const stats = await fs.stat(resource.filename);
+        resource.content = await fs.readFile(resource.filename);
+        resource.headers["content-type"] = contentType(resource.filename);
+        resource.headers["content-length"] = stats.size;
+        resource.headers["last-modified"] = stats.mtime.toUTCString();
+        return resource;
+    }
+
     async function etagHeader({headers, pathname}: Resource) {
         headers["etag"] = etag(`${pathname} ${headers["content-length"]} ${headers["last-modified"]}`, options.etag);
     }
@@ -230,14 +207,26 @@ export const useResourceProvider = memoize(function (options: ESNextOptions, wat
             if (resource) {
                 log.debug("retrieved from cache:", chalk.magenta(url));
             } else {
-                resource = provideResource(url).then(resource => {
-                    store(url, resource);
+                resource = route(url).then(pipeline).then(resource => {
+                    if (options.cache) {
+                        cache.set(url, resource);
+                        watch(resource.filename, url);
+                        if (resource.watch) {
+                            for (const filename of resource.watch) watch(filename, url);
+                        }
+                    }
+                    if (hmr.engine && resource.links) {
+                        for (const link of resource.links) {
+                            hmr.engine.addRelationship(url, link);
+                        }
+                    }
                     return resource;
                 }).finally(function () {
                     if (!options.cache) {
                         cache.delete(url);
                     }
                 });
+
                 cache.set(url, resource);
             }
             return resource;

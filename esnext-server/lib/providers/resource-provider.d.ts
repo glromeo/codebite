@@ -12,7 +12,7 @@ export declare type Resource = {
     content: string | Buffer;
     headers: OutgoingHttpHeaders;
     links: readonly string[];
-    watch?: Iterable<string>;
+    watch?: readonly string[];
     onchange?: () => void;
 };
 export declare const NO_LINKS: readonly never[];

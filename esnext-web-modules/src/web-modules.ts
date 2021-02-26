@@ -192,7 +192,7 @@ export const useWebModules = memoize<WebModulesFactory>((options: WebModulesOpti
     }
 
     function resolveModuleType(ext: string, importer: string): string | null {
-        if (!importer.endsWith(ext) && isModule.test(importer)) {
+        if (!isModule.test(ext) && isModule.test(importer)) {
             return "module";
         } else {
             return null;

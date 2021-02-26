@@ -34,8 +34,8 @@ export type TransformerOutput = {
         "content-length": number,
         "x-transformer": "babel-transformer" | "sass-transformer" | "html-transformer" | "esbuild-transformer"
     },
-    links?: string[]
-    includedFiles?: string[]
+    links?: string[] // absolute filenames of all imported files
+    includedFiles?: string[]  // absolute filenames of all included files (e.g. sass imports)
 }
 
 export const useTransformers = memoize((options: ESNextOptions) => {
@@ -99,7 +99,9 @@ export const useTransformers = memoize((options: ESNextOptions) => {
                     });
                 }
 
-                resource.watch = transformed.includedFiles;
+                if (transformed.includedFiles) {
+                    resource.watch = transformed.includedFiles;
+                }
 
                 return transformed.map;
             }

@@ -9,19 +9,15 @@ export function createWatcher(options: { rootDir: string, watcher?: WatchOptions
     }
 
     const watcher = chokidar.watch([], {
-        cwd: options.rootDir,
         atomic: false,
         ignored: [
-            "web_modules/**",
             "**/web_modules/**",
-            "node_modules/**",
             "**/node_modules/**",
-            ".*",
             "**/.*"
         ]
     });
 
-    log.debug("created chokidar watcher for:", watcher.options.cwd);
+    log.debug("created chokidar watcher");
 
     watcher.on("all", (event, file) => log.debug("watcher", event, file));
     watcher.on("ready", () => log.info("workspace watcher is", chalk.bold("ready")));

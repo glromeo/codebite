@@ -85,7 +85,7 @@ describe("resolve import", function () {
 
         expect(await resolveImport("./home")).to.equal("./home/index.ts");
         expect(await resolveImport("./home", path.join(rootDir, "importer.ts"))).to.equal("./home/index.ts");
-        expect(await resolveImport("./home", path.join(rootDir, "importer.js"))).to.equal("./home/index.ts?type=module");
+        expect(await resolveImport("./home", path.join(rootDir, "importer.js"))).to.equal("./home/index.ts");
     });
 
     it("relative imports", async function () {
@@ -160,7 +160,7 @@ describe("resolve import", function () {
     it("relative imports of asset files", async function () {
         let {resolveImport} = setup("fixture");
         expect(await resolveImport("./styles")).to.equal("./styles"); // This falls under ext-less case
-        expect(await resolveImport("./styles", "/importer.js")).to.equal("./styles"); // This falls under ext-less case
+        expect(await resolveImport("./styles", "/importer.js")).to.equal("./styles?type=module");
         expect(await resolveImport("./styles.css", "/importer.js")).to.equal("./styles.css?type=module");
         expect(await resolveImport("../styles.scss", "/importer.js")).to.equal("../styles.scss?type=module");
     });
@@ -179,5 +179,11 @@ describe("resolve import", function () {
         let {resolveImport} = setup("fixture");
         expect(await resolveImport("tippy.js")).to.equal("/web_modules/tippy.js");
     });
+
+    it("react-icons/bs imported from a .tsx file", async function () {
+        let {resolveImport} = setup("fixture");
+        expect(await resolveImport("react-icons/bs")).to.equal("/web_modules/react-icons/bs/index.esm.js");
+        expect(await resolveImport("react-icons/bs", "/importer.tsx")).to.equal("/web_modules/react-icons/bs/index.esm.js");
+    })
 
 });
