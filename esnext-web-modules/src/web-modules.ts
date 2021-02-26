@@ -121,7 +121,7 @@ export const useWebModules = memoize<WebModulesFactory>((options: WebModulesOpti
         if (!resolved) {
             let [module, filename] = parseModuleUrl(pathname);
             if (module && !importMap.imports[module]) {
-                await esbuildWebModule(module);
+                await bundleWebModule(module);
                 resolved = importMap.imports[module];
             }
             if (filename) {
@@ -142,7 +142,7 @@ export const useWebModules = memoize<WebModulesFactory>((options: WebModulesOpti
                             resolved = bundled;
                         } else {
                             let target = `${module}/${filename}`;
-                            await esbuildWebModule(target);
+                            await bundleWebModule(target);
                             resolved = `/web_modules/${target}`;
                         }
                     } else {
@@ -210,13 +210,13 @@ export const useWebModules = memoize<WebModulesFactory>((options: WebModulesOpti
      *
      * @param source
      */
-    function esbuildWebModule(source: string): Promise<void> {
+    function bundleWebModule(source: string): Promise<void> {
         if (importMap.imports[source]) {
             return ALREADY_RESOLVED;
         }
         let pendingTask = pendingTasks.get(source);
         if (pendingTask === undefined) {
-            pendingTasks.set(source, pendingTask = esbuildWebModuleTask(source));
+            pendingTasks.set(source, pendingTask = bundleWebModuleTask(source));
         }
         return pendingTask;
     }
@@ -244,7 +244,7 @@ export const useWebModules = memoize<WebModulesFactory>((options: WebModulesOpti
         }
     };
 
-    async function esbuildWebModuleTask(source: string): Promise<void> {
+    async function bundleWebModuleTask(source: string): Promise<void> {
 
         let startTime = Date.now();
         log.debug("bundling web module:", source);
@@ -266,7 +266,7 @@ export const useWebModules = memoize<WebModulesFactory>((options: WebModulesOpti
 
             const [entryModule, pathname] = parseModuleUrl(source);
             if (entryModule && !importMap.imports[entryModule] && entryModule !== source) {
-                await esbuildWebModule(entryModule);
+                await bundleWebModule(entryModule);
             }
 
             let outName = `${stripExt(source)}.js`;
@@ -412,6 +412,6 @@ export const useWebModules = memoize<WebModulesFactory>((options: WebModulesOpti
         outDir,
         importMap,
         resolveImport,
-        esbuildWebModule
+        bundleWebModule
     };
 });

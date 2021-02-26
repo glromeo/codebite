@@ -102,7 +102,7 @@ exports.useWebModules = pico_memoize_1.default((options = defaultOptions()) => {
         if (!resolved) {
             let [module, filename] = es_import_utils_1.parseModuleUrl(pathname);
             if (module && !importMap.imports[module]) {
-                await esbuildWebModule(module);
+                await bundleWebModule(module);
                 resolved = importMap.imports[module];
             }
             if (filename) {
@@ -124,7 +124,7 @@ exports.useWebModules = pico_memoize_1.default((options = defaultOptions()) => {
                         }
                         else {
                             let target = `${module}/${filename}`;
-                            await esbuildWebModule(target);
+                            await bundleWebModule(target);
                             resolved = `/web_modules/${target}`;
                         }
                     }
@@ -184,13 +184,13 @@ exports.useWebModules = pico_memoize_1.default((options = defaultOptions()) => {
         }
     }
     const pendingTasks = new Map();
-    function esbuildWebModule(source) {
+    function bundleWebModule(source) {
         if (importMap.imports[source]) {
             return ALREADY_RESOLVED;
         }
         let pendingTask = pendingTasks.get(source);
         if (pendingTask === undefined) {
-            pendingTasks.set(source, pendingTask = esbuildWebModuleTask(source));
+            pendingTasks.set(source, pendingTask = bundleWebModuleTask(source));
         }
         return pendingTask;
     }
@@ -214,7 +214,7 @@ exports.useWebModules = pico_memoize_1.default((options = defaultOptions()) => {
             return null;
         }
     };
-    async function esbuildWebModuleTask(source) {
+    async function bundleWebModuleTask(source) {
         let startTime = Date.now();
         tiny_node_logger_1.default.debug("bundling web module:", source);
         const bundleNotification = notify(`bundling web module: ${source}`, "info");
@@ -233,7 +233,7 @@ exports.useWebModules = pico_memoize_1.default((options = defaultOptions()) => {
                 || entryFile.indexOf("\\esm\\") > 0;
             const [entryModule, pathname] = es_import_utils_1.parseModuleUrl(source);
             if (entryModule && !importMap.imports[entryModule] && entryModule !== source) {
-                await esbuildWebModule(entryModule);
+                await bundleWebModule(entryModule);
             }
             let outName = `${utility_1.stripExt(source)}.js`;
             let outUrl = `/web_modules/${outName}`;
@@ -362,7 +362,7 @@ exports.useWebModules = pico_memoize_1.default((options = defaultOptions()) => {
         outDir,
         importMap,
         resolveImport,
-        esbuildWebModule
+        bundleWebModule
     };
 });
 //# sourceMappingURL=web-modules.js.map

@@ -61,12 +61,12 @@ describe("web modules (esbuild)", function () {
 
         this.timeout(15000);
 
-        let {esbuildWebModule, resolveImport} = useFixture("ant-design", {
+        let {bundleWebModule, resolveImport} = useFixture("ant-design", {
             squash: ["antd", "@ant-design/icons"]
         });
 
-        await esbuildWebModule("@ant-design/icons");
-        await esbuildWebModule("@ant-design/icons/es/icons/AccountBookFilled.js");
+        await bundleWebModule("@ant-design/icons");
+        await bundleWebModule("@ant-design/icons/es/icons/AccountBookFilled.js");
     });
 
     it("can read configuration", function () {
@@ -79,9 +79,9 @@ describe("web modules (esbuild)", function () {
 
     it("can bundle react", async function () {
 
-        let {esbuildWebModule} = useFixture("/react");
+        let {bundleWebModule} = useFixture("/react");
 
-        await esbuildWebModule("react");
+        await bundleWebModule("react");
 
         let exports = readExports(`fixture/react/web_modules/react.js`);
         expect(exports).to.have.members([
@@ -150,13 +150,13 @@ describe("web modules (esbuild)", function () {
 
         this.timeout(10000);
 
-        let {esbuildWebModule} = useFixture("/react", {esbuild: {define: {"process.env.NODE_ENV": `"production"`}}});
+        let {bundleWebModule} = useFixture("/react", {esbuild: {define: {"process.env.NODE_ENV": `"production"`}}});
 
-        const reactDomReady = esbuildWebModule("react-dom");
-        expect(esbuildWebModule("react-dom")).to.equal(reactDomReady);                                    // PENDING TASK
+        const reactDomReady = bundleWebModule("react-dom");
+        expect(bundleWebModule("react-dom")).to.equal(reactDomReady);                                    // PENDING TASK
         await reactDomReady;
 
-        expect(esbuildWebModule("react-dom")).to.equal(esbuildWebModule("react-dom"));                 // ALREADY_RESOLVED
+        expect(bundleWebModule("react-dom")).to.equal(bundleWebModule("react-dom"));                 // ALREADY_RESOLVED
 
         let exports = readExports(`fixture/react/web_modules/react-dom.js`);
         expect(exports).to.have.members([
@@ -192,9 +192,9 @@ describe("web modules (esbuild)", function () {
 
     it("can bundle prop-types", async function () {
 
-        let {esbuildWebModule, resolveImport} = useFixture("/react");
+        let {bundleWebModule, resolveImport} = useFixture("/react");
 
-        await esbuildWebModule("prop-types");
+        await bundleWebModule("prop-types");
 
         let exports = readExports(`fixture/react/web_modules/prop-types.js`);
         expect(exports).to.have.members([
@@ -237,13 +237,13 @@ describe("web modules (esbuild)", function () {
 
     it("can bundle react-icons", async function () {
 
-        let {esbuildWebModule, outDir} = useFixture("/react");
+        let {bundleWebModule, outDir} = useFixture("/react");
 
-        await esbuildWebModule("react-icons/bs");
+        await bundleWebModule("react-icons/bs");
 
         expect(existsSync(join(__dirname, "/web_modules/react-icons.js"))).to.be.false;
 
-        await esbuildWebModule("react-icons");
+        await bundleWebModule("react-icons");
 
         let exports = readExports(`fixture/react/web_modules/react-icons.js`); /// <<<<<<<<< resolve from import map
         expect(exports).to.have.members([
@@ -271,9 +271,9 @@ describe("web modules (esbuild)", function () {
 
     it("can bundle countries-and-timezones", async function () {
 
-        let {esbuildWebModule, resolveImport} = useFixture("/iife");
+        let {bundleWebModule, resolveImport} = useFixture("/iife");
 
-        await esbuildWebModule("countries-and-timezones");
+        await bundleWebModule("countries-and-timezones");
 
         let exports = readExports(`fixture/iife/web_modules/countries-and-timezones.js`);
         expect(exports).to.have.members([
@@ -298,11 +298,11 @@ describe("web modules (esbuild)", function () {
 
         this.timeout(15000);
 
-        let {esbuildWebModule, resolveImport} = useFixture("/ant-design", {
+        let {bundleWebModule, resolveImport} = useFixture("/ant-design", {
             squash: ["@babel/runtime"]
         });
 
-        await esbuildWebModule("antd");
+        await bundleWebModule("antd");
 
         let exports = readExports(`fixture/ant-design/web_modules/antd.js`);
         expect(exports).to.include.members([
@@ -320,9 +320,9 @@ describe("web modules (esbuild)", function () {
 
     it("can bundle rc-resize-observer (dependency of antd)", async function (this: Mocha.Context) {
 
-        let {esbuildWebModule, resolveImport} = useFixture("/ant-design");
+        let {bundleWebModule, resolveImport} = useFixture("/ant-design");
 
-        await esbuildWebModule("rc-resize-observer");
+        await bundleWebModule("rc-resize-observer");
 
         let exports = readExports(`fixture/ant-design/web_modules/rc-resize-observer.js`);
         expect(exports).to.include.members([
@@ -338,23 +338,23 @@ describe("web modules (esbuild)", function () {
     });
 
     it("can bundle moment (dependency of antd)", async function () {
-        let {esbuildWebModule} = useFixture("/react");
-        await esbuildWebModule("moment");
+        let {bundleWebModule} = useFixture("/react");
+        await bundleWebModule("moment");
         expect(existsSync(join(__dirname, "fixture/react/web_modules/moment.js"))).to.be.true;
     });
 
     it("can bundle lodash (dependency of antd)", async function () {
-        let {esbuildWebModule, resolveImport} = useFixture("/react");
+        let {bundleWebModule, resolveImport} = useFixture("/react");
         expect(await resolveImport("util")).to.equal("/web_modules/util.js");
-        await esbuildWebModule("lodash");
+        await bundleWebModule("lodash");
         expect(existsSync(join(__dirname, "fixture/react/web_modules/lodash.js"))).to.be.true;
     });
 
     it("can bundle lit-html (with ts sourcemap)", async function () {
 
-        let {esbuildWebModule, resolveImport} = useFixture("/lit-html");
+        let {bundleWebModule, resolveImport} = useFixture("/lit-html");
 
-        await esbuildWebModule("lit-html");
+        await bundleWebModule("lit-html");
 
         let exports = readExports(`fixture/lit-html/web_modules/lit-html.js`);
         expect(exports).to.have.members([
@@ -459,12 +459,12 @@ describe("web modules (esbuild)", function () {
 
     it("can bundle lit-html/lib/shady-render.js (minified)", async function () {
 
-        let {esbuildWebModule, resolveImport} = useFixture("/lit-html", {esbuild: {minify: true}});
+        let {bundleWebModule, resolveImport} = useFixture("/lit-html", {esbuild: {minify: true}});
 
         expect(await resolveImport("lit-html/lib/shady-render.js")).to.equal("/web_modules/lit-html/lib/shady-render.js");
         expect(existsSync(join(__dirname, "fixture/web_modules/lit-html/lib/shady-render.js"))).to.be.false;
 
-        await esbuildWebModule("lit-html/lib/shady-render.js");
+        await bundleWebModule("lit-html/lib/shady-render.js");
 
         let exports = readExports(`fixture/lit-html/web_modules/lit-html.js`);
         expect(exports).to.have.members([
@@ -527,22 +527,22 @@ describe("web modules (esbuild)", function () {
     });
 
     it("to bundle lit-html is a prerequisite to bundle lit-html/lib/shady-render.js", async function () {
-        let {esbuildWebModule, resolveImport} = useFixture("/lit-html");
-        await esbuildWebModule("lit-html/lib/shady-render.js");
+        let {bundleWebModule, resolveImport} = useFixture("/lit-html");
+        await bundleWebModule("lit-html/lib/shady-render.js");
         expect(existsSync(join(__dirname, "fixture/lit-html/web_modules/lit-html.js"))).to.be.true;
     });
 
     it("to bundle lit-html is a prerequisite to bundle lit-html/lib/shady-render.js", async function () {
-        let {esbuildWebModule, resolveImport} = useFixture("/lit-html");
-        await esbuildWebModule("lit-html/lib/shady-render.js");
+        let {bundleWebModule, resolveImport} = useFixture("/lit-html");
+        await bundleWebModule("lit-html/lib/shady-render.js");
         expect(existsSync(join(__dirname, "fixture/lit-html/web_modules/lit-html.js"))).to.be.true;
     });
 
     it("can bundle lit-element", async function () {
 
-        let {esbuildWebModule} = useFixture("/lit-element");
+        let {bundleWebModule} = useFixture("/lit-element");
 
-        await esbuildWebModule("lit-element");
+        await bundleWebModule("lit-element");
 
         let exports = readExports(`fixture/lit-element/web_modules/lit-element.js`);
         expect(exports).to.have.members([
@@ -590,9 +590,9 @@ describe("web modules (esbuild)", function () {
 
     it("can bundle bootstrap", async function () {
 
-        let {esbuildWebModule} = useFixture("/bootstrap");
+        let {bundleWebModule} = useFixture("/bootstrap");
 
-        await esbuildWebModule("bootstrap");
+        await bundleWebModule("bootstrap");
 
         let exports = readExports(`fixture/bootstrap/web_modules/bootstrap.js`);
         expect(exports).to.have.members([
@@ -611,7 +611,7 @@ describe("web modules (esbuild)", function () {
             "default"
         ]);
 
-        await esbuildWebModule("bootstrap/dist/css/bootstrap.css");
+        await bundleWebModule("bootstrap/dist/css/bootstrap.css");
 
         let {imports} = readImportMap(`fixture/bootstrap/web_modules/import-map.json`);
         expect(imports).to.include.keys([
@@ -636,10 +636,10 @@ describe("web modules (esbuild)", function () {
 
     it("can bundle @babel/runtime/helpers/...", async function () {
 
-        let {esbuildWebModule} = useFixture("/babel-runtime");
+        let {bundleWebModule} = useFixture("/babel-runtime");
 
-        await esbuildWebModule("@babel/runtime/helpers/esm/decorate.js");
-        await esbuildWebModule("@babel/runtime/helpers/esm/extends.js");
+        await bundleWebModule("@babel/runtime/helpers/esm/decorate.js");
+        await bundleWebModule("@babel/runtime/helpers/esm/extends.js");
 
         expect(
             readTextFile(`fixture/babel-runtime/web_modules/@babel/runtime/helpers/esm/decorate.js`)
@@ -666,18 +666,18 @@ describe("web modules (esbuild)", function () {
 
         this.timeout(10000);
 
-        let {esbuildWebModule} = useFixture("/redux");
+        let {bundleWebModule} = useFixture("/redux");
 
-        await esbuildWebModule("react-redux");
-        await esbuildWebModule("react-redux/es/connect/connect.js");
+        await bundleWebModule("react-redux");
+        await bundleWebModule("react-redux/es/connect/connect.js");
 
         return;
 
-        await esbuildWebModule("@reduxjs/toolkit");
-        await esbuildWebModule("redux");
-        await esbuildWebModule("redux-logger");
-        await esbuildWebModule("redux-thunk");
-        await esbuildWebModule("react-redux");
+        await bundleWebModule("@reduxjs/toolkit");
+        await bundleWebModule("redux");
+        await bundleWebModule("redux-logger");
+        await bundleWebModule("redux-thunk");
+        await bundleWebModule("react-redux");
 
         let exports = readExports(`fixture/redux/web_modules/redux.js`);
         expect(exports).to.include.members([
@@ -719,17 +719,17 @@ describe("web modules (esbuild)", function () {
 
         this.timeout(10000);
 
-        let {esbuildWebModule, resolveImport} = useFixture("/react");
+        let {bundleWebModule, resolveImport} = useFixture("/react");
 
-        await esbuildWebModule("react");
-        await esbuildWebModule("react-dom");
+        await bundleWebModule("react");
+        await bundleWebModule("react-dom");
 
         let {imports} = readImportMap(`fixture/react/web_modules/import-map.json`);
         expect(imports["object-assign"]).to.equal("/web_modules/object-assign.js");
 
         expect(existsSync(join(__dirname, "/web_modules/object-assign.js"))).to.be.false;
 
-        await esbuildWebModule("object-assign/index.js");
+        await bundleWebModule("object-assign/index.js");
 
         let exports = readExports(`fixture/react/web_modules/object-assign.js`);
         expect(exports).to.have.members([
@@ -743,9 +743,9 @@ describe("web modules (esbuild)", function () {
 
         this.timeout(60000);
 
-        let {outDir, esbuildWebModule, resolveImport} = useFixture("/ant-design");
+        let {outDir, bundleWebModule, resolveImport} = useFixture("/ant-design");
 
-        await esbuildWebModule("@ant-design/icons");
+        await bundleWebModule("@ant-design/icons");
 
         let {imports} = readImportMap(`/fixture/ant-design/web_modules/import-map.json`);
         expect(imports["@ant-design/icons"]).to.equal("/web_modules/@ant-design/icons.js");

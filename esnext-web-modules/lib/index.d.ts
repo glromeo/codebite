@@ -18,7 +18,7 @@ export declare type WebModulesAPI = {
     outDir: string;
     importMap: ImportMap;
     resolveImport: ImportResolver;
-    esbuildWebModule: (source: string) => Promise<void>;
+    bundleWebModule: (source: string) => Promise<void>;
 };
 export declare type WebModulesFactory = (options?: WebModulesOptions) => WebModulesAPI;
 export declare type WebModulesNotificationType = "primary" | "secondary" | "info" | "success" | "warning" | "danger";
@@ -29,7 +29,7 @@ export interface WebModulesNotification {
     type: WebModulesNotificationType;
     message: string;
 }
+export { notifications } from "./notifications";
 export { isBare, parseModuleUrl, pathnameToModuleUrl, toPosix } from "./es-import-utils";
 export { useWebModulesPlugin } from "./babel-plugin-web-modules";
-export { notifications } from "./notifications";
 export { useWebModules } from "./web-modules";

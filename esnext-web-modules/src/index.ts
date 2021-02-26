@@ -1,5 +1,4 @@
 import {BuildOptions} from "esbuild";
-import EventEmitter from "events";
 import {Opts} from "resolve";
 import {ImportMap} from "./utility";
 
@@ -32,7 +31,7 @@ export type WebModulesAPI = {
     outDir: string
     importMap: ImportMap
     resolveImport: ImportResolver
-    esbuildWebModule: (source: string) => Promise<void>
+    bundleWebModule: (source: string) => Promise<void>
 }
 
 export type WebModulesFactory = (options?: WebModulesOptions) => WebModulesAPI;
@@ -57,6 +56,10 @@ export interface WebModulesNotification {
 //                                                |_|
 
 export {
+    notifications
+} from "./notifications";
+
+export {
     isBare,
     parseModuleUrl,
     pathnameToModuleUrl,
@@ -66,10 +69,6 @@ export {
 export {
     useWebModulesPlugin
 } from "./babel-plugin-web-modules";
-
-export {
-    notifications
-} from "./notifications";
 
 export {
     useWebModules

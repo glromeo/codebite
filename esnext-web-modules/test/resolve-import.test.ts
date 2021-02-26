@@ -165,16 +165,6 @@ describe("resolve import", function () {
         expect(await resolveImport("../styles.scss", "/importer.js")).to.equal("../styles.scss?type=module");
     });
 
-    it("smooth-scrollbar has to be squashed!", async function () {
-        let {resolveImport} = setup("fixture");
-        expect(await resolveImport("smooth-scrollbar")).to.equal("/web_modules/smooth-scrollbar.js");
-    });
-
-    it("fast-diff", async function () {
-        let {resolveImport} = setup("fixture");
-        expect(await resolveImport("fast-diff")).to.equal("/web_modules/fast-diff.js");
-    });
-
     it("tippy.js", async function () {
         let {resolveImport} = setup("fixture");
         expect(await resolveImport("tippy.js")).to.equal("/web_modules/tippy.js");

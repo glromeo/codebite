@@ -11,7 +11,7 @@ type AcceptCallbackObject = {
 };
 
 function debug(...args: any[]) {
-    console.log("[ESM-HMR]", ...args);
+    console.debug("[ESM-HMR]", ...args);
 }
 function reload() {
     location.reload();
@@ -145,7 +145,6 @@ socket.addEventListener("message", ({ data: _data }) => {
     }
     const data = JSON.parse(_data);
     if (data.type === "reload") {
-        //debug("message: reload");
         reload();
         return;
     }
@@ -154,7 +153,6 @@ socket.addEventListener("message", ({ data: _data }) => {
         return;
     }
     //debug("message: update", data);
-    //debug(data.url, Object.keys(REGISTERED_MODULES));
     applyUpdate(data.url)
         .then((ok) => {
             if (!ok) {

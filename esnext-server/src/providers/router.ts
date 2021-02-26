@@ -11,7 +11,7 @@ import {NO_LINKS, Resource} from "./resource-provider";
 
 export function useRouter(options: ESNextOptions) {
 
-    const {esbuildWebModule} = useWebModules(options);
+    const {bundleWebModule} = useWebModules(options);
 
     const {
         rootDir = process.cwd(),
@@ -52,7 +52,7 @@ export function useRouter(options: ESNextOptions) {
             if (error.code === "ENOENT") {
                 if (route === "/web_modules" && !filename.endsWith(".map")) {
                     log.warn("lazy loading:", chalk.magenta(filename));
-                    return esbuildWebModule(pathname.substring(13)).then(() => fs.stat(filename));
+                    return bundleWebModule(pathname.substring(13)).then(() => fs.stat(filename));
                 }
             }
             throw error;

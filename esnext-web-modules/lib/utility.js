@@ -55,8 +55,4 @@ function closestManifest(entryModule) {
     throw new Error("No package.json found starting from: " + entryModule);
 }
 exports.closestManifest = closestManifest;
-function getModuleDirectories(options) {
-    const moduleDirectory = options.resolve.moduleDirectory;
-    return Array.isArray(moduleDirectory) ? [...moduleDirectory] : moduleDirectory ? [moduleDirectory] : undefined;
-}
 //# sourceMappingURL=utility.js.map
