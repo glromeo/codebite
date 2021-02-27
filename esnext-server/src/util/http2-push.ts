@@ -6,9 +6,9 @@ import log from "tiny-node-logger";
 import {ESNextOptions} from "../configure";
 import {useResourceProvider} from "../providers/resource-provider";
 
-export const useHttp2Push = memoize((options: ESNextOptions, watcher: FSWatcher) => {
+export const useHttp2Push = memoize((options: ESNextOptions) => {
 
-    const {provideResource} = useResourceProvider(options, watcher);
+    const {provideResource} = useResourceProvider(options);
 
     const {
         HTTP2_HEADER_PATH,

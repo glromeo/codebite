@@ -28,7 +28,7 @@ module.exports = {
     },
 
     middleware: [
-        require("./lib/endpoint/snapshot-reporter.js")
+        require("./lib/endpoint/snapshots-middleware.js")
     ],
 
     specs: [

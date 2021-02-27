@@ -11,6 +11,8 @@ import {SourceMap, useTransformers} from "../transformers";
 import {contentType, JSON_CONTENT_TYPE} from "../util/mime-types";
 import {useZlib} from "../util/zlib";
 import {useRouter} from "./router";
+import {MultiMap} from "../util/multi-map";
+import {useWatcher} from "../watcher";
 
 
 export type Query = { [name: string]: string };
@@ -29,39 +31,14 @@ export type Resource = {
 export const NO_LINKS = Object.freeze([]);
 export const NO_QUERY = Object.freeze({});
 
-/*
- * NOTE: cache & hmr have two very distinct roles, cache won't invalidate an entry because the dependents
- */
-
-class MultiMap<K, T> extends Map<K, Set<T>> {
-
-    add(key: K, value: T) {
-        let set = super.get(key);
-        if (set === undefined) {
-            set = new Set<T>();
-            super.set(key, set);
-        }
-        set.add(value);
-        return this;
-    }
-
-    remove(key: K, value: T) {
-        let set = super.get(key);
-        if (set === undefined) {
-            return;
-        }
-        set.delete(value);
-        return this;
-    }
-}
-
-export const useResourceProvider = memoize(function (options: ESNextOptions, watcher: FSWatcher) {
+export const useResourceProvider = memoize(function (options: ESNextOptions) {
 
     const cache = new Map<string, Resource | Promise<Resource>>();
     const watched = new MultiMap<string, string>();
     const dependants = new MultiMap<string, string>();
 
     const hmr = useHotModuleReplacement(options);
+    const watcher = useWatcher(options);
 
     function watch(filename: string, url: string) {
         if (!watched.has(filename)) {

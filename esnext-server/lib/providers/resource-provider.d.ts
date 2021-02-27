@@ -1,5 +1,4 @@
 /// <reference types="node" />
-import { FSWatcher } from "chokidar";
 import { OutgoingHttpHeaders } from "http";
 import { ESNextOptions } from "../configure";
 export declare type Query = {
@@ -17,6 +16,6 @@ export declare type Resource = {
 };
 export declare const NO_LINKS: readonly never[];
 export declare const NO_QUERY: Readonly<{}>;
-export declare const useResourceProvider: (options: ESNextOptions, watcher: FSWatcher) => {
+export declare const useResourceProvider: (options: ESNextOptions) => {
     provideResource(url: string): Promise<Resource>;
 };

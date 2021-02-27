@@ -1,6 +1,6 @@
 /// <reference types="node" />
 import { FSWatcher } from "chokidar";
-import Router, { Handler, HTTPVersion } from "find-my-way";
+import { Handler, HTTPVersion } from "find-my-way";
 import { Server as HttpServer } from "http";
 import { Http2Server } from "http2";
 import { Server as HttpsServer } from "https";
@@ -20,12 +20,12 @@ export declare type Services = {
     watcher?: FSWatcher;
     handler?: Handler<HTTPVersion.V1 | HTTPVersion.V2>;
 };
-export declare function startServer(options: ESNextOptions, services?: Services): Promise<{
+export declare function startServer(options: ESNextOptions): Promise<{
     config: ESNextOptions;
     module: any;
-    server: HttpServer | Http2Server | HttpsServer;
+    server: HttpServer | HttpsServer | Http2Server;
     watcher: FSWatcher;
-    handler: Router.Handler<Router.HTTPVersion> | ((req: import("http").IncomingMessage, res: import("http").ServerResponse) => void);
+    handler: (req: import("http").IncomingMessage | import("http2").Http2ServerRequest, res: import("http").ServerResponse | import("http2").Http2ServerResponse) => void;
     address: string;
     shutdown: (this: any) => Promise<any>;
 }>;

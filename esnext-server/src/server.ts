@@ -6,10 +6,10 @@ import {Server as HttpsServer} from "https";
 import {Socket} from "net";
 import log from "tiny-node-logger";
 import {ESNextOptions} from "./configure";
-import {createRequestHandler} from "./request-handler";
-import {createWatcher} from "./watcher";
-import {createWebSockets} from "./websockets";
-import {EsmHmrEngine, useHotModuleReplacement} from "./hmr-server";
+import {useRequestHandler} from "./request-handler";
+import {useWatcher} from "./watcher";
+import {useBackbone} from "./backbone";
+import {useHotModuleReplacement} from "./hmr-server";
 
 export type ServerOptions = {
     protocol?: "http" | "https"
@@ -34,7 +34,7 @@ export type Services = {
     handler?: Handler<HTTPVersion.V1|HTTPVersion.V2>
 }
 
-export async function startServer(options: ESNextOptions, services: Services = {}) {
+export async function startServer(options: ESNextOptions) {
 
     const {
         server: {
@@ -45,8 +45,8 @@ export async function startServer(options: ESNextOptions, services: Services = {
         } = DEFAULT_SERVER_OPTIONS
     } = options;
 
-    const watcher = services.watcher || createWatcher(options);
-    const handler = services.handler || createRequestHandler(options, watcher);
+    const watcher = useWatcher(options);
+    const handler = useRequestHandler(options);
 
     let module, server: HttpServer | HttpsServer | Http2Server;
 
@@ -74,7 +74,7 @@ export async function startServer(options: ESNextOptions, services: Services = {
 
     useHotModuleReplacement(options).connect(server);
 
-    createWebSockets(options, server, watcher);
+    server.on("upgrade", useBackbone(options).handleUpgrade);
 
     const sockets = new Set<Socket>();
 

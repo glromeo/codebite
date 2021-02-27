@@ -7,6 +7,7 @@ import Router, { HTTPVersion } from "find-my-way";
 import Server from "http-proxy";
 import { SyncOptions } from "node-sass";
 import { ServerOptions } from "./server";
+import { BackboneOptions } from "./backbone";
 export declare type FindMyWayMiddleware = (router: Router.Instance<HTTPVersion.V1 | HTTPVersion.V2>, options: ESNextOptions, watcher: FSWatcher) => void;
 export declare type ESNextOptions = WebModulesOptions & {
     rootDir: string;
@@ -38,6 +39,7 @@ export declare type ESNextOptions = WebModulesOptions & {
     };
     babel: TransformOptions;
     sass: SyncOptions;
+    backbone?: BackboneOptions;
 };
 export declare function defaultOptions(args: Args): ESNextOptions;
 export declare type Args = {

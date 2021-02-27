@@ -1,4 +1,3 @@
-import {FSWatcher} from "chokidar";
 import corsMiddleware from "cors";
 import {parse as parseURL} from "fast-url-parser";
 import Router, {Req, Res} from "find-my-way";
@@ -13,13 +12,14 @@ import {useResourceProvider} from "./providers/resource-provider";
 import {createRouter} from "./router";
 import {useHttp2Push} from "./util/http2-push";
 import {contentType} from "./util/mime-types";
+import memoize from "pico-memoize";
 
-export function createRequestHandler<V extends Router.HTTPVersion = Router.HTTPVersion.V1>(options: ESNextOptions, watcher: FSWatcher) {
+export const useRequestHandler = memoize(<V extends Router.HTTPVersion>(options: ESNextOptions) => {
 
-    const {provideResource} = useResourceProvider(options, watcher);
-    const {http2Push} = useHttp2Push(options, watcher);
+    const {provideResource} = useResourceProvider(options);
+    const {http2Push} = useHttp2Push(options);
 
-    const router = createRouter<V>(options, watcher);
+    const router = createRouter<V>(options);
 
     /**
      *   ____  _        _   _        ____
@@ -129,4 +129,4 @@ export function createRequestHandler<V extends Router.HTTPVersion = Router.HTTPV
         log.debug(req.method!, req.url);
         cors(req, res, next(req, res));
     };
-}
+});

@@ -36,7 +36,7 @@ module.exports = {
         const log = require("@codebite/logger");
 
         const {configure} = require("../../src/configure.ts");
-        const {createWatcher} = require("../../src/watcher.ts");
+        const {useWatcher} = require("../../src/watcher.ts");
         const {startServer} = require("../../src/server.ts");
         const fetch = require("node-fetch");
         const https = require("https");
@@ -47,7 +47,7 @@ module.exports = {
 
         const config = configure({root: __dirname, config: `${__dirname}/es-next-server.config.js`}, options);
 
-        const watcher = createWatcher(config);
+        const watcher = useWatcher(config);
 
         const {Readable, Writable} = require("stream");
 
@@ -58,7 +58,7 @@ module.exports = {
             server: {
                 async start() {
                     log.info("starting server on port:", config.server.port);
-                    const {server, address} = await startServer(config, {watcher});
+                    const {server, address} = await startServer(config);
                     fixture.server.instance = server;
                     fixture.server.address = address;
                     return server;

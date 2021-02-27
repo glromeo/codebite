@@ -47,8 +47,12 @@ sheet.replaceSync(`
     font-family: sans-serif;
     font-size: 13px !important;
 
-    display: inline-block;
+    max-width: calc(60vw - 40px);
     white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow-x: hidden;
+
+    display: inline-block;
     border-radius: 8px;
     margin: 4px;
     padding: 8px 16px;

@@ -1,8 +1,11 @@
 import Router, {Config, HTTPVersion, Req, Res} from "find-my-way";
 import Server from "http-proxy";
 import {ESNextOptions} from "./configure";
+import {useWatcher} from "./watcher";
 
-export function createRouter<V extends HTTPVersion = HTTPVersion.V1>(options: ESNextOptions, watcher) {
+export function createRouter<V extends HTTPVersion = HTTPVersion.V1>(options: ESNextOptions) {
+
+    const watcher = useWatcher(options);
 
     const router = Router<V>({
         onBadUrl(path:string, req: Req<V>, res: Res<V>) {
