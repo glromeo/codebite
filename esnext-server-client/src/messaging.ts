@@ -8,7 +8,7 @@ export type OnMessage = (type: string, cb: MessageCallback) => void;
 const queue: string[] = [];
 const callbacks = new MultiMap<string, MessageCallback>();
 
-const ws = new WebSocket(`${location.protocol === "http:" ? "ws:" : "wss:"}//${location.host}/`);
+const ws = new WebSocket(`${location.protocol === "http:" ? "ws:" : "wss:"}//${location.host}/`, "esnext-dev");
 
 ws.onopen = event => {
     send("hello", {time: new Date().toUTCString()});
@@ -52,4 +52,7 @@ export function send(type: string, data?: any) {
 export function on(type: string, cb: MessageCallback) {
     callbacks.add(type, cb);
     console.log(`added message listener for: %c${type}`, "color:magenta");
+    return function () {
+        callbacks.remove(type, cb);
+    }
 }

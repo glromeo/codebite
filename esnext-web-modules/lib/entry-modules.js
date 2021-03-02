@@ -62,6 +62,9 @@ function collectEntryModules(resolveOptions, squash, debug) {
     };
     collectEntryModules(readManifest("."));
     asciiTree === null || asciiTree === void 0 ? void 0 : asciiTree.write();
+    entryModules.add("esnext-server-client");
+    entryModules.add("esnext-hot-element");
+    entryModules.add("esnext-react-refresh");
     return entryModules;
 }
 exports.collectEntryModules = collectEntryModules;

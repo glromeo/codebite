@@ -1,5 +1,7 @@
 import {on} from "./messaging";
 
+console.trace("notifications.ts");
+
 const sheet = new CSSStyleSheet();
 
 // @ts-ignore
@@ -106,141 +108,136 @@ sheet.replaceSync(`
 
 `);
 
-customElements.define("esnext-notifications", class ESNextNotifications extends HTMLElement {
+customElements.define("esnext-notifications", class extends HTMLElement {
 
-    hideTimeout: number = 0;
-    renderRoot: ShadowRoot;
+        renderRoot: ShadowRoot;
 
-    constructor() {
-        super();
+        hideTimeout: number = 0;
+        ready: Promise<void> = Promise.resolve();
 
-        this.renderRoot = this.attachShadow({mode: "open"});
-        // @ts-ignore
-        this.renderRoot.adoptedStyleSheets = [sheet];
-        this.renderRoot.innerHTML = `<div id="container">${this.innerHTML}</div>`;
+        constructor() {
+            super();
 
-        let autoHide;
-        this.addEventListener("mouseenter", () => {
-            autoHide = !!this.hideTimeout;
-            this.show();
-        });
-        this.addEventListener("mouseout", () => {
-            this.show(autoHide);
-        });
-    }
+            this.renderRoot = this.attachShadow({mode: "open"});
+            this.renderRoot["adoptedStyleSheets"] = [sheet];
+            this.renderRoot.innerHTML = `<div id="container">${this.innerHTML}</div>`;
 
-    get containerElement():HTMLDivElement {
-        return this.renderRoot.getElementById("container") as HTMLDivElement;
-    }
-
-    set items(items) {
-        this.containerElement.innerHTML = "";
-        for (const item of items) {
-            this.add(item);
+            let autoHide;
+            this.addEventListener("mouseenter", () => {
+                autoHide = !!this.hideTimeout;
+                this.show();
+            });
+            this.addEventListener("mouseout", () => {
+                this.show(autoHide);
+            });
         }
-    }
 
-    show(autoHide = false) {
-        if (autoHide) {
-            this.hide(2500);
-        } else {
-            clearTimeout(this.hideTimeout);
-            this.containerElement.classList.remove("timeout");
+        get containerElement(): HTMLDivElement {
+            return this.renderRoot.getElementById("container") as HTMLDivElement;
         }
-        this.containerElement.classList.add("visible");
-    }
 
-    hide(timeoutMs = 0) {
-        clearTimeout(this.hideTimeout);
-        this.containerElement.classList.add("timeout");
-        this.hideTimeout = setTimeout(() => {
-            this.containerElement.classList.remove("visible");
-        }, timeoutMs);
-    }
+        set items(items) {
+            this.containerElement.innerHTML = "";
+            for (const item of items) {
+                this.add(item);
+            }
+        }
 
-    add({id, type = "default", message = ""}, sticky = false) {
-        this.ready = (async (ready) => {
-            await ready;
-            let slot = document.createElement("div");
-            slot.classList.add("slot");
-            slot.setAttribute("id", id);
-            const notification = document.createElement("div");
-            notification.setAttribute("class", `notification ${type}`);
-            const dismiss = () => {
-                slot.style.maxHeight = null;
-                slot.classList.remove("connected");
-                slot.addEventListener("transitionend", (event) => {
-                    if (slot) {
-                        this.containerElement.removeChild(slot);
-                        slot = null;
-                    }
-                });
-            };
-            if (sticky) {
-                notification.classList.add("sticky");
-                notification.addEventListener("click", dismiss);
+        connectedCallback() {
+
+            const removeAddCallback = on("notification:add", notification => this.add(notification));
+            const removeUpdateCallback = on("notification:update", notification => this.update(notification));
+
+            on("close", () => {
+                if (this.parentElement) this.parentElement.removeChild(this);
+            });
+
+            this.disconnectedCallback = () => {
+                removeAddCallback();
+                removeUpdateCallback();
+            }
+        }
+
+        disconnectedCallback() {
+        }
+
+        show(autoHide = false) {
+            if (autoHide) {
+                this.hide(2500);
             } else {
-                setTimeout(dismiss, 3000);
+                window.clearTimeout(this.hideTimeout);
+                this.containerElement.classList.remove("timeout");
             }
-            notification.innerHTML = message;
-            slot.appendChild(notification);
-            this.containerElement.appendChild(slot);
-            this.show(true);
-            return new Promise(resolve => setTimeout(() => {
-                slot.classList.add("connected");
-                slot.style.maxHeight = `${notification.getBoundingClientRect().height + 8}px`;
-                setTimeout(resolve, 125);
-            }));
-        })(this.ready);
-    }
+            this.containerElement.classList.add("visible");
+        }
 
-    // TODO: handle change in sticky/dismiss
-    update({id, type = "default", message = ""}) {
-        this.ready = (async (ready) => {
-            await ready;
-            const slot = this.renderRoot.getElementById(id);
-            if (!slot) {
-                return;
-            }
-            const notification = slot.firstElementChild;
-            notification.setAttribute("class", `notification ${type}`);
-            notification.innerHTML = message;
-            this.show(true);
-        })(this.ready);
-    }
-});
+        hide(timeoutMs = 0) {
+            window.clearTimeout(this.hideTimeout);
+            this.containerElement.classList.add("timeout");
+            this.hideTimeout = window.setTimeout(() => {
+                this.containerElement.classList.remove("visible");
+            }, timeoutMs);
+        }
 
-const notifications = document.body.appendChild(document.createElement("esnext-notifications"));
+        add({id, type = "default", message = ""}, sticky = false) {
+            this.ready = (async (ready) => {
+                await ready;
+                let slot: HTMLDivElement | null = document.createElement("div");
+                slot.classList.add("slot");
+                slot.setAttribute("id", id);
+                const notification = document.createElement("div");
+                notification.setAttribute("class", `notification ${type}`);
+                const dismiss = () => {
+                    if (slot) {
+                        slot.style.maxHeight = "";
+                        slot.classList.remove("connected");
+                        slot.addEventListener("transitionend", (event) => {
+                            if (slot) {
+                                this.containerElement.removeChild(slot);
+                                slot = null;
+                            }
+                        });
+                    }
+                };
+                if (sticky) {
+                    notification.classList.add("sticky");
+                    notification.addEventListener("click", dismiss);
+                } else {
+                    window.setTimeout(dismiss, 3000);
+                }
+                notification.innerHTML = message;
+                slot.appendChild(notification);
+                this.containerElement.appendChild(slot);
+                this.show(true);
+                return new Promise<void>(resolve => window.setTimeout(() => {
+                    if (slot) {
+                        slot.classList.add("connected");
+                        slot.style.maxHeight = `${notification.getBoundingClientRect().height + 8}px`;
+                    }
+                    window.setTimeout(resolve, 125);
+                }));
+            })(this.ready);
+        }
 
-console.log("notifications ready");
-
-const ws = new WebSocket(`${location.protocol === "http:" ? "ws:" : "wss:"}//${location.host}/`, "esnext-alert");
-
-ws.onopen = event => {
-    console.log("websocket open");
-};
-
-ws.onmessage = event => {
-    let message = event.data;
-    if (message.startsWith("notification:")) {
-        message = message.substring(13);
-        if (message.startsWith("new:")) {
-            message = message.substring(4);
-            notifications.add(JSON.parse(message));
-        } else if (message.startsWith("update:")) {
-            message = message.substring(7);
-            notifications.update(JSON.parse(message));
-        } else {
-            console.error("unable to handle web socket message", event.data);
+        // TODO: handle change in sticky/dismiss
+        update({id, type = "default", message = ""}) {
+            this.ready = (async (ready) => {
+                await ready;
+                const slot = this.renderRoot.getElementById(id);
+                if (!slot) {
+                    return;
+                }
+                const notification = slot.firstElementChild;
+                if (notification) {
+                    notification.setAttribute("class", `notification ${type}`);
+                    notification.innerHTML = message;
+                }
+                this.show(true);
+            })(this.ready);
         }
     }
-};
+);
 
-ws.onerror = event => {
-    console.log("websocket error", event);
-};
-
-ws.onclose = event => {
-    document.removeChild(notifications);
-    console.warn("websocket closed");
-};
+on("open", () => {
+    document.body.appendChild(document.createElement("esnext-notifications"));
+});

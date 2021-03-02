@@ -89,7 +89,7 @@ export const useMessaging = memoized((options: ESNextOptions) => {
 
     return {
         handleUpgrade(req, socket, head) {
-            if (req.headers["sec-websocket-protocol"] === "romeo") {
+            if (req.headers["sec-websocket-protocol"] === "esnext-dev") {
                 const wss = new WebSocket.Server({noServer: true});
                 wss.on("open", openCallback);
                 wss.on("error", errorCallback);
