@@ -1,11 +1,10 @@
 import {traverse} from "@babel/core";
-import memoize from "pico-memoize";
-import path from "path";
+import memoized from "nano-memoize";
 import log from "tiny-node-logger";
 import {isBare} from "./es-import-utils";
 import {useWebModules} from "./index";
 
-export const useWebModulesPlugin = memoize(config => {
+export const useWebModulesPlugin = memoized(config => {
 
     const {resolveImport} = useWebModules(config);
 

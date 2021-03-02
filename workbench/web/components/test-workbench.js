@@ -2,7 +2,7 @@ import "@codebite/components";
 import {css, customElement, LitElement, property} from "lit-element";
 import {html} from "lit-html";
 
-import backbone from "../backbone.js";
+import {on} from "esnext-server-client";
 
 import styles from "./styles.scss";
 
@@ -10,6 +10,7 @@ import styles from "./styles.scss";
 export class TestWorkbench extends LitElement {
 
     static styles = [styles, css`
+    // 1
         :host {
             display: contents;
         }
@@ -39,15 +40,15 @@ export class TestWorkbench extends LitElement {
         this.theme = localStorage.getItem("theme") || "light";
         this.addEventListener("theme", event => this.theme = event.detail.theme);
 
-        backbone.onchange = status => this.connected = status.connected;
-
-        backbone.on("reload", ({changed}) => {
-            console.log(`detected change in: ${changed}`);
+        on("open", () => this.connected = true);
+        on("close", () => this.connected = false);
+        on("hmr:update", ({path}) => {
+            console.log(`detected change in: ${path}`);
             if (this.reload) {
                 console.log(`reloading!...`);
                 location.reload();
             } else {
-                this.changed = this.changed.indexOf(changed) > 0 ? this.changed : [...this.changed, changed];
+                this.changed = this.changed.indexOf(path) > 0 ? this.changed : [...this.changed, path];
             }
         });
     }

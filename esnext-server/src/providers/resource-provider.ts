@@ -1,18 +1,18 @@
 import chalk from "chalk";
-import {FSWatcher} from "chokidar";
 import etag from "etag";
 import {promises as fs} from "fs";
 import {OutgoingHttpHeaders} from "http";
-import memoize from "pico-memoize";
+import memoized from "nano-memoize";
+import path from "path";
 import log from "tiny-node-logger";
 import {ESNextOptions} from "../configure";
-import {useHotModuleReplacement} from "../hmr-server";
 import {SourceMap, useTransformers} from "../transformers";
 import {contentType, JSON_CONTENT_TYPE} from "../util/mime-types";
-import {useZlib} from "../util/zlib";
-import {useRouter} from "./router";
 import {MultiMap} from "../util/multi-map";
+import {useZlib} from "../util/zlib";
 import {useWatcher} from "../watcher";
+import {useMessaging} from "../messaging";
+import {useRouter} from "./router";
 
 
 export type Query = { [name: string]: string };
@@ -31,20 +31,21 @@ export type Resource = {
 export const NO_LINKS = Object.freeze([]);
 export const NO_QUERY = Object.freeze({});
 
-export const useResourceProvider = memoize(function (options: ESNextOptions) {
+export const useResourceProvider = memoized(function (options: ESNextOptions) {
 
     const cache = new Map<string, Resource | Promise<Resource>>();
     const watched = new MultiMap<string, string>();
     const dependants = new MultiMap<string, string>();
 
-    const hmr = useHotModuleReplacement(options);
+    const ws = useMessaging(options);
     const watcher = useWatcher(options);
 
     function watch(filename: string, url: string) {
-        if (!watched.has(filename)) {
-            watcher.add(filename);
+        const relative = path.relative(options.rootDir, filename);
+        if (!watched.has(relative)) {
+            watcher.add(relative);
         }
-        watched.add(filename, url);
+        watched.add(relative, url);
     }
 
     function unwatch(filename: string, url: string | null = null) {
@@ -64,23 +65,24 @@ export const useResourceProvider = memoize(function (options: ESNextOptions) {
 
     watcher.on("change", function (filename: string) {
         const urls = watched.get(filename);
-        if (urls) for (const url of urls) {
-            const resource = cache.get(url);
-            if (resource) {
-                log.debug("change:", filename, "->", url);
-                cache.set(url, Promise.resolve(resource).then(reload).then(pipeline).then(resource => {
-                    cache.set(url, resource);
-                    return resource;
-                }));
-            } else {
-                log.warn("no cache entry for:", url);
-                unwatch(filename, url);
+        if (urls) {
+            for (const url of urls) {
+                const resource = cache.get(url);
+                if (resource) {
+                    log.debug("change:", filename, "->", url);
+                    cache.set(url, Promise.resolve(resource).then(reload).then(pipeline).then(resource => {
+                        cache.set(url, resource);
+                        return resource;
+                    }));
+                } else {
+                    log.warn("no cache entry for:", url);
+                    unwatch(filename, url);
+                }
+                ws.broadcast("hmr:update", {url});
             }
-            if (hmr.engine!.getEntry(url)) {
-                hmr.engine!.broadcastMessage({type: "update", url, bubbled: false});
-                // updateOrBubble(url, new Set());
-                return;
-            }
+        } else {
+            log.warn("no urls for filename:", filename);
+            unwatch(filename);
         }
     });
 
@@ -190,11 +192,6 @@ export const useResourceProvider = memoize(function (options: ESNextOptions) {
                         watch(resource.filename, url);
                         if (resource.watch) {
                             for (const filename of resource.watch) watch(filename, url);
-                        }
-                    }
-                    if (hmr.engine && resource.links) {
-                        for (const link of resource.links) {
-                            hmr.engine.addRelationship(url, link);
                         }
                     }
                     return resource;

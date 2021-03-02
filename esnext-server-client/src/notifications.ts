@@ -1,5 +1,8 @@
+import {on} from "./messaging";
+
 const sheet = new CSSStyleSheet();
 
+// @ts-ignore
 sheet.replaceSync(`
 
 #container {
@@ -105,8 +108,17 @@ sheet.replaceSync(`
 
 customElements.define("esnext-notifications", class ESNextNotifications extends HTMLElement {
 
+    hideTimeout: number = 0;
+    renderRoot: ShadowRoot;
+
     constructor() {
         super();
+
+        this.renderRoot = this.attachShadow({mode: "open"});
+        // @ts-ignore
+        this.renderRoot.adoptedStyleSheets = [sheet];
+        this.renderRoot.innerHTML = `<div id="container">${this.innerHTML}</div>`;
+
         let autoHide;
         this.addEventListener("mouseenter", () => {
             autoHide = !!this.hideTimeout;
@@ -117,8 +129,8 @@ customElements.define("esnext-notifications", class ESNextNotifications extends 
         });
     }
 
-    get containerElement() {
-        return this.renderRoot.getElementById("container");
+    get containerElement():HTMLDivElement {
+        return this.renderRoot.getElementById("container") as HTMLDivElement;
     }
 
     set items(items) {
@@ -126,12 +138,6 @@ customElements.define("esnext-notifications", class ESNextNotifications extends 
         for (const item of items) {
             this.add(item);
         }
-    }
-
-    connectedCallback() {
-        this.renderRoot = this.attachShadow({mode: "open"});
-        this.renderRoot.adoptedStyleSheets = [sheet];
-        this.renderRoot.innerHTML = `<div id="container">${this.innerHTML}</div>`;
     }
 
     show(autoHide = false) {

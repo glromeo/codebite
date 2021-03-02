@@ -1,8 +1,8 @@
+import {send, on} from "esnext-server-client";
 import {css, customElement, html, LitElement, property} from "lit-element";
 import {nothing, render} from "lit-html";
 import {ifDefined} from "lit-html/directives/if-defined.js";
 import {smoothScrollbar, smoothScrollbarStyle} from "./common-styles.js";
-import backbone from "../backbone.js";
 import {rippleEffect} from "./ripple-effect.js";
 import rippleStyle from "./ripple-effect.scss";
 
@@ -185,8 +185,8 @@ export class TestNavigator extends LitElement {
         const {searchParams} = new URL(location);
         if (!searchParams.has("spec")) {
 
-            backbone.ready.then(() => backbone.send("find"));
-            backbone.on("specs", entries => navigator.specs = entries);
+            send("find-specs");
+            on("specs", entries => navigator.specs = entries);
 
         } else {
             navigator.spec = searchParams.get("spec");

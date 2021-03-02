@@ -10,7 +10,7 @@ import {SyncOptions} from "node-sass";
 import path from "path";
 import log from "tiny-node-logger";
 import {ServerOptions} from "./server";
-import {BackboneOptions} from "./backbone";
+import {MessagingOptions} from "./messaging";
 
 export type FindMyWayMiddleware = (
     router: Router.Instance<HTTPVersion.V1 | HTTPVersion.V2>,
@@ -44,7 +44,7 @@ export type ESNextOptions = WebModulesOptions & {
     mount: { [path: string]: string }
     babel: TransformOptions
     sass: SyncOptions
-    backbone?: BackboneOptions
+    messaging?: MessagingOptions
 }
 
 function loadConfig(pathname: string): string {

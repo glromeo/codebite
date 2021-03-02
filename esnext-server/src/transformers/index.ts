@@ -1,5 +1,5 @@
 import {posix} from "path";
-import memoize from "pico-memoize";
+import memoized from "nano-memoize";
 import picomatch from "picomatch";
 import {ESNextOptions} from "../configure";
 import {Resource} from "../providers/resource-provider";
@@ -38,7 +38,7 @@ export type TransformerOutput = {
     includedFiles?: string[]  // absolute filenames of all included files (e.g. sass imports)
 }
 
-export const useTransformers = memoize((options: ESNextOptions) => {
+export const useTransformers = memoized((options: ESNextOptions) => {
 
     const {htmlTransformer} = useHtmlTransformer(options);
     const {esbuildTransformer} = useEsBuildTransformer(options);

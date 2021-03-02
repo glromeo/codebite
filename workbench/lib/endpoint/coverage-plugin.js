@@ -4,9 +4,9 @@ const path = require("path");
 
 const NYC = require("nyc");
 
-module.exports = function CoveragePlugin(config, watcher) {
+module.exports = function CoveragePlugin({on, options}) {
 
-    const {rootDir} = config;
+    const {rootDir} = options;
 
     const outDir = path.resolve(rootDir, ".nyc_output");
     const out = path.resolve(outDir, "out.json");
@@ -24,12 +24,11 @@ module.exports = function CoveragePlugin(config, watcher) {
         reportDir: "coverage"
     });
 
-    return {
-        async coverage(payload) {
-            const {spec, coverage} = payload;
-            writeCoverage(spec, coverage);
-            await nyc.report();
-            log.info("nyc report done");
-        }
-    }
+    on("coverage", async (payload) => {
+        const {spec, coverage} = payload;
+        writeCoverage(spec, coverage);
+        await nyc.report();
+        log.info("nyc report done");
+    });
+
 };

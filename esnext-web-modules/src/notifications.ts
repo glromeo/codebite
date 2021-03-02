@@ -43,6 +43,7 @@ export class Notification implements WebModulesNotification {
 }
 
 export function useNotifications(options: WebModulesOptions) {
+
     if (options.notify) {
         return (message: string, type: WebModulesNotificationType = "info", sticky: boolean = false, error?) => {
             const notification = new Notification(message, type, sticky, error);

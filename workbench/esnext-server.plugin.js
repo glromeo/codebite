@@ -40,9 +40,8 @@ module.exports = {
         ]
     },
 
-    backbone: {
+    websocket: {
         plugins: [
-            require("./lib/endpoint/reload-plugin.js"),
             require("./lib/endpoint/find-plugin.js"),
             require("./lib/endpoint/coverage-plugin.js")
         ]

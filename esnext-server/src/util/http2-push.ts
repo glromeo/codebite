@@ -1,12 +1,12 @@
 import {FSWatcher} from "chokidar";
 import HttpStatus from "http-status-codes";
 import http2, {ServerHttp2Stream} from "http2";
-import memoize from "pico-memoize";
+import memoized from "nano-memoize";
 import log from "tiny-node-logger";
 import {ESNextOptions} from "../configure";
 import {useResourceProvider} from "../providers/resource-provider";
 
-export const useHttp2Push = memoize((options: ESNextOptions) => {
+export const useHttp2Push = memoized((options: ESNextOptions) => {
 
     const {provideResource} = useResourceProvider(options);
 

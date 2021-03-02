@@ -1,2 +1,2 @@
 import "./notifications";
-export * from "./hmr-client";
+export * from "./messaging";

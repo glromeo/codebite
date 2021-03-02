@@ -4,6 +4,8 @@ import yargs from "yargs";
 import {configure} from "./configure";
 import {startServer} from "./server";
 
+require('source-map-support').install();
+
 /********************************************
  *──────────────────────────────────────────*
  *─██████████████─██████─────────██████████─*

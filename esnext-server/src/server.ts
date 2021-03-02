@@ -1,15 +1,14 @@
 import {FSWatcher} from "chokidar";
-import Router, {Handler, HTTPVersion} from "find-my-way";
+import {Handler, HTTPVersion} from "find-my-way";
 import {Server as HttpServer} from "http";
 import {Http2Server} from "http2";
 import {Server as HttpsServer} from "https";
 import {Socket} from "net";
 import log from "tiny-node-logger";
+import {useMessaging} from "./messaging";
 import {ESNextOptions} from "./configure";
 import {useRequestHandler} from "./request-handler";
 import {useWatcher} from "./watcher";
-import {useBackbone} from "./backbone";
-import {useHotModuleReplacement} from "./hmr-server";
 
 export type ServerOptions = {
     protocol?: "http" | "https"
@@ -25,13 +24,12 @@ export type ServerOptions = {
 export const DEFAULT_SERVER_OPTIONS: ServerOptions = {
     protocol: "http",
     host: "localhost",
-    port: 3000,
-    options: {}
+    port: 3000
 };
 
 export type Services = {
     watcher?: FSWatcher
-    handler?: Handler<HTTPVersion.V1|HTTPVersion.V2>
+    handler?: Handler<HTTPVersion.V1 | HTTPVersion.V2>
 }
 
 export async function startServer(options: ESNextOptions) {
@@ -41,7 +39,9 @@ export async function startServer(options: ESNextOptions) {
             protocol,
             host,
             port,
-            options: serverOptions = {}
+            options: {
+                key, cert, allowHTTP1
+            } = {} as any
         } = DEFAULT_SERVER_OPTIONS
     } = options;
 
@@ -53,36 +53,30 @@ export async function startServer(options: ESNextOptions) {
     if (options.http2) {
         module = require("http2");
         if (protocol === "http") {
-            server = module.createServer(serverOptions, handler);
+            server = module.createServer({allowHTTP1}, handler);
         } else {
-            server = module.createSecureServer(serverOptions, handler);
+            server = module.createSecureServer({key, cert, allowHTTP1}, handler);
         }
     } else {
         if (protocol === "http") {
             module = require("http");
-            server = module.createServer(serverOptions, handler);
+            server = module.createServer(handler);
         } else {
             module = require("https");
-            server = module.createServer(serverOptions, handler);
+            server = module.createServer({key, cert}, handler);
         }
     }
 
-    await new Promise<void>(resolve => server.listen(port, host, resolve));
+    server.on("upgrade", useMessaging(options).handleUpgrade);
+
+    await new Promise<void>(listening => server.listen(port, host, listening));
 
     const address = `${protocol}://${host}:${port}`;
     log.info(`server started on ${address}`);
 
-    useHotModuleReplacement(options).connect(server);
-
-    server.on("upgrade", useBackbone(options).handleUpgrade);
-
     const sockets = new Set<Socket>();
 
-    server.on("connection", function (socket) {
-        sockets.add(socket);
-        socket.on("close", () => sockets.delete(socket));
-    });
-    server.on("secureConnection", function (socket) {
+    for (const event of ["connection", "secureConnection"]) server.on(event, function (socket) {
         sockets.add(socket);
         socket.on("close", () => sockets.delete(socket));
     });
@@ -91,11 +85,11 @@ export async function startServer(options: ESNextOptions) {
 
     async function shutdown(this: any) {
         if (closed) {
-            log.debug("server already closed");
+            log.debug("shutdown in progress...");
             await closed;
         }
 
-        closed = new Promise(resolve => server.on("close", resolve));
+        closed = new Promise(closed => server.on("close", closed));
 
         if (sockets.size > 0) {
             log.debug(`closing ${sockets.size} pending socket...`);

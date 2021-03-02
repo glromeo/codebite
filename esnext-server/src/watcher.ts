@@ -1,26 +1,27 @@
 import chalk from "chalk";
-import chokidar, {FSWatcher, WatchOptions} from "chokidar";
+import chokidar, {FSWatcher} from "chokidar";
+import memoized from "nano-memoize";
 import log from "tiny-node-logger";
-import memoize from "pico-memoize";
+import {ESNextOptions} from "./configure";
 
-export const useWatcher = memoize((options: { rootDir: string, watcher?: WatchOptions }): FSWatcher  => {
-
-    if (!options?.rootDir) {
-        throw new Error("rootDir not specified");
-    }
+export const useWatcher = memoized(({rootDir, watcher: options}: ESNextOptions): FSWatcher => {
 
     const watcher = chokidar.watch([], {
+        ...options,
+        cwd: rootDir,
         atomic: false,
         ignored: [
+            ...options?.ignored ?? [],
             "**/web_modules/**",
-            "**/node_modules/**",
-            "**/.*"
+            "**/node_modules/**"
         ]
     });
 
     log.debug("created chokidar watcher");
 
-    watcher.on("all", (event, file) => log.debug("watcher", event, file));
+    if (log.includes("debug")) {
+        watcher.on("all", (event, file) => log.debug("watcher", event, file));
+    }
     watcher.on("ready", () => log.info("workspace watcher is", chalk.bold("ready")));
 
     return watcher;

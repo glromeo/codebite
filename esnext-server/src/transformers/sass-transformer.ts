@@ -1,5 +1,6 @@
-import memoize from "pico-memoize";
+import memoized from "nano-memoize";
 import sass from "node-sass";
+import path from "path";
 import {ESNextOptions} from "../configure";
 import {CSS_CONTENT_TYPE, JAVASCRIPT_CONTENT_TYPE} from "../util/mime-types";
 import {useSassImporter} from "../util/sass-importer";
@@ -18,7 +19,7 @@ document.head
 ${cssText.replace(/([$`\\])/g, "\\$1")}\`));
 `;
 
-export const useSassTransformer = memoize((options: ESNextOptions) => {
+export const useSassTransformer = memoized((options: ESNextOptions) => {
 
     const {sassImporter} = useSassImporter(options);
 
@@ -40,6 +41,8 @@ export const useSassTransformer = memoize((options: ESNextOptions) => {
         // links is undefined since sass has already included the @imports so no need to push them
         // yet we need the watch array to reload the module when an imported file has changed...
 
+        const dirname = path.dirname(filename);
+
         return {
             content: content,
             headers: {
@@ -47,7 +50,7 @@ export const useSassTransformer = memoize((options: ESNextOptions) => {
                 "content-length": Buffer.byteLength(content),
                 "x-transformer": "sass-transformer"
             },
-            includedFiles: stats.includedFiles
+            includedFiles: stats.includedFiles.map(included => path.resolve(dirname, included))
         };
     }
 

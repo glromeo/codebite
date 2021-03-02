@@ -12,9 +12,9 @@ import {useResourceProvider} from "./providers/resource-provider";
 import {createRouter} from "./router";
 import {useHttp2Push} from "./util/http2-push";
 import {contentType} from "./util/mime-types";
-import memoize from "pico-memoize";
+import memoized from "nano-memoize";
 
-export const useRequestHandler = memoize(<V extends Router.HTTPVersion>(options: ESNextOptions) => {
+export const useRequestHandler = memoized(<V extends Router.HTTPVersion>(options: ESNextOptions) => {
 
     const {provideResource} = useResourceProvider(options);
     const {http2Push} = useHttp2Push(options);

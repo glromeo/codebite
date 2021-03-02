@@ -5,3 +5,5 @@ export default {
     configure,
     startServer
 };
+
+export * from "./messaging";

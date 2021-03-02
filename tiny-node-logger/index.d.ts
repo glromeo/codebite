@@ -41,6 +41,8 @@ interface Logger extends Log {
     details: boolean;
 
     level: Level | 4 | 3 | 2 | 1 | 0 | -1;
+
+    includes(level: Level): boolean;
 }
 
 declare let log: Logger;

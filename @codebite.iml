@@ -16,6 +16,8 @@
       <excludeFolder url="file://$MODULE_DIR$/esnext-web-modules/attic" />
       <excludeFolder url="file://$MODULE_DIR$/esnext-web-modules/lib" />
       <excludeFolder url="file://$MODULE_DIR$/.run" />
+      <excludeFolder url="file://$MODULE_DIR$/esnext-server/lib" />
+      <excludeFolder url="file://$MODULE_DIR$/esnext-server-client/lib" />
     </content>
     <orderEntry type="sourceFolder" forTests="false" />
   </component>

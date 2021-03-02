@@ -5,7 +5,7 @@ import rollupPluginReplace from "@rollup/plugin-replace";
 import chalk from "chalk";
 import {parse} from "fast-url-parser";
 import {existsSync, mkdirSync, promises as fsp, readFileSync, rmdirSync, statSync} from "fs";
-import memoize from "pico-memoize";
+import memoized from "nano-memoize";
 import path, {posix} from "path";
 import resolve, {Opts} from "resolve";
 import {Plugin, rollup, RollupOptions, RollupWarning} from "rollup";
@@ -72,7 +72,7 @@ function readJson(filename) {
  *
  * @param config
  */
-export const useWebModules = memoize((options: WebModulesOptions = defaultOptions()) => {
+export const useWebModules = memoized((options: WebModulesOptions = defaultOptions()) => {
 
     const {outDir} = initFileSystem(options.rootDir, options.clean);
 

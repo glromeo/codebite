@@ -1,6 +1,6 @@
 import babel from "@babel/core";
 import fs from "fs";
-import memoize from "pico-memoize";
+import memoized from "nano-memoize";
 import {ImporterReturnType, SyncContext, SyncImporter} from "node-sass";
 import path from "path";
 import log from "tiny-node-logger";
@@ -8,7 +8,7 @@ import log from "tiny-node-logger";
 const EXTENSIONS = new Set([".scss", ".sass", ".css"]);
 const PATHS = [];
 
-export const useSassImporter = memoize(config => {
+export const useSassImporter = memoized(config => {
 
     const realpathSyncImpl = typeof fs.realpathSync.native === "function" ? fs.realpathSync.native : fs.realpathSync;
 

@@ -150,6 +150,23 @@ Object.assign(module.exports, {
         this.level = value;
     },
 
+    includes(level) {
+        switch (level.toLowerCase()) {
+            case "trace":
+                return threshold >= 4;
+            case "debug":
+                return threshold >= 3;
+            case "info":
+                return threshold >= 2;
+            case "warn":
+                return threshold >= 1;
+            case "error":
+                return threshold >= 0;
+            default:
+                return false;
+        }
+    },
+
     stringify
 });
 

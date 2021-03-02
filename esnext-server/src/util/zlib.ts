@@ -1,8 +1,8 @@
 import zlib from "fast-zlib";
-import memoize from "pico-memoize";
+import memoized from "nano-memoize";
 import {ESNextOptions} from "../configure";
 
-export const useZlib = memoize((options:ESNextOptions)=>{
+export const useZlib = memoized((options:ESNextOptions)=>{
 
     function createCompression(encoding: "gzip" | "brotli" | "br" | "deflate" | "deflate-raw" | undefined) {
         if (encoding === "deflate") return new zlib.Deflate();

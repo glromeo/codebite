@@ -4,7 +4,7 @@ import {sassPlugin} from "esbuild-sass-plugin";
 import {parse} from "fast-url-parser";
 import {existsSync, mkdirSync, rmdirSync, statSync} from "fs";
 import path, {posix} from "path";
-import memoize from "pico-memoize";
+import memoized from "nano-memoize";
 import resolve, {Opts} from "resolve";
 import log from "tiny-node-logger";
 import {generateCjsProxy, parseCjsReady} from "./cjs-entry-proxy";
@@ -40,7 +40,7 @@ export function defaultOptions(): WebModulesOptions {
  *
  * @param config
  */
-export const useWebModules = memoize<WebModulesFactory>((options: WebModulesOptions = defaultOptions()) => {
+export const useWebModules = memoized<WebModulesFactory>((options: WebModulesOptions = defaultOptions()) => {
 
     if (!options.environment) options.environment = "development";
     if (!options.resolve) options.resolve = {};
