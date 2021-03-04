@@ -4,7 +4,7 @@ describe("resource cache", function () {
 
     const {useFixture} = require("fixture/index.js");
     const {server: {start, stop}, fetch, watcher, resolve} = useFixture({
-        config: `${__dirname}/fixture/server.config.js`,
+        options: `${__dirname}/fixture/server.config.js`,
         cache: true
     });
 

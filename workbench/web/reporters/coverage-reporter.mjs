@@ -1,4 +1,4 @@
-import {send} from "esnext-server-client";
+import {send} from "/esnext-server-client/lib/index.js";
 
 export default () => ({
 

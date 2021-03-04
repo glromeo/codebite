@@ -15,7 +15,7 @@
     "esnext-server": "^0.5.0"
   },
   "scripts": {
-    "showcase": "esnext-server --root .. --module @codebite/workbench -d",
+    "showcase": "esnext-server --root .. -d",
     "test": "test-runner --root .."
   }
 }

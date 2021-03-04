@@ -3,19 +3,15 @@ import {Service, startService} from "esbuild";
 import {sassPlugin} from "esbuild-sass-plugin";
 import {parse} from "fast-url-parser";
 import {existsSync, mkdirSync, rmdirSync, statSync} from "fs";
-import path, {posix} from "path";
 import memoized from "nano-memoize";
+import path, {posix} from "path";
 import resolve, {Opts} from "resolve";
 import log from "tiny-node-logger";
 import {generateCjsProxy, parseCjsReady} from "./cjs-entry-proxy";
 import {collectEntryModules} from "./entry-modules";
 import {isBare, parseModuleUrl, pathnameToModuleUrl} from "./es-import-utils";
 import {generateEsmProxy, parseEsmReady} from "./esm-entry-proxy";
-import {
-    ImportResolver,
-    WebModulesFactory,
-    WebModulesOptions
-} from "./index";
+import {ImportResolver, WebModulesFactory, WebModulesOptions} from "./index";
 import {useNotifications} from "./notifications";
 import {replaceRequire} from "./replace-require";
 import {closestManifest, readImportMap, stripExt, writeImportMap} from "./utility";
@@ -326,7 +322,7 @@ export const useWebModules = memoized<WebModulesFactory>((options: WebModulesOpt
 
                 // NOTE: externals are disabled at the moment
                 if (external.size) {
-                    log.warn(`${source} has ${external.size} externals: ${external.size < 20 ? entryProxy.external : "..."}`)
+                    log.warn(`${source} has ${external.size} externals: ${external.size < 20 ? entryProxy.external : "..."}`);
                 }
 
                 await (esbuild || await ready).build({

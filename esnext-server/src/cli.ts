@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import {useWebModules} from "esnext-web-modules";
 import log from "tiny-node-logger";
 import yargs from "yargs";
 import {configure} from "./configure";
@@ -37,9 +38,9 @@ const args = yargs
         description: "root directory (defaults to the process current working directory)",
         type: "string"
     })
-    .option("module", {
+    .option("plugin", {
         alias: ["m"],
-        description: "Add module to the server (a module is a server plugin)",
+        description: "Add plugin to the server",
         type: "string"
     })
     .option("debug", {

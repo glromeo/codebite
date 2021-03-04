@@ -21,7 +21,7 @@ describe("configure", function () {
     it("config must be valid", async function () {
         const filename = "missing.config";
         const cwd = process.cwd();
-        const args = {config: filename};
+        const args = {options: filename};
         expect(() => configure(args)).toThrowError(`Unable to load config '${filename}' from '${cwd}'`);
     });
 
@@ -90,7 +90,7 @@ describe("configure", function () {
 
         fs.writeFileSync(pathname, `module.exports = ${JSON.stringify(content, undefined, " ")}`);
 
-        let config = configure({config: `test/fixture/${filename}`});
+        let config = configure({options: `test/fixture/${filename}`});
         expect(config.log.level).toEqual("trace");
 
         fs.unlinkSync(pathname);

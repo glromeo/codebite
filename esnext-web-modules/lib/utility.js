@@ -22,10 +22,11 @@ function readImportMap(rootDir, outDir) {
         let importMap = JSON.parse(fs_1.readFileSync(`${outDir}/import-map.json`, "utf-8"));
         for (const [key, pathname] of Object.entries(importMap.imports)) {
             try {
-                tiny_node_logger_1.default.debug("web_module:", chalk_1.default.green(key), "->", chalk_1.default.gray(pathname));
+                let { mtime } = fs_1.statSync(path_1.default.join(rootDir, String(pathname)));
+                tiny_node_logger_1.default.debug("web_module:", chalk_1.default.green(key), "->", chalk_1.default.gray(pathname), "mtime:", mtime);
             }
             catch (e) {
-                delete importMap[key];
+                delete importMap.imports[key];
             }
         }
         return importMap;

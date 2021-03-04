@@ -16,6 +16,8 @@ ws.onopen = event => {
     if (subset) for (const callback of subset) {
         callback(undefined, send);
     }
+    queue.forEach(item => ws.send(item));
+    queue.length = 0;
 };
 
 ws.onmessage = event => {
@@ -41,7 +43,7 @@ ws.onclose = event => {
 };
 
 export function send(type: string, data?: any) {
-    const text = data === undefined ? type : JSON.stringify({type, data});
+    const text = data === undefined ? JSON.stringify({type}) : JSON.stringify({type, data});
     if (ws.readyState !== ws.OPEN) {
         queue.push(text);
     } else {

@@ -21,7 +21,7 @@ export declare type Services = {
     handler?: Handler<HTTPVersion.V1 | HTTPVersion.V2>;
 };
 export declare function startServer(options: ESNextOptions): Promise<{
-    config: ESNextOptions;
+    options: ESNextOptions;
     module: any;
     server: HttpServer | HttpsServer | Http2Server;
     watcher: any;

@@ -1,6 +1,3 @@
-const log = require("tiny-node-logger");
-const {parse: parseURL} = require("fast-url-parser");
-
 module.exports = {
 
     mount: {
@@ -40,7 +37,7 @@ module.exports = {
         ]
     },
 
-    websocket: {
+    messaging: {
         plugins: [
             require("./lib/endpoint/find-plugin.js"),
             require("./lib/endpoint/coverage-plugin.js")

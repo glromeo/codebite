@@ -110,7 +110,7 @@ export async function startServer(options: ESNextOptions) {
     }
 
     return {
-        config: options,
+        options,
         module,
         server,
         watcher,

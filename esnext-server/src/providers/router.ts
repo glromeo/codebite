@@ -87,7 +87,7 @@ export function useRouter(options: ESNextOptions) {
                     "content-type": contentType(filename),
                     "content-length": stats.size,
                     "last-modified": stats.mtime.toUTCString(),
-                    "cache-control": route === "/web_modules" || route === "/node_modules" ? "public, max-age=86400, immutable" : "no-cache"
+                    "cache-control": route === "/web_modules" || route === "/node_modules" || route.startsWith("/esnext-") ? "public, max-age=86400, immutable" : "no-cache"
                 },
                 links: NO_LINKS
             };

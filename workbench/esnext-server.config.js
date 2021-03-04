@@ -34,5 +34,9 @@ module.exports = {
     specs: [
         "components/**/*.spec.js",
         "test/*.spec.mjs"
+    ],
+
+    plugins: [
+        require("./esnext-server.plugin.js")
     ]
 };

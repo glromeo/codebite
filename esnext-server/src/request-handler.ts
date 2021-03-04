@@ -5,16 +5,18 @@ import {readFile} from "fs";
 import {ServerResponse} from "http";
 import HttpStatus from "http-status-codes";
 import {Http2ServerResponse} from "http2";
-import {join, posix} from "path";
+import memoized from "nano-memoize";
+import path, {posix} from "path";
 import log from "tiny-node-logger";
 import {ESNextOptions} from "./configure";
 import {useResourceProvider} from "./providers/resource-provider";
 import {createRouter} from "./router";
 import {useHttp2Push} from "./util/http2-push";
 import {contentType} from "./util/mime-types";
-import memoized from "nano-memoize";
 
-export const useRequestHandler = memoized(<V extends Router.HTTPVersion>(options: ESNextOptions) => {
+type Version = Router.HTTPVersion.V1 | Router.HTTPVersion.V2;
+
+export const useRequestHandler = memoized(<V extends Version>(options: ESNextOptions) => {
 
     const {provideResource} = useResourceProvider(options);
     const {http2Push} = useHttp2Push(options);
@@ -31,12 +33,8 @@ export const useRequestHandler = memoized(<V extends Router.HTTPVersion>(options
      */
     router.get("/resources/*", function resourcesMiddleware(req: Req<V>, res: Res<V>) {
         const {pathname} = parseURL(req.url);
-        const filename = join(options.resources, pathname.substring(10));
+        const filename = path.join(options.resources, pathname.substring(10));
         sendFile(filename, res);
-    });
-
-    router.get("/esnext-server/client.js", function resourcesMiddleware(req: Req<V>, res: Res<V>) {
-        sendFile(require.resolve(posix.join("esnext-server-client/dist/index.js")), res);
     });
 
     function sendFile<V>(filename: string, res: V extends Router.HTTPVersion.V1 ? ServerResponse : Http2ServerResponse) {
@@ -64,11 +62,26 @@ export const useRequestHandler = memoized(<V extends Router.HTTPVersion>(options
      */
     router.get("/*", async function workspaceMiddleware(req: Req<V>, res: Res<V>) {
 
-        if (req.url) try {
-            const resource = await provideResource(req.url);
+        let url = req.url, isHMR;
+        if (url) try {
 
-            if (resource.links && options.http2 === "preload") {
-                resource.headers.link = resource.links.map(link => {
+            if (url.endsWith(".HMR")) {
+                let hmrQuery = url.lastIndexOf("v=");
+                isHMR = hmrQuery > 0;
+                url = isHMR ? url.slice(0, hmrQuery - 1) : url;
+            }
+
+            let {
+                pathname,
+                headers,
+                content,
+                links
+            } = await provideResource(url);
+
+            headers = {...headers};
+
+            if (links && options.http2 === "preload" && !isHMR) {
+                headers.link = links.map(link => {
                     provideResource(link).catch(function () {
                         log.warn("failed to pre-warm cache with:", link);
                     });
@@ -76,20 +89,22 @@ export const useRequestHandler = memoized(<V extends Router.HTTPVersion>(options
                 });
             }
 
-            res.writeHead(200, resource.headers);
+            res.writeHead(200, headers);
 
-            if (resource.links && options.http2 === "push" && res instanceof Http2ServerResponse) {
-                http2Push(res.stream, resource.pathname, resource.links);
+            if (links && options.http2 === "push" && res instanceof Http2ServerResponse && !isHMR) {
+                http2Push(res.stream, pathname, links);
             }
 
-            res.end(resource.content);
+            res.end(content);
 
         } catch (error) {
+
             const {code, headers = {}, message, stack} = error;
+
             if (stack) {
                 const code = HttpStatus.INTERNAL_SERVER_ERROR;
                 const text = HttpStatus.getStatusText(code);
-                log.error`${code} '${text}' handling: ${req.url}`;
+                log.error`${code} '${text}' handling: ${url}`;
                 log.error(error);
                 res.writeHead(code, headers);
                 res.end(stack);
@@ -97,9 +112,9 @@ export const useRequestHandler = memoized(<V extends Router.HTTPVersion>(options
                 const text = HttpStatus.getStatusText(code);
                 if (code === 308) {
                     // todo: check permanent redirect behaviour
-                    log.warn`${code} '${text}' ${req.url} -> ${headers.location}`;
+                    log.warn`${code} '${text}' ${url} -> ${headers.location}`;
                 } else {
-                    log.error`${code} '${text}' ${message || "handling: " + req.url}`;
+                    log.error`${code} '${text}' ${message || "handling: " + url}`;
                 }
                 res.writeHead(code, headers);
                 res.end(message);

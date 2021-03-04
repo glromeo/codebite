@@ -63,9 +63,5 @@ export function collectEntryModules(resolveOptions: resolve.SyncOpts, squash: Se
 
     asciiTree?.write();
 
-    entryModules.add("esnext-server-client");
-    entryModules.add("esnext-hot-element");
-    entryModules.add("esnext-react-refresh");
-
     return entryModules;
 }

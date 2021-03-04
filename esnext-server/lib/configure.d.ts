@@ -40,12 +40,13 @@ export declare type ESNextOptions = WebModulesOptions & {
     babel: TransformOptions;
     sass: SyncOptions;
     messaging?: MessagingOptions;
+    plugins: (ESNextOptions | string)[];
 };
 export declare function defaultOptions(args: Args): ESNextOptions;
 export declare type Args = {
     config?: string;
     root?: string;
-    module?: string | string[];
+    plugin?: string | string[];
     debug?: boolean;
     production?: boolean;
 };

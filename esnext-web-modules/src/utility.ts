@@ -1,8 +1,7 @@
 import chalk from "chalk";
-import {promises as fsp, readFileSync} from "fs";
+import {promises as fsp, readFileSync, statSync} from "fs";
 import path from "path";
 import log from "tiny-node-logger";
-import {WebModulesOptions} from "./index";
 
 export interface PackageMeta {
     name: string;
@@ -33,10 +32,10 @@ export function readImportMap(rootDir: string, outDir: string): ImportMap {
 
         for (const [key, pathname] of Object.entries(importMap.imports)) {
             try {
-                // let {mtime} = statSync(path.join(rootDir, String(pathname)));
-                log.debug("web_module:", chalk.green(key), "->", chalk.gray(pathname));
+                let {mtime} = statSync(path.join(rootDir, String(pathname)));
+                log.debug("web_module:", chalk.green(key), "->", chalk.gray(pathname), "mtime:", mtime);
             } catch (e) {
-                delete importMap[key];
+                delete importMap.imports[key];
             }
         }
 

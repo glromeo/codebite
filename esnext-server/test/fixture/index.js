@@ -45,7 +45,7 @@ module.exports = {
 
         options.server = {port: Math.floor(3000 + Math.random() * 6000)};
 
-        const config = configure({root: __dirname, config: `${__dirname}/es-next-server.config.js`}, options);
+        const config = configure({root: __dirname, options: `${__dirname}/es-next-server.config.js`}, options);
 
         const watcher = useWatcher(config);
 
@@ -54,7 +54,7 @@ module.exports = {
         const fixture = {
             baseDir: process.cwd(),
             rootDir: __dirname,
-            config,
+            config: options,
             server: {
                 async start() {
                     log.info("starting server on port:", config.server.port);

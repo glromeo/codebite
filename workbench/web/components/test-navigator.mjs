@@ -1,4 +1,4 @@
-import {send, on} from "esnext-server-client";
+import {send, on} from "/esnext-server-client/lib/index.js";
 import {css, customElement, html, LitElement, property} from "lit-element";
 import {nothing, render} from "lit-html";
 import {ifDefined} from "lit-html/directives/if-defined.js";
@@ -360,7 +360,7 @@ export class TestNavigator extends LitElement {
     }
 
     updated(changed) {
-        if (changed.has("specs") || changed.has("search")) {
+        if (changed.has("specs") || changed.has("search") || this.__HOT_RELOAD__) {
             this.renderSpecs();
         }
     }

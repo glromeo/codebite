@@ -2,7 +2,7 @@ import "@codebite/components";
 import {css, customElement, LitElement, property} from "lit-element";
 import {html} from "lit-html";
 
-import {on} from "esnext-server-client";
+import {on} from "/esnext-server-client/lib/index.js";
 
 import styles from "./styles.scss";
 
@@ -42,15 +42,15 @@ export class TestWorkbench extends LitElement {
 
         on("open", () => this.connected = true);
         on("close", () => this.connected = false);
-        on("hmr:update", ({path}) => {
-            console.log(`detected change in: ${path}`);
-            if (this.reload) {
-                console.log(`reloading!...`);
-                location.reload();
-            } else {
-                this.changed = this.changed.indexOf(path) > 0 ? this.changed : [...this.changed, path];
-            }
-        });
+        // on("hmr:reload", ({path}) => {
+        //     console.log(`detected change in: ${path}`);
+        //     if (this.reload) {
+        //         console.log(`reloading!...`);
+        //         location.reload();
+        //     } else {
+        //         this.changed = this.changed.indexOf(path) > 0 ? this.changed : [...this.changed, path];
+        //     }
+        // });
     }
 
     @property({type: String, reflect: true})

@@ -45,6 +45,7 @@ export type ESNextOptions = WebModulesOptions & {
     babel: TransformOptions
     sass: SyncOptions
     messaging?: MessagingOptions
+    plugins: (ESNextOptions|string)[]
 }
 
 function loadConfig(pathname: string): string {
@@ -194,7 +195,7 @@ export function defaultOptions(args: Args): ESNextOptions {
 export type Args = {
     config?: string
     root?: string
-    module?: string | string[]
+    plugin?: string | string[]
     debug?: boolean
     production?: boolean
 }
@@ -226,15 +227,23 @@ export function configure(args: Args = {}, override?): Readonly<ESNextOptions> {
         assignConfig(options, override);
     }
 
-    if (args.module) {
-        const modules = Array.isArray(args.module) ? args.module : [args.module];
-        for (const module of modules) try {
-            const plugin = require.resolve(`${module}/esnext-server.plugin`, {paths: [options.rootDir]});
-            assignConfig(options, require(plugin));
+    const plugins = options.plugins || [];
+
+    if (args.plugin) {
+        const names = Array.isArray(args.plugin) ? args.plugin : [args.plugin];
+        for (const name of names) try {
+            plugins.push(require.resolve(name, {paths: [options.rootDir]}));
         } catch (error) {
-            log.error("plugin '" + module + "' load failed:", error);
+            log.error("plugin '" + name + "' resolution failed:", error);
             process.exit(1);
         }
+    }
+
+    for (const plugin of plugins) try {
+        assignConfig(options, typeof plugin === "string" ? require(plugin) : plugin);
+    } catch (error) {
+        log.error("plugin '" + plugin + "' loading failed:", error);
+        process.exit(1);
     }
 
     if (options.log) {
