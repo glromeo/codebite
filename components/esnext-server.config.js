@@ -14,7 +14,7 @@ module.exports = {
         sourcemap: false
     },
     plugins: [
-        require("@codebite/workbench"),
+        require("@codebite/workbench/esnext-server.plugin.js"),
         require("esnext-hot-element/")
     ]
 };
