@@ -1,4 +1,5 @@
-@import "../../../node_modules/bootstrap/dist/css/bootstrap.css";
+// TODO: This is pretty bad, need a way to recycle page CSS
+@import "bootstrap/dist/css/bootstrap";
 
 :host {
   display: contents;
