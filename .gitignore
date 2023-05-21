@@ -118,3 +118,5 @@ dist
 /components/fa-icon/files/
 /.idea/
 /.vscode/
+/components/.idea/
+/workbench/.idea/
