@@ -10,7 +10,7 @@ describe("sass importer", function () {
         atomic: false
     });
 
-    const sass = require("node-sass");
+    const sass = require("sass");
     const sassRender = promisify(sass.render);
 
     const {useSassImporter} = require("../src/util/sass-importer.ts");

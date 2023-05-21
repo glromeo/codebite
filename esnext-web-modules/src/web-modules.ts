@@ -1,5 +1,5 @@
 import chalk from "chalk";
-import {Service, startService} from "esbuild";
+import esbuild from "esbuild";
 import {sassPlugin} from "esbuild-sass-plugin";
 import {parse} from "fast-url-parser";
 import {existsSync, mkdirSync, rmdirSync, statSync} from "fs";
@@ -217,8 +217,6 @@ export const useWebModules = memoized<WebModulesFactory>((options: WebModulesOpt
         return pendingTask;
     }
 
-    let esbuild: Service;
-
     let stylePlugin = sassPlugin({
         basedir: options.rootDir,
         cache: false,
@@ -226,10 +224,9 @@ export const useWebModules = memoized<WebModulesFactory>((options: WebModulesOpt
     });
 
     let ready = Promise.all([
-        startService(),
         parseCjsReady,
         parseEsmReady
-    ]).then(([service]) => esbuild = service);
+    ]);
 
     let resolveEntryFile = function (source: string) {
         try {
@@ -269,9 +266,11 @@ export const useWebModules = memoized<WebModulesFactory>((options: WebModulesOpt
             let outUrl = `/web_modules/${outName}`;
             let outFile = path.join(outDir, outName);
 
+            await ready;
+
             if (pathname) {
 
-                await (esbuild || await ready).build({
+                await esbuild.build({
                     ...options.esbuild,
                     entryPoints: [entryUrl],
                     outfile: outFile,
@@ -325,7 +324,7 @@ export const useWebModules = memoized<WebModulesFactory>((options: WebModulesOpt
                     log.warn(`${source} has ${external.size} externals: ${external.size < 20 ? entryProxy.external : "..."}`);
                 }
 
-                await (esbuild || await ready).build({
+                await esbuild.build({
                     ...options.esbuild,
                     stdin: {
                         contents: entryProxy.code,

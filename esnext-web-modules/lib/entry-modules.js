@@ -10,7 +10,7 @@ const utility_1 = require("./utility");
 function collectEntryModules(resolveOptions, squash, debug) {
     const readManifest = (module) => {
         try {
-            return utility_1.readJson(resolve_1.default.sync(`${module}/package.json`, resolveOptions));
+            return (0, utility_1.readJson)(resolve_1.default.sync(`${module}/package.json`, resolveOptions));
         }
         catch (ignored) {
             tiny_node_logger_1.default.debug `unable to read package.json for: ${module}`;

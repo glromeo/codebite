@@ -6,12 +6,17 @@ import {ESNextOptions} from "./configure";
 
 export const useWatcher = memoized(({rootDir, watcher: options}: ESNextOptions): FSWatcher => {
 
+    let ignored = options?.ignored ?? [];
+    if (!Array.isArray(ignored)) {
+        ignored = [ignored];
+    }
+
     const watcher = chokidar.watch([], {
         ...options,
         cwd: rootDir,
         atomic: false,
         ignored: [
-            ...options?.ignored ?? [],
+            ...ignored,
             "**/web_modules/**",
             "**/node_modules/**"
         ]

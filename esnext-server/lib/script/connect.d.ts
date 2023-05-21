@@ -1,1 +1,1 @@
-export var esnextConnectScript: string;
+export const esnextConnectScript: string;

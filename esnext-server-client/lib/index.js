@@ -3,7 +3,7 @@ var MultiMap = class extends Map {
   add(key, value) {
     let set = super.get(key);
     if (!set) {
-      set = new Set();
+      set = /* @__PURE__ */ new Set();
       super.set(key, set);
     }
     set.add(value);
@@ -26,7 +26,7 @@ var queue = [];
 var callbacks = new MultiMap();
 var ws = new WebSocket(`${location.protocol === "http:" ? "ws:" : "wss:"}//${location.host}/`, "esnext-dev");
 ws.onopen = (event) => {
-  send("hello", {time: new Date().toUTCString()});
+  send("hello", { time: (/* @__PURE__ */ new Date()).toUTCString() });
   const subset = callbacks.get("open");
   if (subset)
     for (const callback of subset) {
@@ -37,7 +37,7 @@ ws.onopen = (event) => {
 };
 ws.onmessage = (event) => {
   const message = event.data;
-  const {type, data = void 0} = message.charAt(0) === "{" ? JSON.parse(message) : {type: message};
+  const { type, data = void 0 } = message.charAt(0) === "{" ? JSON.parse(message) : { type: message };
   const subset = callbacks.get(type);
   if (subset)
     for (const callback of subset) {
@@ -58,7 +58,7 @@ ws.onclose = (event) => {
     }
 };
 function send(type, data) {
-  const text = data === void 0 ? JSON.stringify({type}) : JSON.stringify({type, data});
+  const text = data === void 0 ? JSON.stringify({ type }) : JSON.stringify({ type, data });
   if (ws.readyState !== ws.OPEN) {
     queue.push(text);
   } else {
@@ -178,127 +178,132 @@ sheet.replaceSync(`
 }
 
 `);
-customElements.define("esnext-notifications", class extends HTMLElement {
-  constructor() {
-    super();
-    this.hideTimeout = 0;
-    this.ready = Promise.resolve();
-    this.renderRoot = this.attachShadow({mode: "open"});
-    this.renderRoot["adoptedStyleSheets"] = [sheet];
-    this.renderRoot.innerHTML = `<div id="container">${this.innerHTML}</div>`;
-    let autoHide;
-    this.addEventListener("mouseenter", () => {
-      autoHide = !!this.hideTimeout;
-      this.show();
-    });
-    this.addEventListener("mouseout", () => {
-      this.show(autoHide);
-    });
-  }
-  get containerElement() {
-    return this.renderRoot.getElementById("container");
-  }
-  set items(items) {
-    this.containerElement.innerHTML = "";
-    for (const item of items) {
-      this.add(item);
+customElements.define(
+  "esnext-notifications",
+  class extends HTMLElement {
+    renderRoot;
+    hideTimeout = 0;
+    ready = Promise.resolve();
+    constructor() {
+      super();
+      this.renderRoot = this.attachShadow({ mode: "open" });
+      this.renderRoot["adoptedStyleSheets"] = [sheet];
+      this.renderRoot.innerHTML = `<div id="container">${this.innerHTML}</div>`;
+      let autoHide;
+      this.addEventListener("mouseenter", () => {
+        autoHide = !!this.hideTimeout;
+        this.show();
+      });
+      this.addEventListener("mouseout", () => {
+        this.show(autoHide);
+      });
     }
-  }
-  connectedCallback() {
-    const removeAddCallback = on("notification:add", (notification) => this.add(notification));
-    const removeUpdateCallback = on("notification:update", (notification) => this.update(notification));
-    on("close", () => {
-      if (this.parentElement)
-        this.parentElement.removeChild(this);
-    });
-    this.disconnectedCallback = () => {
-      removeAddCallback();
-      removeUpdateCallback();
-    };
-  }
-  disconnectedCallback() {
-  }
-  show(autoHide = false) {
-    if (autoHide) {
-      this.hide(2500);
-    } else {
-      window.clearTimeout(this.hideTimeout);
-      this.containerElement.classList.remove("timeout");
+    get containerElement() {
+      return this.renderRoot.getElementById("container");
     }
-    this.containerElement.classList.add("visible");
-  }
-  hide(timeoutMs = 0) {
-    window.clearTimeout(this.hideTimeout);
-    this.containerElement.classList.add("timeout");
-    this.hideTimeout = window.setTimeout(() => {
-      this.containerElement.classList.remove("visible");
-    }, timeoutMs);
-  }
-  add({id, type = "default", message = ""}, sticky = false) {
-    this.ready = (async (ready) => {
-      await ready;
-      let slot = document.createElement("div");
-      slot.classList.add("slot");
-      slot.setAttribute("id", id);
-      const notification = document.createElement("div");
-      notification.setAttribute("class", `notification ${type}`);
-      const dismiss = () => {
-        if (slot) {
-          slot.style.maxHeight = "";
-          slot.classList.remove("connected");
-          slot.addEventListener("transitionend", (event) => {
-            if (slot) {
-              this.containerElement.removeChild(slot);
-              slot = null;
-            }
-          });
-        }
+    set items(items) {
+      this.containerElement.innerHTML = "";
+      for (const item of items) {
+        this.add(item);
+      }
+    }
+    connectedCallback() {
+      const removeAddCallback = on("notification:add", (notification) => this.add(notification));
+      const removeUpdateCallback = on("notification:update", (notification) => this.update(notification));
+      on("close", () => {
+        if (this.parentElement)
+          this.parentElement.removeChild(this);
+      });
+      this.disconnectedCallback = () => {
+        removeAddCallback();
+        removeUpdateCallback();
       };
-      if (sticky) {
-        notification.classList.add("sticky");
-        notification.addEventListener("click", dismiss);
+    }
+    disconnectedCallback() {
+    }
+    show(autoHide = false) {
+      if (autoHide) {
+        this.hide(2500);
       } else {
-        window.setTimeout(dismiss, 3e3);
+        window.clearTimeout(this.hideTimeout);
+        this.containerElement.classList.remove("timeout");
       }
-      notification.innerHTML = message;
-      slot.appendChild(notification);
-      this.containerElement.appendChild(slot);
-      this.show(true);
-      return new Promise((resolve) => window.setTimeout(() => {
-        if (slot) {
-          slot.classList.add("connected");
-          slot.style.maxHeight = `${notification.getBoundingClientRect().height + 8}px`;
-        }
-        window.setTimeout(resolve, 125);
-      }));
-    })(this.ready);
-  }
-  update({id, type = "default", message = ""}) {
-    this.ready = (async (ready) => {
-      await ready;
-      const slot = this.renderRoot.getElementById(id);
-      if (!slot) {
-        return;
-      }
-      const notification = slot.firstElementChild;
-      if (notification) {
+      this.containerElement.classList.add("visible");
+    }
+    hide(timeoutMs = 0) {
+      window.clearTimeout(this.hideTimeout);
+      this.containerElement.classList.add("timeout");
+      this.hideTimeout = window.setTimeout(() => {
+        this.containerElement.classList.remove("visible");
+      }, timeoutMs);
+    }
+    add({ id, type = "default", message = "" }, sticky = false) {
+      this.ready = (async (ready) => {
+        await ready;
+        let slot = document.createElement("div");
+        slot.classList.add("slot");
+        slot.setAttribute("id", id);
+        const notification = document.createElement("div");
         notification.setAttribute("class", `notification ${type}`);
+        const dismiss = () => {
+          if (slot) {
+            slot.style.maxHeight = "";
+            slot.classList.remove("connected");
+            slot.addEventListener("transitionend", (event) => {
+              if (slot) {
+                this.containerElement.removeChild(slot);
+                slot = null;
+              }
+            });
+          }
+        };
+        if (sticky) {
+          notification.classList.add("sticky");
+          notification.addEventListener("click", dismiss);
+        } else {
+          window.setTimeout(dismiss, 3e3);
+        }
         notification.innerHTML = message;
-      }
-      this.show(true);
-    })(this.ready);
+        slot.appendChild(notification);
+        this.containerElement.appendChild(slot);
+        this.show(true);
+        return new Promise((resolve) => window.setTimeout(() => {
+          if (slot) {
+            slot.classList.add("connected");
+            slot.style.maxHeight = `${notification.getBoundingClientRect().height + 8}px`;
+          }
+          window.setTimeout(resolve, 125);
+        }));
+      })(this.ready);
+    }
+    // TODO: handle change in sticky/dismiss
+    update({ id, type = "default", message = "" }) {
+      this.ready = (async (ready) => {
+        await ready;
+        const slot = this.renderRoot.getElementById(id);
+        if (!slot) {
+          return;
+        }
+        const notification = slot.firstElementChild;
+        if (notification) {
+          notification.setAttribute("class", `notification ${type}`);
+          notification.innerHTML = message;
+        }
+        this.show(true);
+      })(this.ready);
+    }
   }
-});
+);
 on("open", () => {
   document.body.appendChild(document.createElement("esnext-notifications"));
 });
 
 // src/import-meta-hot.ts
-var acceptCallbacks = new Map();
-var disposeCallbacks = new Map();
+var acceptCallbacks = /* @__PURE__ */ new Map();
+var disposeCallbacks = /* @__PURE__ */ new Map();
 var DO_NOTHING = () => void 0;
 function createHotContext(url) {
-  let {pathname, search} = new URL(url);
+  let { pathname, search } = new URL(url);
   let id = pathname + search.slice(0, search.endsWith(".HMR") ? search.lastIndexOf("v=") - 1 : search.length);
   return {
     accept(cb = true) {
@@ -314,7 +319,7 @@ function createHotContext(url) {
   };
 }
 var updateCount = 0;
-on("hmr:update", ({url}) => {
+on("hmr:update", ({ url }) => {
   console.log("[HMR] update", url);
   const disposeCallback = disposeCallbacks.get(url);
   let recycled;
@@ -326,7 +331,7 @@ on("hmr:update", ({url}) => {
     const acceptCallback = acceptCallbacks.get(url);
     if (acceptCallback) {
       try {
-        acceptCallback({module, recycled});
+        acceptCallback({ module, recycled });
         console.log("[HMR] accepted version:", updateCount + ".HMR");
         return;
       } catch (error) {
@@ -337,7 +342,7 @@ on("hmr:update", ({url}) => {
     location.reload();
   });
 });
-on("hmr:reload", ({url}) => {
+on("hmr:reload", ({ url }) => {
   console.log("[HMR] reload", url);
   location.reload();
 });

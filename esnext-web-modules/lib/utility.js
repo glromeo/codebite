@@ -9,7 +9,7 @@ const fs_1 = require("fs");
 const path_1 = __importDefault(require("path"));
 const tiny_node_logger_1 = __importDefault(require("tiny-node-logger"));
 function readJson(filename) {
-    return JSON.parse(fs_1.readFileSync(filename, "utf-8"));
+    return JSON.parse((0, fs_1.readFileSync)(filename, "utf-8"));
 }
 exports.readJson = readJson;
 function stripExt(filename) {
@@ -19,10 +19,10 @@ function stripExt(filename) {
 exports.stripExt = stripExt;
 function readImportMap(rootDir, outDir) {
     try {
-        let importMap = JSON.parse(fs_1.readFileSync(`${outDir}/import-map.json`, "utf-8"));
+        let importMap = JSON.parse((0, fs_1.readFileSync)(`${outDir}/import-map.json`, "utf-8"));
         for (const [key, pathname] of Object.entries(importMap.imports)) {
             try {
-                let { mtime } = fs_1.statSync(path_1.default.join(rootDir, String(pathname)));
+                let { mtime } = (0, fs_1.statSync)(path_1.default.join(rootDir, String(pathname)));
                 tiny_node_logger_1.default.debug("web_module:", chalk_1.default.green(key), "->", chalk_1.default.gray(pathname), "mtime:", mtime);
             }
             catch (e) {

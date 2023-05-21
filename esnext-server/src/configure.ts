@@ -6,11 +6,11 @@ import {Options} from "etag";
 import Router, {HTTPVersion} from "find-my-way";
 import fs from "fs";
 import Server from "http-proxy";
-import {SyncOptions} from "node-sass";
 import path from "path";
 import log from "tiny-node-logger";
 import {ServerOptions} from "./server";
 import {MessagingOptions} from "./messaging";
+import {LegacyOptions} from "sass";
 
 export type FindMyWayMiddleware = (
     router: Router.Instance<HTTPVersion.V1 | HTTPVersion.V2>,
@@ -43,7 +43,7 @@ export type ESNextOptions = WebModulesOptions & {
     }
     mount: { [path: string]: string }
     babel: TransformOptions
-    sass: SyncOptions
+    sass: LegacyOptions<'sync'> & {moduleType?: "style"}
     messaging?: MessagingOptions
     plugins: (ESNextOptions|string)[]
 }

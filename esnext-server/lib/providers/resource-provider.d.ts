@@ -1,9 +1,12 @@
 /// <reference types="node" />
+/// <reference types="node" />
+/// <reference types="nano-memoize" />
 import { OutgoingHttpHeaders } from "http";
-export declare type Query = {
+import { ESNextOptions } from "../configure";
+export type Query = {
     [name: string]: string;
 };
-export declare type Resource = {
+export type Resource = {
     pathname: string;
     query: Query;
     filename: string;
@@ -15,4 +18,6 @@ export declare type Resource = {
 };
 export declare const NO_LINKS: readonly never[];
 export declare const NO_QUERY: Readonly<{}>;
-export declare const useResourceProvider: any;
+export declare const useResourceProvider: ((options: ESNextOptions) => {
+    provideResource(url: string): Promise<Resource>;
+}) & import("nano-memoize").nanomemoize;

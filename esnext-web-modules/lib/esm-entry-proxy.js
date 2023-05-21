@@ -11,17 +11,17 @@ function scanEsm(filename, collected = new Set(), imports = new Map(), external 
         return !collected.has(e) && collected.add(e);
     }
     function scanEsm(filename, module) {
-        let source = fs_1.readFileSync(filename, "utf-8");
-        let [imported, exported] = es_module_lexer_1.parse(source);
+        let source = (0, fs_1.readFileSync)(filename, "utf-8");
+        let [imported, exported] = (0, es_module_lexer_1.parse)(source);
         for (const e of exported)
             if (e === "default" && module !== null) {
                 external.push(module);
                 return;
             }
-        let resolveOptions = { paths: [path_1.dirname(filename)] };
+        let resolveOptions = { paths: [(0, path_1.dirname)(filename)] };
         for (const { s, e } of imported) {
             let module = source.substring(s, e);
-            if (!es_import_utils_1.isBare(module)) {
+            if (!(0, es_import_utils_1.isBare)(module)) {
                 if (module === "..") {
                     module = "../index";
                 }
@@ -44,7 +44,7 @@ function generateEsmProxy(entryId) {
     let code = "";
     let imports = [];
     for (const [filename, exported] of exports.entries()) {
-        let moduleUrl = es_import_utils_1.pathnameToModuleUrl(filename);
+        let moduleUrl = (0, es_import_utils_1.pathnameToModuleUrl)(filename);
         if (exported.length > 0) {
             code += `export {\n${exported.join(",\n")}\n} from "${moduleUrl}";\n`;
         }
@@ -54,7 +54,7 @@ function generateEsmProxy(entryId) {
         code += `export * from "redux";`;
     }
     return {
-        code: code || fs_1.readFileSync(entryId, "utf-8"),
+        code: code || (0, fs_1.readFileSync)(entryId, "utf-8"),
         imports,
         external
     };

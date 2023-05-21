@@ -9,8 +9,8 @@ const nano_memoize_1 = __importDefault(require("nano-memoize"));
 const tiny_node_logger_1 = __importDefault(require("tiny-node-logger"));
 const es_import_utils_1 = require("./es-import-utils");
 const index_1 = require("./index");
-exports.useWebModulesPlugin = nano_memoize_1.default(config => {
-    const { resolveImport } = index_1.useWebModules(config);
+exports.useWebModulesPlugin = (0, nano_memoize_1.default)(config => {
+    const { resolveImport } = (0, index_1.useWebModules)(config);
     function resolveBabelRuntime(importUrl) {
         if (importUrl.startsWith("@babel/"))
             return `/web_modules/${importUrl}.js`;
@@ -28,7 +28,7 @@ exports.useWebModulesPlugin = nano_memoize_1.default(config => {
                 catch (error) {
                     throwCodeFrameError(path, importUrl, error);
                 }
-            if (!es_import_utils_1.isBare(resolvedUrl)) {
+            if (!(0, es_import_utils_1.isBare)(resolvedUrl)) {
                 imports.add(resolvedUrl);
                 tiny_node_logger_1.default.debug(filename, "collected link:", resolvedUrl);
             }
@@ -68,7 +68,7 @@ exports.useWebModulesPlugin = nano_memoize_1.default(config => {
     }
     async function resolveImports(filename, parsedAst) {
         const importMap = new Map();
-        core_1.traverse(parsedAst, {
+        (0, core_1.traverse)(parsedAst, {
             "CallExpression"(path, state) {
                 const isImport = path.node.callee.type === "Import";
                 const isRequire = path.node.callee.name === "require";

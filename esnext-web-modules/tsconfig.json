@@ -13,7 +13,8 @@
     "skipLibCheck": true,
     "allowJs": true,
     "removeComments": true,
-    "preserveConstEnums": true
+    "preserveConstEnums": true,
+    "useUnknownInCatchVariables": false
   },
   "ts-node": {
     "transpileOnly": true

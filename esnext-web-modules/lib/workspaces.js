@@ -43,7 +43,7 @@ function readWorkspaces(rootDir) {
     let entries = [];
     readManifest(rootDir, entries);
     for (const [name, pathname] of entries) {
-        map[name] = path_1.default.posix.join("/workspaces", es_import_utils_1.toPosix(path_1.default.relative(rootDir, pathname)));
+        map[name] = path_1.default.posix.join("/workspaces", (0, es_import_utils_1.toPosix)(path_1.default.relative(rootDir, pathname)));
     }
     return { imports: map };
 }

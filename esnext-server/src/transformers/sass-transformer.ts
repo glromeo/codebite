@@ -1,5 +1,5 @@
 import memoized from "nano-memoize";
-import sass from "node-sass";
+import sass from "sass";
 import path from "path";
 import {ESNextOptions} from "../configure";
 import {CSS_CONTENT_TYPE, JAVASCRIPT_CONTENT_TYPE} from "../util/mime-types";

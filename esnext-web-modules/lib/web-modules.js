@@ -1,7 +1,11 @@
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
 }) : (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     o[k2] = m[k];
@@ -24,7 +28,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.useWebModules = exports.defaultOptions = void 0;
 const chalk_1 = __importDefault(require("chalk"));
-const esbuild_1 = require("esbuild");
+const esbuild_1 = __importDefault(require("esbuild"));
 const esbuild_sass_plugin_1 = require("esbuild-sass-plugin");
 const fast_url_parser_1 = require("fast-url-parser");
 const fs_1 = require("fs");
@@ -44,7 +48,7 @@ function defaultOptions() {
     return require(require.resolve(`${process.cwd()}/web-modules.config.js`));
 }
 exports.defaultOptions = defaultOptions;
-exports.useWebModules = nano_memoize_1.default((options = defaultOptions()) => {
+exports.useWebModules = (0, nano_memoize_1.default)((options = defaultOptions()) => {
     if (!options.environment)
         options.environment = "development";
     if (!options.resolve)
@@ -55,7 +59,7 @@ exports.useWebModules = nano_memoize_1.default((options = defaultOptions()) => {
         options.external = ["@babel/runtime/**"];
     if (!options.esbuild)
         options.esbuild = {};
-    const notify = notifications_1.useNotifications(options);
+    const notify = (0, notifications_1.useNotifications)(options);
     options.esbuild = {
         define: {
             "process.env.NODE_ENV": `"${options.environment}"`,
@@ -77,30 +81,30 @@ exports.useWebModules = nano_memoize_1.default((options = defaultOptions()) => {
         ...options.resolve
     };
     const outDir = path_1.default.join(options.rootDir, "web_modules");
-    if (options.clean && fs_1.existsSync(outDir)) {
-        fs_1.rmdirSync(outDir, { recursive: true });
+    if (options.clean && (0, fs_1.existsSync)(outDir)) {
+        (0, fs_1.rmdirSync)(outDir, { recursive: true });
         tiny_node_logger_1.default.warn("cleaned web_modules directory");
     }
-    fs_1.mkdirSync(outDir, { recursive: true });
+    (0, fs_1.mkdirSync)(outDir, { recursive: true });
     const importMap = {
         imports: {
-            ...utility_1.readImportMap(options.rootDir, outDir).imports,
-            ...workspaces_1.readWorkspaces(options.rootDir).imports
+            ...(0, utility_1.readImportMap)(options.rootDir, outDir).imports,
+            ...(0, workspaces_1.readWorkspaces)(options.rootDir).imports
         }
     };
     const squash = new Set(options.squash);
-    const entryModules = entry_modules_1.collectEntryModules(resolveOptions, squash);
+    const entryModules = (0, entry_modules_1.collectEntryModules)(resolveOptions, squash);
     const isModule = /\.m?[tj]sx?$/;
     const ignore = function () {
     };
     const resolveImport = async (url, importer) => {
-        let { hostname, pathname, search } = fast_url_parser_1.parse(url);
+        let { hostname, pathname, search } = (0, fast_url_parser_1.parse)(url);
         if (hostname !== null) {
             return url;
         }
         let resolved = importMap.imports[pathname];
         if (!resolved) {
-            let [module, filename] = es_import_utils_1.parseModuleUrl(pathname);
+            let [module, filename] = (0, es_import_utils_1.parseModuleUrl)(pathname);
             if (module && !importMap.imports[module]) {
                 await bundleWebModule(module);
                 resolved = importMap.imports[module];
@@ -148,18 +152,18 @@ exports.useWebModules = nano_memoize_1.default((options = defaultOptions()) => {
         let pathname, resolved;
         if (module) {
             pathname = resolve_1.default.sync(`${module}/${filename}`, resolveOptions);
-            resolved = es_import_utils_1.parseModuleUrl(es_import_utils_1.pathnameToModuleUrl(pathname))[1];
+            resolved = (0, es_import_utils_1.parseModuleUrl)((0, es_import_utils_1.pathnameToModuleUrl)(pathname))[1];
         }
         else {
             pathname = path_1.default.join(basedir, filename);
             resolved = filename;
         }
         try {
-            let stats = fs_1.statSync(pathname);
+            let stats = (0, fs_1.statSync)(pathname);
             if (stats.isDirectory()) {
                 pathname = path_1.default.join(pathname, "index");
                 for (const ext of options.resolve.extensions) {
-                    if (fs_1.existsSync(pathname + ext)) {
+                    if ((0, fs_1.existsSync)(pathname + ext)) {
                         return `${resolved}/index${ext}`;
                     }
                 }
@@ -168,7 +172,7 @@ exports.useWebModules = nano_memoize_1.default((options = defaultOptions()) => {
         }
         catch (ignored) {
             for (const ext of options.resolve.extensions) {
-                if (fs_1.existsSync(pathname + ext)) {
+                if ((0, fs_1.existsSync)(pathname + ext)) {
                     return `${resolved}${ext}`;
                 }
             }
@@ -194,17 +198,15 @@ exports.useWebModules = nano_memoize_1.default((options = defaultOptions()) => {
         }
         return pendingTask;
     }
-    let esbuild;
-    let stylePlugin = esbuild_sass_plugin_1.sassPlugin({
+    let stylePlugin = (0, esbuild_sass_plugin_1.sassPlugin)({
         basedir: options.rootDir,
         cache: false,
         type: "style"
     });
     let ready = Promise.all([
-        esbuild_1.startService(),
         cjs_entry_proxy_1.parseCjsReady,
         esm_entry_proxy_1.parseEsmReady
-    ]).then(([service]) => esbuild = service);
+    ]);
     let resolveEntryFile = function (source) {
         try {
             return resolve_1.default.sync(source, resolveOptions);
@@ -225,21 +227,22 @@ exports.useWebModules = nano_memoize_1.default((options = defaultOptions()) => {
                 notify(`nothing to bundle for: ${source}`, "success", true);
                 return;
             }
-            let entryUrl = es_import_utils_1.pathnameToModuleUrl(entryFile);
-            let pkg = utility_1.closestManifest(entryFile);
+            let entryUrl = (0, es_import_utils_1.pathnameToModuleUrl)(entryFile);
+            let pkg = (0, utility_1.closestManifest)(entryFile);
             let isESM = pkg.module || pkg["jsnext:main"]
                 || entryFile.endsWith(".mjs")
                 || entryFile.indexOf("\\es\\") > 0
                 || entryFile.indexOf("\\esm\\") > 0;
-            const [entryModule, pathname] = es_import_utils_1.parseModuleUrl(source);
+            const [entryModule, pathname] = (0, es_import_utils_1.parseModuleUrl)(source);
             if (entryModule && !importMap.imports[entryModule] && entryModule !== source) {
                 await bundleWebModule(entryModule);
             }
-            let outName = `${utility_1.stripExt(source)}.js`;
+            let outName = `${(0, utility_1.stripExt)(source)}.js`;
             let outUrl = `/web_modules/${outName}`;
             let outFile = path_1.default.join(outDir, outName);
+            await ready;
             if (pathname) {
-                await (esbuild || await ready).build({
+                await esbuild_1.default.build({
                     ...options.esbuild,
                     entryPoints: [entryUrl],
                     outfile: outFile,
@@ -247,7 +250,7 @@ exports.useWebModules = nano_memoize_1.default((options = defaultOptions()) => {
                             name: "web_modules",
                             setup(build) {
                                 build.onResolve({ filter: /./ }, async ({ path: url, importer }) => {
-                                    if (es_import_utils_1.isBare(url)) {
+                                    if ((0, es_import_utils_1.isBare)(url)) {
                                         if (url === entryUrl) {
                                             return { path: entryFile };
                                         }
@@ -255,7 +258,7 @@ exports.useWebModules = nano_memoize_1.default((options = defaultOptions()) => {
                                         if (webModuleUrl) {
                                             return { path: webModuleUrl, external: true, namespace: "web_modules" };
                                         }
-                                        let [m] = es_import_utils_1.parseModuleUrl(url);
+                                        let [m] = (0, es_import_utils_1.parseModuleUrl)(url);
                                         if (entryModules.has(m)) {
                                             return {
                                                 path: await resolveImport(url),
@@ -279,13 +282,13 @@ exports.useWebModules = nano_memoize_1.default((options = defaultOptions()) => {
                 });
             }
             else {
-                let entryProxy = isESM ? esm_entry_proxy_1.generateEsmProxy(entryFile) : cjs_entry_proxy_1.generateCjsProxy(entryFile);
+                let entryProxy = isESM ? (0, esm_entry_proxy_1.generateEsmProxy)(entryFile) : (0, cjs_entry_proxy_1.generateCjsProxy)(entryFile);
                 let imported = new Set(entryProxy.imports);
                 let external = new Set(entryProxy.external);
                 if (external.size) {
                     tiny_node_logger_1.default.warn(`${source} has ${external.size} externals: ${external.size < 20 ? entryProxy.external : "..."}`);
                 }
-                await (esbuild || await ready).build({
+                await esbuild_1.default.build({
                     ...options.esbuild,
                     stdin: {
                         contents: entryProxy.code,
@@ -298,7 +301,7 @@ exports.useWebModules = nano_memoize_1.default((options = defaultOptions()) => {
                             name: "web_modules",
                             setup(build) {
                                 build.onResolve({ filter: /./ }, async ({ path: url, importer }) => {
-                                    if (es_import_utils_1.isBare(url)) {
+                                    if ((0, es_import_utils_1.isBare)(url)) {
                                         if (imported.has(url)) {
                                             let webModuleUrl = importMap.imports[url];
                                             if (webModuleUrl) {
@@ -307,7 +310,7 @@ exports.useWebModules = nano_memoize_1.default((options = defaultOptions()) => {
                                             }
                                             return null;
                                         }
-                                        let [m] = es_import_utils_1.parseModuleUrl(url);
+                                        let [m] = (0, es_import_utils_1.parseModuleUrl)(url);
                                         if (entryModules.has(m)) {
                                             return {
                                                 path: await resolveImport(url),
@@ -342,8 +345,8 @@ exports.useWebModules = nano_memoize_1.default((options = defaultOptions()) => {
             importMap.imports[source] = outUrl;
             importMap.imports[entryUrl] = outUrl;
             await Promise.all([
-                replace_require_1.replaceRequire(outFile, resolveImport, options.esbuild.sourcemap),
-                utility_1.writeImportMap(outDir, importMap)
+                (0, replace_require_1.replaceRequire)(outFile, resolveImport, options.esbuild.sourcemap),
+                (0, utility_1.writeImportMap)(outDir, importMap)
             ]);
             const elapsed = Date.now() - startTime;
             tiny_node_logger_1.default.info `bundled: ${chalk_1.default.magenta(source)} in: ${chalk_1.default.magenta(String(elapsed))}ms`;
@@ -355,7 +358,7 @@ exports.useWebModules = nano_memoize_1.default((options = defaultOptions()) => {
     }
     function resolveToBareUrl(importer, url) {
         let absolute = resolve_1.default.sync(path_1.default.join(path_1.default.dirname(importer), url), resolveOptions);
-        return es_import_utils_1.pathnameToModuleUrl(absolute);
+        return (0, es_import_utils_1.pathnameToModuleUrl)(absolute);
     }
     return {
         options,

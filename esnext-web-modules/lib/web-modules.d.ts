@@ -1,5 +1,5 @@
 import { WebModulesFactory, WebModulesOptions } from "./index";
-export declare type EntryProxyResult = {
+export type EntryProxyResult = {
     code: string;
     imports: string[];
     external: string[];

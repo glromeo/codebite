@@ -1,9 +1,9 @@
 import babel from "@babel/core";
 import fs from "fs";
 import memoized from "nano-memoize";
-import {ImporterReturnType, SyncContext, SyncImporter} from "node-sass";
 import path from "path";
 import log from "tiny-node-logger";
+import {LegacyImporterResult, LegacyImporterThis, LegacySyncImporter} from "sass/types/legacy/importer";
 
 const EXTENSIONS = new Set([".scss", ".sass", ".css"]);
 const PATHS = [];
@@ -201,8 +201,8 @@ export const useSassImporter = memoized(config => {
         }
     }
 
-    function sassImporter(basefile: string):SyncImporter {
-        return function (this: SyncContext, url: string, file: string): ImporterReturnType {
+    function sassImporter(basefile: string):LegacySyncImporter {
+        return function (this: LegacyImporterThis, url: string, file: string): LegacyImporterResult {
             const filename = file === "stdin" ? basefile : file;
             const basedir = path.resolve(config.rootDir, path.dirname(filename));
             const ext = url.substring(url.lastIndexOf("."));

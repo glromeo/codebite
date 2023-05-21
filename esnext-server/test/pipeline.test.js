@@ -77,7 +77,7 @@ describe("pipeline test", function () {
         });
     });
 
-    it("sass files by default are transpiled by node-sass in plain css", async function () {
+    it("sass files by default are transpiled by sass in plain css", async function () {
 
         return fetch(`/public/simple-sass.scss`).then(response => {
             expect(response.status).toBe(200);
@@ -88,7 +88,7 @@ describe("pipeline test", function () {
         });
     });
 
-    it("sass files requested as type=module are transpiled by node-sass in module imports", async function () {
+    it("sass files requested as type=module are transpiled by sass in module imports", async function () {
 
         return fetch(`/src/w3.scss?type=module`).then(response => {
             expect(response.status).toBe(200);

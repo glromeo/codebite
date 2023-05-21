@@ -1,5 +1,8 @@
+/// <reference types="nano-memoize" />
+import { ESNextOptions } from "../configure";
+import { Resource } from "../providers/resource-provider";
 import { CSS_CONTENT_TYPE, HTML_CONTENT_TYPE, JAVASCRIPT_CONTENT_TYPE } from "../util/mime-types";
-export declare type SourceMap = {
+export type SourceMap = {
     version: number;
     sources: string[];
     names: string[];
@@ -8,7 +11,7 @@ export declare type SourceMap = {
     mappings: string;
     file: string;
 };
-export declare type TransformerOutput = {
+export type TransformerOutput = {
     content: string;
     map?: SourceMap | null;
     headers: {
@@ -19,4 +22,7 @@ export declare type TransformerOutput = {
     links?: string[];
     includedFiles?: string[];
 };
-export declare const useTransformers: any;
+export declare const useTransformers: ((options: ESNextOptions) => {
+    shouldTransform: ({ headers, pathname, query }: Resource) => boolean;
+    transformContent: (resource: Resource) => Promise<SourceMap | null | undefined>;
+}) & import("nano-memoize").nanomemoize;

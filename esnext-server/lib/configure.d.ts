@@ -5,11 +5,11 @@ import { WebModulesOptions } from "esnext-web-modules";
 import { Options } from "etag";
 import Router, { HTTPVersion } from "find-my-way";
 import Server from "http-proxy";
-import { SyncOptions } from "node-sass";
 import { ServerOptions } from "./server";
 import { MessagingOptions } from "./messaging";
-export declare type FindMyWayMiddleware = (router: Router.Instance<HTTPVersion.V1 | HTTPVersion.V2>, options: ESNextOptions, watcher: FSWatcher) => void;
-export declare type ESNextOptions = WebModulesOptions & {
+import { LegacyOptions } from "sass";
+export type FindMyWayMiddleware = (router: Router.Instance<HTTPVersion.V1 | HTTPVersion.V2>, options: ESNextOptions, watcher: FSWatcher) => void;
+export type ESNextOptions = WebModulesOptions & {
     rootDir: string;
     log?: {
         level: "trace" | "debug" | "info" | "warn" | "error" | "nothing";
@@ -38,12 +38,14 @@ export declare type ESNextOptions = WebModulesOptions & {
         [path: string]: string;
     };
     babel: TransformOptions;
-    sass: SyncOptions;
+    sass: LegacyOptions<'sync'> & {
+        moduleType?: "style";
+    };
     messaging?: MessagingOptions;
     plugins: (ESNextOptions | string)[];
 };
 export declare function defaultOptions(args: Args): ESNextOptions;
-export declare type Args = {
+export type Args = {
     config?: string;
     root?: string;
     plugin?: string | string[];

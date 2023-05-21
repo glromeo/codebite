@@ -1,5 +1,5 @@
 import {init, parse} from "es-module-lexer";
-import {startService} from "esbuild";
+import esbuild from "esbuild";
 import {useWebModules} from "esnext-web-modules";
 import memoized from "nano-memoize";
 import path from "path";
@@ -11,21 +11,18 @@ export const useEsBuildTransformer = memoized((options: ESNextOptions, sourceMap
 
     const {resolveImport} = useWebModules(options);
 
-    let esbuild;
-    let setup = async () => {
-        await init;
-        return esbuild = await startService();
-    };
-
     async function esbuildTransformer(filename:string, content:string): Promise<TransformerOutput> {
 
-        let {code, map} = await (esbuild || await setup()).transform(content, {
+        await init;
+
+        let {code, map} = await esbuild.transform(content, {
             sourcefile: filename,
             define: {"process.env.NODE_ENV": `"development"`},
             sourcemap: "inline",
             loader: "tsx"
         }).catch(reason => {
             console.error(reason);
+            return {code:undefined, map: "{}"};
         });
 
         if (!code) {
@@ -60,7 +57,7 @@ export const useEsBuildTransformer = memoized((options: ESNextOptions, sourceMap
                 "content-length": Buffer.byteLength(code),
                 "x-transformer": "esbuild-transformer"
             },
-            map,
+            map: JSON.parse(map),
             links: [...links]
         };
     }

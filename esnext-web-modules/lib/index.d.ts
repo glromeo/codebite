@@ -1,7 +1,7 @@
 import { BuildOptions } from "esbuild";
 import { Opts } from "resolve";
 import { ImportMap } from "./utility";
-export declare type WebModulesOptions = {
+export type WebModulesOptions = {
     rootDir: string;
     clean?: boolean;
     init?: boolean;
@@ -12,16 +12,16 @@ export declare type WebModulesOptions = {
     esbuild?: BuildOptions;
     notify?: boolean;
 };
-export declare type ImportResolver = (url: string, importer?: string) => Promise<string>;
-export declare type WebModulesAPI = {
+export type ImportResolver = (url: string, importer?: string) => Promise<string>;
+export type WebModulesAPI = {
     options: WebModulesOptions;
     outDir: string;
     importMap: ImportMap;
     resolveImport: ImportResolver;
     bundleWebModule: (source: string) => Promise<void>;
 };
-export declare type WebModulesFactory = (options?: WebModulesOptions) => WebModulesAPI;
-export declare type WebModulesNotificationType = "primary" | "secondary" | "info" | "success" | "warning" | "danger";
+export type WebModulesFactory = (options?: WebModulesOptions) => WebModulesAPI;
+export type WebModulesNotificationType = "primary" | "secondary" | "info" | "success" | "warning" | "danger";
 export interface WebModulesNotification {
     id: number;
     timeMs: number;

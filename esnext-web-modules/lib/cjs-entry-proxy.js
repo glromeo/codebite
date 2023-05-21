@@ -5,29 +5,29 @@ const cjs_module_lexer_1 = require("cjs-module-lexer");
 const fs_1 = require("fs");
 const path_1 = require("path");
 const es_import_utils_1 = require("./es-import-utils");
-exports.parseCjsReady = cjs_module_lexer_1.init();
+exports.parseCjsReady = (0, cjs_module_lexer_1.init)();
 function scanCjs(filename, collected = new Set()) {
-    let source = fs_1.readFileSync(filename, "utf-8");
-    let { exports, reexports, } = cjs_module_lexer_1.parse(source);
+    let source = (0, fs_1.readFileSync)(filename, "utf-8");
+    let { exports, reexports, } = (0, cjs_module_lexer_1.parse)(source);
     for (const e of exports) {
         collected.add(e);
     }
     for (let required of reexports) {
-        if (!es_import_utils_1.isBare(required)) {
+        if (!(0, es_import_utils_1.isBare)(required)) {
             if (required === "..") {
                 required = "../index";
             }
             else if (required === ".") {
                 required = "./index";
             }
-            let requiredFilename = require.resolve(required, { paths: [path_1.dirname(filename)] });
+            let requiredFilename = require.resolve(required, { paths: [(0, path_1.dirname)(filename)] });
             scanCjs(requiredFilename, collected);
         }
     }
     return collected;
 }
 function generateCjsProxy(entryId) {
-    const entryUrl = es_import_utils_1.toPosix(entryId);
+    const entryUrl = (0, es_import_utils_1.toPosix)(entryId);
     const exports = scanCjs(entryId);
     exports.delete("__esModule");
     let proxy = "";
@@ -47,8 +47,8 @@ function generateCjsProxy(entryId) {
         }
     }
     return {
-        code: proxy || fs_1.readFileSync(entryId, "utf-8"),
-        imports: [es_import_utils_1.pathnameToModuleUrl(entryId)],
+        code: proxy || (0, fs_1.readFileSync)(entryId, "utf-8"),
+        imports: [(0, es_import_utils_1.pathnameToModuleUrl)(entryId)],
         external: []
     };
 }
